@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/coverage/
+.git/
+.github/
+.claude/
+.vs/
+.vscode/
+.idea/
+TestResults/
+*.md
+docs/
