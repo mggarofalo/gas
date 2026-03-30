@@ -1,0 +1,14 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+
+# Lock files — exact
+package-lock.json -diff linguist-generated=true

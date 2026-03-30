@@ -1,0 +1,33 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Environment
+.env
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Test results
+TestResults/
+coveragereport/
+**/coverage/
