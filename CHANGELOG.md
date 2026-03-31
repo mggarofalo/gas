@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.4](https://github.com/mggarofalo/gas/compare/v1.2.3...v1.2.4) (2026-03-31)
+
+
+### Bug Fixes
+
+* prevent shell mangling of generated admin password ([4cb7768](https://github.com/mggarofalo/gas/commit/4cb77680e2f4308314f3e9832baced73659d7ea4))
+* prevent shell mangling of generated admin password ([c4779c1](https://github.com/mggarofalo/gas/commit/c4779c1172fd5f0f0b98f4ed36d0a6a55f226795))
+
 ## [1.2.3](https://github.com/mggarofalo/gas/compare/v1.2.2...v1.2.3) (2026-03-31)
 
 
