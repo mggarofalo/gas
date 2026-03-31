@@ -24,6 +24,9 @@ jobs:
       - name: Build
         run: dotnet build src/GasTracker/GasTracker.slnx -c Release --no-restore
 
+      - name: Test
+        run: dotnet test src/GasTracker/GasTracker.Tests/GasTracker.Tests.csproj -c Release --no-build
+
   frontend:
     name: Build & Check (React)
     runs-on: ubuntu-latest

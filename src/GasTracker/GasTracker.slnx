@@ -2,4 +2,5 @@
   <Project Path="GasTracker.Api/GasTracker.Api.csproj" />
   <Project Path="GasTracker.Core/GasTracker.Core.csproj" />
   <Project Path="GasTracker.Infrastructure/GasTracker.Infrastructure.csproj" />
+  <Project Path="GasTracker.Tests/GasTracker.Tests.csproj" />
 </Solution>
