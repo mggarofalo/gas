@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.3](https://github.com/mggarofalo/gas/compare/v1.2.2...v1.2.3) (2026-03-31)
+
+
+### Performance Improvements
+
+* lazy-load all route components ([a106aec](https://github.com/mggarofalo/gas/commit/a106aec4e373af8c7a59f9c815ce7b27ed140872))
+* lazy-load all route components ([62bbd1b](https://github.com/mggarofalo/gas/commit/62bbd1b0f45e706e4781cc879e73b4a61885aab2))
+
 ## [1.2.2](https://github.com/mggarofalo/gas/compare/v1.2.1...v1.2.2) (2026-03-31)
 
 
