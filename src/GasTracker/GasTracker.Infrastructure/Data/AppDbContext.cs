@@ -1,4 +1,5 @@
 using GasTracker.Core.Entities;
+using GasTracker.Core.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,14 +31,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     private void SetTimestamps()
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var entry in ChangeTracker.Entries<Vehicle>())
-        {
-            if (entry.State == EntityState.Added)
-                entry.Entity.CreatedAt = now;
-            if (entry.State is EntityState.Added or EntityState.Modified)
-                entry.Entity.UpdatedAt = now;
-        }
-        foreach (var entry in ChangeTracker.Entries<FillUp>())
+        foreach (var entry in ChangeTracker.Entries<ITimestamped>())
         {
             if (entry.State == EntityState.Added)
                 entry.Entity.CreatedAt = now;

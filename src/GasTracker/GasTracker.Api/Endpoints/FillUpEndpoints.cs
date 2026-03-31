@@ -5,6 +5,8 @@ using GasTracker.Core.Interfaces;
 
 namespace GasTracker.Api.Endpoints;
 
+using static Mappings;
+
 public static class FillUpEndpoints
 {
     private static readonly HashSet<string> AllowedContentTypes =
@@ -16,7 +18,7 @@ public static class FillUpEndpoints
         var group = app.MapGroup("/api/fill-ups").WithTags("FillUps").RequireAuthorization();
 
         group.MapGet("/", async (
-            IFillUpRepository repo, IReceiptStore receiptStore,
+            IFillUpRepository repo,
             Guid? vehicleId, DateOnly? startDate, DateOnly? endDate,
             int? page, int? pageSize, string? sortBy, string? sortDir) =>
         {
@@ -28,18 +30,18 @@ public static class FillUpEndpoints
             foreach (var f in items)
             {
                 var tripMiles = await repo.GetTripMilesAsync(f);
-                dtos.Add(ToDto(f, tripMiles, receiptStore));
+                dtos.Add(f.ToDto(tripMiles));
             }
 
             return Results.Ok(new FillUpPageDto(dtos, p, ps, totalCount));
         });
 
-        group.MapGet("/{id:guid}", async (Guid id, IFillUpRepository repo, IReceiptStore receiptStore) =>
+        group.MapGet("/{id:guid}", async (Guid id, IFillUpRepository repo) =>
         {
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp is null) return Results.NotFound();
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
-            return Results.Ok(ToDto(fillUp, tripMiles, receiptStore));
+            return Results.Ok(fillUp.ToDto(tripMiles));
         });
 
         group.MapPost("/", async (HttpRequest request, IFillUpRepository repo, IVehicleRepository vehicleRepo, IReceiptStore receiptStore, IValidator<CreateFillUpRequest> validator) =>
@@ -100,7 +102,7 @@ public static class FillUpEndpoints
             }
 
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
-            return Results.Created($"/api/fill-ups/{fillUp.Id}", ToDto(fillUp, tripMiles, receiptStore));
+            return Results.Created($"/api/fill-ups/{fillUp.Id}", fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
 
         group.MapPut("/{id:guid}", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore) =>
@@ -139,7 +141,7 @@ public static class FillUpEndpoints
 
             await repo.UpdateAsync(fillUp);
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
-            return Results.Ok(ToDto(fillUp, tripMiles, receiptStore));
+            return Results.Ok(fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
 
         group.MapDelete("/{id:guid}", async (Guid id, IFillUpRepository repo, IReceiptStore receiptStore) =>
@@ -183,30 +185,5 @@ public static class FillUpEndpoints
         if (!AllowedContentTypes.Contains(receipt.ContentType))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["receipt"] = [$"File type {receipt.ContentType} not allowed"] });
         return null;
-    }
-
-    private static FillUpDto ToDto(FillUp f, int? tripMiles, IReceiptStore receiptStore)
-    {
-        string? receiptUrl = null;
-        if (f.ReceiptPath is not null)
-            receiptUrl = $"/api/fill-ups/{f.Id}/receipt";
-
-        decimal? mpg = tripMiles.HasValue && tripMiles > 0 && f.Gallons > 0
-            ? Math.Round((decimal)tripMiles.Value / f.Gallons, 2)
-            : null;
-        decimal? costPerMile = tripMiles.HasValue && tripMiles > 0
-            ? Math.Round(f.TotalCost / tripMiles.Value, 2)
-            : null;
-
-        return new FillUpDto(
-            f.Id, f.VehicleId,
-            f.Vehicle?.Label ?? "",
-            f.Date.ToString("yyyy-MM-dd"),
-            f.OdometerMiles, f.Gallons, f.PricePerGallon, f.TotalCost,
-            f.StationName, f.StationAddress,
-            f.Latitude, f.Longitude,
-            receiptUrl, tripMiles, mpg, costPerMile,
-            f.PaperlessSyncStatus, f.Notes,
-            f.CreatedAt.ToString("o"));
     }
 }

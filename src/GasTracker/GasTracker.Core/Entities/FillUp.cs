@@ -1,6 +1,8 @@
+using GasTracker.Core.Interfaces;
+
 namespace GasTracker.Core.Entities;
 
-public class FillUp
+public class FillUp : ITimestamped
 {
     public Guid Id { get; set; }
     public Guid VehicleId { get; set; }
