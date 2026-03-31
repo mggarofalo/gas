@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/mggarofalo/gas/compare/v1.0.1...v1.1.0) (2026-03-31)
+
+
+### Features
+
+* add secrets volume, entrypoint, and internal Docker networking ([f2abae1](https://github.com/mggarofalo/gas/commit/f2abae103bb2f6cd5a7d70f58d2ed68e81958b8f))
+
 ## [1.0.1](https://github.com/mggarofalo/gas/compare/v1.0.0...v1.0.1) (2026-03-31)
 
 
