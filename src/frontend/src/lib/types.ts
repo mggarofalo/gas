@@ -39,6 +39,13 @@ export interface FillUpPage {
   totalCount: number;
 }
 
+export interface NearbyStation {
+  stationName: string;
+  stationAddress: string | null;
+  distanceMiles: number;
+  visitCount: number;
+}
+
 export interface Stats {
   totalFillUps: number;
   totalGallons: number;

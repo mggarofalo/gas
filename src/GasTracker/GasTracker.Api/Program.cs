@@ -52,5 +52,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapVehicleEndpoints();
 app.MapFillUpEndpoints();
 app.MapStatsEndpoints();
+app.MapLocationEndpoints();
 
 app.Run();

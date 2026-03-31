@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { apiFetch } from "../lib/api";
-import type { Vehicle, FillUp } from "../lib/types";
+import type { Vehicle, FillUp, NearbyStation } from "../lib/types";
 import { useState, useCallback } from "react";
 
 const numCoerce = z.union([z.string(), z.number()]).pipe(z.coerce.number());
@@ -28,6 +28,8 @@ export function NewFillUpPage() {
   const navigate = useNavigate();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ["vehicles"],
@@ -96,9 +98,30 @@ export function NewFillUpPage() {
 
   const handleGeolocation = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setValue("latitude", Math.round(pos.coords.latitude * 1e7) / 1e7);
-        setValue("longitude", Math.round(pos.coords.longitude * 1e7) / 1e7);
+      async (pos) => {
+        const lat = Math.round(pos.coords.latitude * 1e7) / 1e7;
+        const lng = Math.round(pos.coords.longitude * 1e7) / 1e7;
+        setValue("latitude", lat);
+        setValue("longitude", lng);
+
+        // Async background lookup — auto-fill station from history
+        setLoadingNearby(true);
+        try {
+          const stations = await apiFetch<NearbyStation[]>(
+            `/locations/nearby?lat=${lat}&lng=${lng}`,
+          );
+          setNearbyStations(stations);
+          if (stations.length > 0) {
+            setValue("stationName", stations[0].stationName);
+            if (stations[0].stationAddress) {
+              setValue("stationAddress", stations[0].stationAddress);
+            }
+          }
+        } catch {
+          // Non-critical — user can still type manually
+        } finally {
+          setLoadingNearby(false);
+        }
       },
       (err) => alert(`Geolocation error: ${err.message}`),
     );
@@ -127,6 +150,28 @@ export function NewFillUpPage() {
         {/* Station */}
         <Field label="Gas Station" error={errors.stationName?.message}>
           <input {...register("stationName")} className="input" placeholder="Shell, BP, etc." />
+          {loadingNearby && (
+            <p className="mt-1 text-xs text-gray-400">Looking up nearby stations...</p>
+          )}
+          {nearbyStations.length > 1 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {nearbyStations.map((s, i) => (
+                <button
+                  key={`${s.stationName}-${s.stationAddress}`}
+                  type="button"
+                  onClick={() => {
+                    setValue("stationName", s.stationName);
+                    if (s.stationAddress) setValue("stationAddress", s.stationAddress);
+                  }}
+                  className={`rounded border px-2 py-0.5 text-xs ${
+                    i === 0 ? "border-blue-300 bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {s.stationName} ({s.distanceMiles.toFixed(2)} mi, {s.visitCount}x)
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
 
         <Field label="Station Address (optional)">
