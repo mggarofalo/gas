@@ -100,11 +100,11 @@ services:
         max-file: "3"
 
   app:
-    image: ghcr.io/mggarofalo/gas:${IMAGE_TAG:-latest}
+    image: ghcr.io/mggarofalo/gas:latest
     container_name: gas-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "8080:8080"
     environment:
       - TZ=America/New_York
       - ASPNETCORE_ENVIRONMENT=Production
@@ -116,6 +116,9 @@ services:
       - MinIO__BucketName=gas-receipts
       - MinIO__UseSSL=false
       - AllowedOrigins=*
+      - Paperless__BaseUrl=
+      - Paperless__Token=
+      - Paperless__Enabled=false
     depends_on:
       db:
         condition: service_healthy
