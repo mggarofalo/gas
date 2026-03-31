@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/mggarofalo/gas/compare/v1.6.0...v1.7.0) (2026-03-31)
+
+
+### Features
+
+* receipt upload triggers iOS document scanner ([7d44872](https://github.com/mggarofalo/gas/commit/7d448721563b79cb5e8d1ef0a7b1075cc0c3b29a))
+* receipt upload triggers iOS document scanner ([9024201](https://github.com/mggarofalo/gas/commit/9024201ce8aa2f6a05cef12163e2178795d50f11))
+
 ## [1.6.0](https://github.com/mggarofalo/gas/compare/v1.5.0...v1.6.0) (2026-03-31)
 
 
