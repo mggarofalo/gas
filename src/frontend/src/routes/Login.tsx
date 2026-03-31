@@ -24,16 +24,16 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
-      <div className="card w-full max-w-sm p-6 shadow-lg">
+      <div className="card mx-4 w-full max-w-sm p-6 shadow-lg sm:mx-0">
         <h1 className="mb-6 text-center text-xl font-bold">Gas Tracker</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="label">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" required autoFocus />
+            <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" required autoFocus autoComplete="email" />
           </div>
           <div>
             <label className="label">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input" required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input" required autoComplete="current-password" />
           </div>
           {error && <p className="text-sm text-danger-text">{error}</p>}
           <button type="submit" disabled={loading} className="btn-primary w-full py-2">{loading ? "Signing in..." : "Sign In"}</button>

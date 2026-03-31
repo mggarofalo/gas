@@ -24,7 +24,7 @@ export function ChangePasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
-      <div className="card w-full max-w-sm p-6 shadow-lg">
+      <div className="card mx-4 w-full max-w-sm p-6 shadow-lg sm:mx-0">
         <h1 className="mb-2 text-center text-xl font-bold">Change Password</h1>
         <p className="mb-6 text-center text-sm text-text-secondary">You must change your password before continuing.</p>
         <form onSubmit={handleSubmit} className="space-y-4">

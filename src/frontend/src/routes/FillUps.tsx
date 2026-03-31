@@ -44,13 +44,13 @@ export function FillUpsPage() {
         <Link to="/fill-ups/new" className="btn-primary">Add Fill-Up</Link>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <select value={vehicleId} onChange={(e) => { setVehicleId(e.target.value); setPage(1); }} className="input w-48">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+        <select value={vehicleId} onChange={(e) => { setVehicleId(e.target.value); setPage(1); }} className="input sm:w-48">
           <option value="">All Vehicles</option>
           {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
         </select>
-        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} className="input w-auto" />
-        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} className="input w-auto" />
+        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} className="input sm:w-auto" />
+        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} className="input sm:w-auto" />
       </div>
 
       {isLoading ? <Spinner /> : !data || data.items.length === 0 ? (
@@ -62,7 +62,8 @@ export function FillUpsPage() {
         </EmptyState>
       ) : (
         <>
-          <div className="card overflow-x-auto">
+          {/* Desktop table */}
+          <div className="card hidden overflow-x-auto md:block">
             <table className="table-striped w-full text-left text-sm">
               <thead className="bg-surface-hover/50">
                 <tr>
@@ -79,19 +80,47 @@ export function FillUpsPage() {
               <tbody>
                 {data.items.map((f) => (
                   <tr key={f.id} onClick={() => navigate({ to: "/fill-ups/$id", params: { id: f.id } })} className="cursor-pointer border-t border-border hover:bg-accent-subtle">
-                    <td className="px-3 py-2">{f.date}</td>
-                    <td className="px-3 py-2">{f.vehicleLabel}</td>
-                    <td className="px-3 py-2">{f.stationName}</td>
-                    <td className="px-3 py-2">{f.gallons.toFixed(3)}</td>
-                    <td className="px-3 py-2">${f.pricePerGallon.toFixed(3)}</td>
-                    <td className="px-3 py-2">${f.totalCost.toFixed(2)}</td>
-                    <td className="px-3 py-2">{f.odometerMiles.toLocaleString()}</td>
-                    <td className="px-3 py-2">{f.mpg?.toFixed(1) ?? "\u2014"}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.date}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.vehicleLabel}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.stationName}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.gallons.toFixed(3)}</td>
+                    <td className="whitespace-nowrap px-3 py-2">${f.pricePerGallon.toFixed(3)}</td>
+                    <td className="whitespace-nowrap px-3 py-2">${f.totalCost.toFixed(2)}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.odometerMiles.toLocaleString()}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{f.mpg?.toFixed(1) ?? "\u2014"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {/* Mobile card layout */}
+          <div className="space-y-3 md:hidden">
+            {data.items.map((f) => (
+              <div
+                key={f.id}
+                onClick={() => navigate({ to: "/fill-ups/$id", params: { id: f.id } })}
+                className="fill-up-card cursor-pointer active:bg-surface-hover"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{f.date}</span>
+                  <span className="text-sm font-semibold">${f.totalCost.toFixed(2)}</span>
+                </div>
+                <div className="fill-up-card-row">
+                  <span className="fill-up-card-label">{f.vehicleLabel}</span>
+                  <span>{f.stationName}</span>
+                </div>
+                <div className="fill-up-card-row">
+                  <span className="fill-up-card-label">{f.gallons.toFixed(3)} gal @ ${f.pricePerGallon.toFixed(3)}</span>
+                  <span>{f.mpg?.toFixed(1) ?? "\u2014"} mpg</span>
+                </div>
+                <div className="fill-up-card-row text-xs text-text-muted">
+                  <span>{f.odometerMiles.toLocaleString()} mi</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="mt-3 flex items-center justify-between text-sm text-text-secondary">
             <span>{data.totalCount} fill-ups</span>
             <div className="flex gap-2">
@@ -107,5 +136,5 @@ export function FillUpsPage() {
 }
 
 function Th({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return <th onClick={onClick} className="cursor-pointer select-none px-3 py-2 font-medium text-text-secondary hover:text-accent-text">{children}</th>;
+  return <th onClick={onClick} className="cursor-pointer select-none whitespace-nowrap px-3 py-2 font-medium text-text-secondary hover:text-accent-text">{children}</th>;
 }

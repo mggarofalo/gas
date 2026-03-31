@@ -32,16 +32,16 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-semibold">Dashboard</h2>
-        <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="input w-48">
+        <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="input w-full sm:w-48">
           <option value="">All Vehicles</option>
           {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
         </select>
       </div>
 
       {stats && (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <StatCard label="Total Spend" value={`$${stats.totalCost.toFixed(2)}`} />
           <StatCard label="Avg MPG" value={stats.avgMpg?.toFixed(1) ?? "\u2014"} />
           <StatCard label="Fill-Ups" value={String(stats.totalFillUps)} />
@@ -81,18 +81,18 @@ export function DashboardPage() {
       )}
 
       {recentPage && recentPage.items.length > 0 && (
-        <div className="card">
+        <div className="card overflow-x-auto">
           <h3 className="border-b border-border px-4 py-2 text-sm font-medium text-text-secondary">Recent Fill-Ups</h3>
-          <table className="table-striped w-full text-left text-sm">
+          <table className="table-striped w-full min-w-[500px] text-left text-sm">
             <tbody>
               {recentPage.items.map((f) => (
                 <tr key={f.id} className="border-t border-border hover:bg-surface-hover">
-                  <td className="px-4 py-2">{f.date}</td>
-                  <td className="px-4 py-2">{f.vehicleLabel}</td>
-                  <td className="px-4 py-2">{f.stationName}</td>
-                  <td className="px-4 py-2">{f.gallons.toFixed(1)} gal</td>
-                  <td className="px-4 py-2">${f.totalCost.toFixed(2)}</td>
-                  <td className="px-4 py-2"><Link to="/fill-ups/$id" params={{ id: f.id }} className="link">View</Link></td>
+                  <td className="whitespace-nowrap px-4 py-2">{f.date}</td>
+                  <td className="whitespace-nowrap px-4 py-2">{f.vehicleLabel}</td>
+                  <td className="whitespace-nowrap px-4 py-2">{f.stationName}</td>
+                  <td className="whitespace-nowrap px-4 py-2">{f.gallons.toFixed(1)} gal</td>
+                  <td className="whitespace-nowrap px-4 py-2">${f.totalCost.toFixed(2)}</td>
+                  <td className="whitespace-nowrap px-4 py-2"><Link to="/fill-ups/$id" params={{ id: f.id }} className="link">View</Link></td>
                 </tr>
               ))}
             </tbody>

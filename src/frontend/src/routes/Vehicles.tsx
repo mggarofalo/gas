@@ -54,13 +54,13 @@ export function VehiclesPage() {
           editingId === v.id ? (
             <VehicleFormCard key={v.id} defaults={v} onSubmit={(data) => updateMut.mutate({ id: v.id, data })} onCancel={() => setEditingId(null)} isPending={updateMut.isPending} />
           ) : (
-            <div key={v.id} className={`flex items-center justify-between rounded border border-border p-4 ${v.isActive ? "bg-surface-raised" : "bg-surface-hover/50 opacity-60"}`}>
-              <div>
+            <div key={v.id} className={`flex flex-col gap-3 rounded border border-border p-4 sm:flex-row sm:items-center sm:justify-between ${v.isActive ? "bg-surface-raised" : "bg-surface-hover/50 opacity-60"}`}>
+              <div className="min-w-0">
                 <span className="font-medium">{v.label}</span>
                 {v.notes && <span className="ml-2 text-sm text-text-secondary">{v.notes}</span>}
                 {!v.isActive && <span className="badge-muted ml-2">Inactive</span>}
               </div>
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2">
                 <button onClick={() => setEditingId(v.id)} className="link text-sm">Edit</button>
                 {v.isActive && <button onClick={() => toggleMut.mutate(v.id)} className="text-sm text-danger-text hover:underline">Deactivate</button>}
               </div>
@@ -92,8 +92,8 @@ function VehicleFormCard({ defaults, onSubmit, onCancel, isPending }: {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="card mb-3 p-4">
-      <div className="grid grid-cols-4 gap-3">
-        <div><label className="label">Year</label><input type="number" {...register("year")} className="input" />{errors.year && <p className="mt-0.5 text-xs text-danger-text">{errors.year.message}</p>}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div><label className="label">Year</label><input type="number" inputMode="numeric" {...register("year")} className="input" />{errors.year && <p className="mt-0.5 text-xs text-danger-text">{errors.year.message}</p>}</div>
         <div><label className="label">Make</label><input {...register("make")} className="input" />{errors.make && <p className="mt-0.5 text-xs text-danger-text">{errors.make.message}</p>}</div>
         <div><label className="label">Model</label><input {...register("model")} className="input" />{errors.model && <p className="mt-0.5 text-xs text-danger-text">{errors.model.message}</p>}</div>
         <div><label className="label">Notes</label><input {...register("notes")} className="input" /></div>
