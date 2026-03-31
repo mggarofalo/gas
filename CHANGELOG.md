@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.5](https://github.com/mggarofalo/gas/compare/v1.2.4...v1.2.5) (2026-03-31)
+
+
+### Bug Fixes
+
+* remove GetRolesAsync call from token service ([6454297](https://github.com/mggarofalo/gas/commit/6454297abf7257feb4228f675d41404aa9b77ab0))
+* remove GetRolesAsync call from token service ([2267ec1](https://github.com/mggarofalo/gas/commit/2267ec1e8b838aea4c55fc62b431129478771891))
+
 ## [1.2.4](https://github.com/mggarofalo/gas/compare/v1.2.3...v1.2.4) (2026-03-31)
 
 
