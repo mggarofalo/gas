@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/mggarofalo/gas/compare/v1.2.0...v1.2.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* serve React SPA from wwwroot with fallback routing ([2c4087f](https://github.com/mggarofalo/gas/commit/2c4087ff877288729804e12e3e75657a209036ea))
+* serve React SPA from wwwroot with fallback routing ([b8ccfa2](https://github.com/mggarofalo/gas/commit/b8ccfa217da77f80165c775a392ef1bbe10df39b))
+
 ## [1.2.0](https://github.com/mggarofalo/gas/compare/v1.1.1...v1.2.0) (2026-03-31)
 
 
