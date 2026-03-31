@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/mggarofalo/gas/compare/v1.5.0...v1.6.0) (2026-03-31)
+
+
+### Features
+
+* reorder fill-up form and add station autocomplete ([a07cded](https://github.com/mggarofalo/gas/commit/a07cdedb426dcc9c950f4b1dc85ac1499d5b508b))
+* reorder fill-up form, add station autocomplete from history ([83c4957](https://github.com/mggarofalo/gas/commit/83c49573c84f6147ce1e3622f4e8d1f6e63d1bbb))
+
 ## [1.5.0](https://github.com/mggarofalo/gas/compare/v1.4.1...v1.5.0) (2026-03-31)
 
 
