@@ -13,7 +13,7 @@ public static class FillUpEndpoints
 
     public static void MapFillUpEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/fill-ups").WithTags("FillUps");
+        var group = app.MapGroup("/api/fill-ups").WithTags("FillUps").RequireAuthorization();
 
         group.MapGet("/", async (
             IFillUpRepository repo, IReceiptStore receiptStore,

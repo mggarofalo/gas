@@ -53,7 +53,7 @@ public static class LocationEndpoints
                 .ToList();
 
             return Results.Ok(results);
-        }).WithTags("Locations");
+        }).WithTags("Locations").RequireAuthorization();
     }
 
     private static double HaversineDistanceMiles(double lat1, double lng1, double lat2, double lng2)

@@ -19,16 +19,28 @@ else
     echo "Warning: /secrets/pg_password not found, using ConnectionStrings__Default from environment"
 fi
 
+if [ -f /secrets/minio_access_key ]; then
+    export MinIO__AccessKey
+    MinIO__AccessKey="$(cat /secrets/minio_access_key)"
+    echo "MinIO access key loaded from secrets"
+fi
+
 if [ -f /secrets/minio_secret_key ]; then
     export MinIO__SecretKey
     MinIO__SecretKey="$(cat /secrets/minio_secret_key)"
     echo "MinIO secret key loaded from secrets"
 fi
 
-if [ -f /secrets/minio_access_key ]; then
-    export MinIO__AccessKey
-    MinIO__AccessKey="$(cat /secrets/minio_access_key)"
-    echo "MinIO access key loaded from secrets"
+if [ -f /secrets/jwt_key ]; then
+    export Jwt__Key
+    Jwt__Key="$(cat /secrets/jwt_key)"
+    echo "JWT signing key loaded from secrets"
+fi
+
+if [ -f /secrets/admin_password ]; then
+    export AdminSeed__Password
+    AdminSeed__Password="$(cat /secrets/admin_password)"
+    echo "Admin seed password loaded from secrets"
 fi
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

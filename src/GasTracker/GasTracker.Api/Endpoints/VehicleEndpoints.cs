@@ -9,7 +9,7 @@ public static class VehicleEndpoints
 {
     public static void MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/vehicles").WithTags("Vehicles");
+        var group = app.MapGroup("/api/vehicles").WithTags("Vehicles").RequireAuthorization();
 
         group.MapGet("/", async (IVehicleRepository repo, bool? active) =>
         {
