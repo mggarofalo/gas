@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/mggarofalo/gas/compare/v1.4.1...v1.5.0) (2026-03-31)
+
+
+### Features
+
+* mobile-first responsive design and form polish ([5c44943](https://github.com/mggarofalo/gas/commit/5c44943635194e799d003dba5c272dc70d997e24))
+* mobile-first responsive design and form polish ([350dfdd](https://github.com/mggarofalo/gas/commit/350dfdd301626cda459e5405c8ebafc2298aadcc))
+
 ## [1.4.1](https://github.com/mggarofalo/gas/compare/v1.4.0...v1.4.1) (2026-03-31)
 
 
