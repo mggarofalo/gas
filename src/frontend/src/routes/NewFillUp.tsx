@@ -41,6 +41,7 @@ export function NewFillUpPage() {
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
   const [gpsAcquired, setGpsAcquired] = useState(false);
+  const [gpsFailed, setGpsFailed] = useState(false);
 
   // Station autocomplete state
   const [suggestions, setSuggestions] = useState<StationSuggestion[]>([]);
@@ -67,9 +68,9 @@ export function NewFillUpPage() {
       fd.append("date", data.date);
       fd.append("stationName", data.stationName);
       fd.append("odometerMiles", String(data.odometerMiles));
-      fd.append("gallons", String(data.gallons));
-      fd.append("pricePerGallon", String(data.pricePerGallon));
-      fd.append("totalCost", String(data.totalCostOverride || computedTotal));
+      fd.append("gallons", String(Math.round(data.gallons * 1000) / 1000));
+      fd.append("pricePerGallon", String(Math.round(data.pricePerGallon * 1000) / 1000));
+      fd.append("totalCost", String(Math.round((data.totalCostOverride || computedTotal) * 100) / 100));
       if (data.latitude != null) fd.append("latitude", String(data.latitude));
       if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
@@ -140,7 +141,7 @@ export function NewFillUpPage() {
         } catch { /* non-critical */ }
         finally { setLoadingNearby(false); }
       },
-      () => { setLoadingNearby(false); },
+      () => { setLoadingNearby(false); setGpsFailed(true); },
     );
   }, [setValue]);
 
@@ -171,14 +172,25 @@ export function NewFillUpPage() {
         <div>
           <Field label="Gas Station" error={errors.stationName?.message}>
             <div className="relative" ref={suggestionsRef}>
-              <input
-                {...stationNameReg}
-                onChange={(e) => { stationNameReg.onChange(e); handleStationInput(e); }}
-                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                className="input"
-                placeholder={loadingNearby ? "Locating..." : "Start typing..."}
-                autoComplete="off"
-              />
+              <div className="flex gap-2">
+                <input
+                  {...stationNameReg}
+                  onChange={(e) => { stationNameReg.onChange(e); handleStationInput(e); }}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                  className="input"
+                  placeholder={loadingNearby ? "Locating..." : "Start typing..."}
+                  autoComplete="off"
+                />
+                <button type="button" onClick={() => { setGpsFailed(false); handleGeolocation(); }}
+                  className={`shrink-0 rounded border px-3 py-1.5 text-xs transition-colors ${
+                    loadingNearby ? "border-warning-bg text-warning-text animate-pulse" :
+                    gpsAcquired ? "border-success-text/30 bg-success-bg text-success-text" :
+                    gpsFailed ? "border-danger-text/30 text-danger-text" :
+                    "border-border text-text-secondary hover:bg-surface-hover"
+                  }`}>
+                  {loadingNearby ? "..." : gpsAcquired ? "\u2713 GPS" : gpsFailed ? "\u2717 GPS" : "GPS"}
+                </button>
+              </div>
               {showSuggestions && (
                 <div className="absolute z-10 mt-1 w-full rounded border border-border bg-surface-raised shadow-lg">
                   {suggestions.map((s) => (
@@ -206,11 +218,6 @@ export function NewFillUpPage() {
                 </button>
               ))}
             </div>
-          )}
-          {gpsAcquired && (
-            <p className="mt-1 text-xs text-text-muted">
-              Location acquired ({watch("latitude")}, {watch("longitude")})
-            </p>
           )}
         </div>
 
