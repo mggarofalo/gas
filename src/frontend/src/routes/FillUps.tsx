@@ -1,6 +1,53 @@
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "../lib/api";
+import type { Vehicle, FillUpPage } from "../lib/types";
 
 export function FillUpsPage() {
+  const navigate = useNavigate();
+  const [vehicleId, setVehicleId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
+  const pageSize = 25;
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: () => apiFetch<Vehicle[]>("/vehicles"),
+  });
+
+  const params = new URLSearchParams();
+  if (vehicleId) params.set("vehicleId", vehicleId);
+  if (startDate) params.set("startDate", startDate);
+  if (endDate) params.set("endDate", endDate);
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  params.set("sortBy", sortBy);
+  params.set("sortDir", sortDir);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["fill-ups", vehicleId, startDate, endDate, page, sortBy, sortDir],
+    queryFn: () => apiFetch<FillUpPage>(`/fill-ups?${params}`),
+  });
+
+  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
+
+  const toggleSort = (col: string) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("desc");
+    }
+    setPage(1);
+  };
+
+  const sortIndicator = (col: string) =>
+    sortBy === col ? (sortDir === "asc" ? " \u25b2" : " \u25bc") : "";
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -12,7 +59,112 @@ export function FillUpsPage() {
           Add Fill-Up
         </Link>
       </div>
-      <p className="text-gray-500">Fill-up history table will appear here.</p>
+
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <select
+          value={vehicleId}
+          onChange={(e) => { setVehicleId(e.target.value); setPage(1); }}
+          className="input w-48"
+        >
+          <option value="">All Vehicles</option>
+          {vehicles.map((v) => (
+            <option key={v.id} value={v.id}>{v.label}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+          className="input"
+          placeholder="Start date"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+          className="input"
+          placeholder="End date"
+        />
+      </div>
+
+      {isLoading ? (
+        <p className="text-gray-500">Loading...</p>
+      ) : !data || data.items.length === 0 ? (
+        <p className="text-gray-500">No fill-ups found.</p>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded border">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <Th onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</Th>
+                  <th className="px-3 py-2 font-medium text-gray-600">Vehicle</th>
+                  <th className="px-3 py-2 font-medium text-gray-600">Station</th>
+                  <Th onClick={() => toggleSort("gallons")}>Gallons{sortIndicator("gallons")}</Th>
+                  <th className="px-3 py-2 font-medium text-gray-600">$/Gal</th>
+                  <Th onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</Th>
+                  <Th onClick={() => toggleSort("odometer")}>Odometer{sortIndicator("odometer")}</Th>
+                  <th className="px-3 py-2 font-medium text-gray-600">MPG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((f) => (
+                  <tr
+                    key={f.id}
+                    onClick={() => navigate({ to: "/fill-ups/$id", params: { id: f.id } })}
+                    className="cursor-pointer border-t hover:bg-blue-50"
+                  >
+                    <td className="px-3 py-2">{f.date}</td>
+                    <td className="px-3 py-2">{f.vehicleLabel}</td>
+                    <td className="px-3 py-2">{f.stationName}</td>
+                    <td className="px-3 py-2">{f.gallons.toFixed(3)}</td>
+                    <td className="px-3 py-2">${f.pricePerGallon.toFixed(3)}</td>
+                    <td className="px-3 py-2">${f.totalCost.toFixed(2)}</td>
+                    <td className="px-3 py-2">{f.odometerMiles.toLocaleString()}</td>
+                    <td className="px-3 py-2">{f.mpg?.toFixed(1) ?? "\u2014"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+            <span>{data.totalCount} fill-ups</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded border px-3 py-1 disabled:opacity-40"
+              >
+                Prev
+              </button>
+              <span className="px-2 py-1">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded border px-3 py-1 disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+function Th({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <th
+      onClick={onClick}
+      className="cursor-pointer select-none px-3 py-2 font-medium text-gray-600 hover:text-blue-600"
+    >
+      {children}
+    </th>
   );
 }
