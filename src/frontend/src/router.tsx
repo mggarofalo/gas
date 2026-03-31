@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import {
   createRouter,
   createRootRoute,
@@ -7,7 +7,16 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { Layout } from "./components/Layout";
+import { Spinner } from "./components/Spinner";
 import { getAccessToken, parseJwt } from "./lib/auth";
+
+function SuspenseRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <div className="page-enter">{children}</div>
+    </Suspense>
+  );
+}
 
 const LoginPage = lazy(() => import("./routes/Login").then((m) => ({ default: m.LoginPage })));
 const ChangePasswordPage = lazy(() => import("./routes/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
@@ -32,13 +41,13 @@ const rootRoute = createRootRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  component: LoginPage,
+  component: () => <SuspenseRoute><LoginPage /></SuspenseRoute>,
 });
 
 const changePasswordRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/change-password",
-  component: ChangePasswordPage,
+  component: () => <SuspenseRoute><ChangePasswordPage /></SuspenseRoute>,
 });
 
 const authenticatedRoute = createRoute({
@@ -55,31 +64,31 @@ const authenticatedRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/",
-  component: DashboardPage,
+  component: () => <SuspenseRoute><DashboardPage /></SuspenseRoute>,
 });
 
 const fillUpsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/fill-ups",
-  component: FillUpsPage,
+  component: () => <SuspenseRoute><FillUpsPage /></SuspenseRoute>,
 });
 
 const newFillUpRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/fill-ups/new",
-  component: NewFillUpPage,
+  component: () => <SuspenseRoute><NewFillUpPage /></SuspenseRoute>,
 });
 
 const fillUpDetailRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/fill-ups/$id",
-  component: FillUpDetailPage,
+  component: () => <SuspenseRoute><FillUpDetailPage /></SuspenseRoute>,
 });
 
 const vehiclesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/vehicles",
-  component: VehiclesPage,
+  component: () => <SuspenseRoute><VehiclesPage /></SuspenseRoute>,
 });
 
 const routeTree = rootRoute.addChildren([

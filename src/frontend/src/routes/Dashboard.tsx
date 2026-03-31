@@ -5,6 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { apiFetch } from "../lib/api";
+import { EmptyState } from "../components/EmptyState";
 import type { Vehicle, FillUpPage, Stats } from "../lib/types";
 
 const COLORS = ["#60a5fa", "#4ade80", "#f87171", "#a78bfa", "#fb923c"];
@@ -82,7 +83,7 @@ export function DashboardPage() {
       {recentPage && recentPage.items.length > 0 && (
         <div className="card">
           <h3 className="border-b border-border px-4 py-2 text-sm font-medium text-text-secondary">Recent Fill-Ups</h3>
-          <table className="w-full text-left text-sm">
+          <table className="table-striped w-full text-left text-sm">
             <tbody>
               {recentPage.items.map((f) => (
                 <tr key={f.id} className="border-t border-border hover:bg-surface-hover">
@@ -100,15 +101,17 @@ export function DashboardPage() {
       )}
 
       {(!stats || stats.totalFillUps === 0) && (
-        <div className="card p-8 text-center text-text-secondary">
-          <p className="mb-2">No fill-ups recorded yet.</p>
+        <EmptyState
+          icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>}
+          message="No fill-ups recorded yet."
+        >
           <Link to="/fill-ups/new" className="link">Add your first fill-up</Link>
-        </div>
+        </EmptyState>
       )}
     </div>
   );
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
-  return <div className="card p-4"><p className="text-xs font-medium text-text-muted">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>;
+  return <div className="stat-card"><p className="text-xs font-medium text-text-muted">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>;
 }

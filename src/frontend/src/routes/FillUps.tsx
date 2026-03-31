@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api";
+import { Spinner } from "../components/Spinner";
+import { EmptyState } from "../components/EmptyState";
 import type { Vehicle, FillUpPage } from "../lib/types";
 
 export function FillUpsPage() {
@@ -51,10 +53,17 @@ export function FillUpsPage() {
         <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} className="input w-auto" />
       </div>
 
-      {isLoading ? <p className="text-text-secondary">Loading...</p> : !data || data.items.length === 0 ? <p className="text-text-secondary">No fill-ups found.</p> : (
+      {isLoading ? <Spinner /> : !data || data.items.length === 0 ? (
+        <EmptyState
+          icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>}
+          message="No fill-ups found."
+        >
+          <Link to="/fill-ups/new" className="link">Add a fill-up</Link>
+        </EmptyState>
+      ) : (
         <>
           <div className="card overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="table-striped w-full text-left text-sm">
               <thead className="bg-surface-hover/50">
                 <tr>
                   <Th onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</Th>

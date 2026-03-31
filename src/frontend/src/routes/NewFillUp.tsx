@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { apiFetch } from "../lib/api";
+import { useToast } from "../components/Toast";
 import type { Vehicle, FillUp, NearbyStation } from "../lib/types";
 import { useState, useCallback } from "react";
 
@@ -36,6 +37,7 @@ interface FillUpForm {
 
 export function NewFillUpPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
@@ -70,7 +72,7 @@ export function NewFillUpPage() {
       if (receiptFile) fd.append("receipt", receiptFile);
       return apiFetch<FillUp>("/fill-ups", { method: "POST", body: fd });
     },
-    onSuccess: (fillUp) => navigate({ to: "/fill-ups/$id", params: { id: fillUp.id } }),
+    onSuccess: (fillUp) => { toast("Fill-up saved"); navigate({ to: "/fill-ups/$id", params: { id: fillUp.id } }); },
   });
 
   const handleReceipt = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

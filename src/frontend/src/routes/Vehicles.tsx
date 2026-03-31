@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { apiFetch } from "../lib/api";
+import { Spinner } from "../components/Spinner";
+import { EmptyState } from "../components/EmptyState";
+import { useToast } from "../components/Toast";
 import type { Vehicle } from "../lib/types";
 
 const vehicleSchema = z.object({
@@ -16,6 +19,7 @@ interface VehicleForm { year: number; make: string; model: string; notes?: strin
 
 export function VehiclesPage() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
@@ -23,18 +27,18 @@ export function VehiclesPage() {
 
   const createMut = useMutation({
     mutationFn: (data: VehicleForm) => apiFetch<Vehicle>("/vehicles", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setShowAdd(false); },
+    onSuccess: (v) => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setShowAdd(false); toast(`${v.label} added`); },
   });
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<VehicleForm> }) => apiFetch<Vehicle>(`/vehicles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setEditingId(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setEditingId(null); toast("Vehicle updated"); },
   });
   const toggleMut = useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/vehicles/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); toast("Vehicle deactivated"); },
   });
 
-  if (isLoading) return <p className="text-text-secondary">Loading...</p>;
+  if (isLoading) return <Spinner />;
 
   return (
     <div>
@@ -63,7 +67,12 @@ export function VehiclesPage() {
             </div>
           ),
         )}
-        {vehicles.length === 0 && <p className="text-text-secondary">No vehicles yet. Add one to get started.</p>}
+        {vehicles.length === 0 && (
+          <EmptyState
+            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25m-2.25 0h-2.25m4.5 0V6.75a.75.75 0 0 0-.75-.75H6a.75.75 0 0 0-.75.75v11.25" /></svg>}
+            message="No vehicles yet. Add one to get started."
+          />
+        )}
       </div>
     </div>
   );
