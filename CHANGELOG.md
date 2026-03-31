@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/mggarofalo/gas/compare/v1.1.1...v1.2.0) (2026-03-31)
+
+
+### Features
+
+* add JWT authentication with admin seed and login UI ([3ad3641](https://github.com/mggarofalo/gas/commit/3ad36410d27a260e0f1ded2a8003aed787425c3f))
+* add JWT authentication with admin seed and login UI ([4a60d20](https://github.com/mggarofalo/gas/commit/4a60d20b133a7a21f2d2a8101dc0ba4429041f15))
+
 ## [1.1.1](https://github.com/mggarofalo/gas/compare/v1.1.0...v1.1.1) (2026-03-31)
 
 
