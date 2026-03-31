@@ -33,13 +33,13 @@ fi
 
 if [ -f /secrets/jwt_key ]; then
     export Jwt__Key
-    Jwt__Key="$(cat /secrets/jwt_key)"
+    Jwt__Key="$(tr -d '[:space:]' < /secrets/jwt_key)"
     echo "JWT signing key loaded from secrets"
 fi
 
 if [ -f /secrets/admin_password ]; then
     export AdminSeed__Password
-    AdminSeed__Password="$(cat /secrets/admin_password)"
+    AdminSeed__Password="$(tr -d '\n\r' < /secrets/admin_password)"
     echo "Admin seed password loaded from secrets"
 fi
 

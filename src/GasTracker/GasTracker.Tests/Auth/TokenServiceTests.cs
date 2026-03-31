@@ -36,7 +36,8 @@ public class TokenServiceTests
             Array.Empty<IUserValidator<ApplicationUser>>(),
             Array.Empty<IPasswordValidator<ApplicationUser>>(),
             new UpperInvariantLookupNormalizer(),
-            new IdentityErrorDescriber(), null!, null!);
+            new IdentityErrorDescriber(), null!,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<UserManager<ApplicationUser>>.Instance);
     }
 
     [Fact]

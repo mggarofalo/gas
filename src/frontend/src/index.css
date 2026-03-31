@@ -1,7 +1,63 @@
 @import "tailwindcss";
 
+@theme {
+  --color-surface: #111827;       /* gray-900 */
+  --color-surface-raised: #1f2937; /* gray-800 */
+  --color-surface-hover: #374151;  /* gray-700 */
+  --color-border: #374151;         /* gray-700 */
+  --color-text-primary: #f3f4f6;   /* gray-100 */
+  --color-text-secondary: #9ca3af; /* gray-400 */
+  --color-text-muted: #6b7280;     /* gray-500 */
+  --color-accent: #3b82f6;         /* blue-500 */
+  --color-accent-hover: #2563eb;   /* blue-600 */
+  --color-accent-subtle: oklch(0.35 0.1 260); /* blue-900/30ish */
+  --color-accent-text: #60a5fa;    /* blue-400 */
+  --color-danger: #dc2626;         /* red-600 */
+  --color-danger-text: #f87171;    /* red-400 */
+  --color-success-bg: oklch(0.3 0.08 150);
+  --color-success-text: #4ade80;   /* green-400 */
+  --color-warning-bg: oklch(0.3 0.08 85);
+  --color-warning-text: #facc15;   /* yellow-400 */
+  --color-input-bg: #374151;       /* gray-700 */
+  --color-input-border: #4b5563;   /* gray-600 */
+}
+
 @layer components {
   .input {
-    @apply w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500;
+    @apply w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
   }
+  .card {
+    @apply rounded border border-border bg-surface-raised;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-text-secondary;
+  }
+  .btn-primary {
+    @apply rounded bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply rounded bg-danger px-3 py-1.5 text-sm text-white hover:bg-red-700;
+  }
+  .btn-outline {
+    @apply rounded border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary;
+  }
+  .link {
+    @apply text-accent-text hover:underline;
+  }
+  .badge-success {
+    @apply rounded px-2 py-0.5 text-xs font-medium bg-success-bg text-success-text;
+  }
+  .badge-warning {
+    @apply rounded px-2 py-0.5 text-xs font-medium bg-warning-bg text-warning-text;
+  }
+  .badge-danger {
+    @apply rounded px-2 py-0.5 text-xs font-medium bg-red-900/30 text-danger-text;
+  }
+  .badge-muted {
+    @apply rounded bg-surface-hover px-2 py-0.5 text-xs text-text-secondary;
+  }
+}
+
+html {
+  color-scheme: dark;
 }
