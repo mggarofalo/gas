@@ -7,6 +7,7 @@ import { apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
 import type { Vehicle, FillUp, NearbyStation, StationSuggestion } from "../lib/types";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { CurrencyInput } from "../components/CurrencyInput";
 
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Required"),
@@ -43,6 +44,11 @@ export function NewFillUpPage() {
   const [gpsAcquired, setGpsAcquired] = useState(false);
   const [gpsFailed, setGpsFailed] = useState(false);
 
+  // Controlled numeric inputs (string state for formatting)
+  const [gallonsStr, setGallonsStr] = useState("");
+  const [priceStr, setPriceStr] = useState("");
+  const [totalStr, setTotalStr] = useState("");
+
   // Station autocomplete state
   const [suggestions, setSuggestions] = useState<StationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -51,15 +57,16 @@ export function NewFillUpPage() {
 
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FillUpForm>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FillUpForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: standardSchemaResolver(fillUpSchema) as any,
     defaultValues: { date: new Date().toISOString().slice(0, 10), vehicleId: "" },
   });
 
-  const gallons = watch("gallons");
-  const pricePerGallon = watch("pricePerGallon");
-  const computedTotal = gallons && pricePerGallon ? Math.round(gallons * pricePerGallon * 100) / 100 : 0;
+  const gallonsNum = parseFloat(gallonsStr) || 0;
+  const priceNum = parseFloat(priceStr) || 0;
+  const totalNum = parseFloat(totalStr) || 0;
+  const computedTotal = gallonsNum && priceNum ? Math.round(gallonsNum * priceNum * 100) / 100 : 0;
 
   const createMut = useMutation({
     mutationFn: async (data: FillUpForm) => {
@@ -68,9 +75,9 @@ export function NewFillUpPage() {
       fd.append("date", data.date);
       fd.append("stationName", data.stationName);
       fd.append("odometerMiles", String(data.odometerMiles));
-      fd.append("gallons", String(Math.round(data.gallons * 1000) / 1000));
-      fd.append("pricePerGallon", String(Math.round(data.pricePerGallon * 1000) / 1000));
-      fd.append("totalCost", String(Math.round((data.totalCostOverride || computedTotal) * 100) / 100));
+      fd.append("gallons", gallonsStr);
+      fd.append("pricePerGallon", priceStr);
+      fd.append("totalCost", totalNum > 0 ? totalStr : String(computedTotal));
       if (data.latitude != null) fd.append("latitude", String(data.latitude));
       if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
@@ -223,30 +230,41 @@ export function NewFillUpPage() {
 
         {/* --- Section: Gallons + Price --- */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label="Gallons" error={errors.gallons?.message}>
-            <input type="number" inputMode="decimal" step="0.001" {...register("gallons")} className="input" placeholder="0.000" />
+          <Field label="Gallons" error={gallonsStr && gallonsNum <= 0 ? "Must be > 0" : undefined}>
+            <CurrencyInput
+              value={gallonsStr}
+              onChange={(v) => { setGallonsStr(v); setValue("gallons", parseFloat(v) || 0); }}
+              decimals={3}
+              placeholder="0.000"
+            />
           </Field>
-          <Field label="Price / gal" error={errors.pricePerGallon?.message}>
-            <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">$</span>
-              <input type="number" inputMode="decimal" step="0.001" {...register("pricePerGallon")} className="input pl-6" placeholder="0.000" />
-            </div>
+          <Field label="Price / gal" error={priceStr && priceNum <= 0 ? "Must be > 0" : undefined}>
+            <CurrencyInput
+              value={priceStr}
+              onChange={(v) => { setPriceStr(v); setValue("pricePerGallon", parseFloat(v) || 0); }}
+              decimals={3}
+              prefix="$"
+              placeholder="0.000"
+            />
           </Field>
           <Field label="Total">
-            <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">$</span>
-              <input type="number" inputMode="decimal" step="0.01" className="input pl-6" placeholder={computedTotal > 0 ? computedTotal.toFixed(2) : "0.00"} {...register("totalCostOverride")} />
-            </div>
+            <CurrencyInput
+              value={totalStr}
+              onChange={(v) => { setTotalStr(v); setValue("totalCostOverride", parseFloat(v) || undefined); }}
+              decimals={2}
+              prefix="$"
+              placeholder={computedTotal > 0 ? computedTotal.toFixed(2) : "0.00"}
+            />
           </Field>
         </div>
-        {computedTotal > 0 && !watch("totalCostOverride") && (
+        {computedTotal > 0 && !totalNum && (
           <p className="-mt-4 text-xs text-text-muted">Calculated: ${computedTotal.toFixed(2)}</p>
         )}
 
         {/* --- Section: Mileage --- */}
         <Field label="Odometer" error={errors.odometerMiles?.message}>
           <div className="relative">
-            <input type="number" inputMode="numeric" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
+            <input type="text" inputMode="numeric" pattern="[0-9]*" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">mi</span>
           </div>
         </Field>
