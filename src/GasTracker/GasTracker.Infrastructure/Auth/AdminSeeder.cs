@@ -31,33 +31,7 @@ public static class AdminSeeder
         var existing = await userManager.FindByEmailAsync(email);
         if (existing is not null)
         {
-            // Ensure password matches the current secret (handles secret regeneration)
-            if (!await userManager.CheckPasswordAsync(existing, password))
-            {
-                var removeResult = await userManager.RemovePasswordAsync(existing);
-                if (!removeResult.Succeeded)
-                {
-                    logger.LogError("Failed to remove admin password: {Errors}",
-                        string.Join(", ", removeResult.Errors.Select(e => e.Description)));
-                    return;
-                }
-                var addResult = await userManager.AddPasswordAsync(existing, password);
-                if (addResult.Succeeded)
-                {
-                    existing.MustResetPassword = true;
-                    await userManager.UpdateAsync(existing);
-                    logger.LogInformation("Admin password reset to match current secret for {Email}", email);
-                }
-                else
-                {
-                    logger.LogError("Failed to set admin password: {Errors}",
-                        string.Join(", ", addResult.Errors.Select(e => e.Description)));
-                }
-            }
-            else
-            {
-                logger.LogInformation("Admin user {Email} already exists with correct password", email);
-            }
+            logger.LogInformation("Admin user {Email} already exists, skipping seed", email);
             return;
         }
 
