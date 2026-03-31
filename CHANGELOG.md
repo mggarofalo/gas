@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1](https://github.com/mggarofalo/gas/compare/v1.7.0...v1.7.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* GPS button shows state inline, remove lat/lng display, clamp decimals ([c1fa165](https://github.com/mggarofalo/gas/commit/c1fa16591ac5106ec20638ab59e9698f65ca5e06))
+* GPS button state indicator, remove lat/lng display, clamp decimals ([993f937](https://github.com/mggarofalo/gas/commit/993f937e09847c04a5c01250f4a14bc6d3d4933e))
+
 ## [1.7.0](https://github.com/mggarofalo/gas/compare/v1.6.0...v1.7.0) (2026-03-31)
 
 
