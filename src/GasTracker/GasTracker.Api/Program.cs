@@ -97,6 +97,10 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Serve React SPA from wwwroot
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 // Public endpoints
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 app.MapAuthEndpoints();
@@ -106,5 +110,8 @@ app.MapVehicleEndpoints();
 app.MapFillUpEndpoints();
 app.MapStatsEndpoints();
 app.MapLocationEndpoints();
+
+// SPA fallback — serve index.html for any non-API, non-file route
+app.MapFallbackToFile("index.html");
 
 app.Run();
