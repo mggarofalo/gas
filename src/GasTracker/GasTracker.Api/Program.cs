@@ -10,6 +10,9 @@ using GasTracker.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,6 +69,11 @@ builder.Services.AddScoped<IFillUpRepository, FillUpRepository>();
 builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("MinIO"));
 builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("postgresql")
+    .AddCheck<MinioHealthCheck>("minio");
+
 // CORS
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
@@ -102,7 +110,26 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Public endpoints
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.ToString(),
+            }),
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(result,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    },
+});
 app.MapAuthEndpoints();
 
 // Protected endpoints
