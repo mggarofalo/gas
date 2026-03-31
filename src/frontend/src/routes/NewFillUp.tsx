@@ -246,16 +246,30 @@ export function NewFillUpPage() {
 
         {/* --- Section: Receipt --- */}
         <Field label="Receipt">
-          <label className="flex cursor-pointer items-center justify-center rounded border-2 border-dashed border-border p-4 transition-colors hover:border-accent hover:bg-accent-subtle/30">
-            <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleReceipt} className="hidden" />
-            {receiptPreview ? (
-              <img src={receiptPreview} alt="Receipt" className="max-h-32 rounded object-contain" />
-            ) : receiptFile ? (
-              <span className="text-sm text-text-secondary">{receiptFile.name}</span>
-            ) : (
-              <span className="text-sm text-text-muted">Tap to attach photo</span>
-            )}
-          </label>
+          {receiptPreview ? (
+            <div className="relative inline-block">
+              <img src={receiptPreview} alt="Receipt" className="max-h-48 rounded border border-border object-contain" />
+              <button type="button" onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:bg-danger hover:text-white transition-colors">
+                &times;
+              </button>
+            </div>
+          ) : receiptFile ? (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <span>{receiptFile.name}</span>
+              <button type="button" onClick={() => { setReceiptFile(null); setReceiptPreview(null); }} className="link text-xs">Remove</button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded border-2 border-dashed border-border p-6 transition-colors hover:border-accent hover:bg-accent-subtle/30">
+              {/* No capture attr — iOS shows full sheet: Scan Documents, Camera, Photo Library */}
+              <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} className="hidden" />
+              <svg className="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              </svg>
+              <span className="text-sm text-text-muted">Scan or attach receipt</span>
+            </label>
+          )}
         </Field>
 
         {/* Notes */}
