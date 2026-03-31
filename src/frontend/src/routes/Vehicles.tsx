@@ -12,7 +12,12 @@ const vehicleSchema = z.object({
   model: z.string().min(1, "Required").max(100),
   notes: z.string().max(500).optional(),
 });
-type VehicleForm = z.infer<typeof vehicleSchema>;
+interface VehicleForm {
+  year: number;
+  make: string;
+  model: string;
+  notes?: string;
+}
 
 export function VehiclesPage() {
   const qc = useQueryClient();
@@ -147,7 +152,8 @@ function VehicleFormCard({
     handleSubmit,
     formState: { errors },
   } = useForm<VehicleForm>({
-    resolver: standardSchemaResolver(vehicleSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: standardSchemaResolver(vehicleSchema) as any,
     defaultValues: defaults
       ? { year: defaults.year, make: defaults.make, model: defaults.model, notes: defaults.notes ?? "" }
       : { year: new Date().getFullYear(), make: "", model: "", notes: "" },

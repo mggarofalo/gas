@@ -7,22 +7,32 @@ import { apiFetch } from "../lib/api";
 import type { Vehicle, FillUp, NearbyStation } from "../lib/types";
 import { useState, useCallback } from "react";
 
-const numCoerce = z.union([z.string(), z.number()]).pipe(z.coerce.number());
-
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Required"),
   date: z.string().min(1, "Required"),
   stationName: z.string().min(1, "Required").max(200),
   stationAddress: z.string().max(500).optional(),
-  odometerMiles: numCoerce.pipe(z.number().int().positive("Must be > 0")),
-  gallons: numCoerce.pipe(z.number().positive("Must be > 0")),
-  pricePerGallon: numCoerce.pipe(z.number().positive("Must be > 0")),
-  totalCostOverride: z.union([z.string(), z.number()]).pipe(z.coerce.number()).optional(),
-  latitude: z.union([z.string(), z.number()]).pipe(z.coerce.number().min(-90).max(90)).optional(),
-  longitude: z.union([z.string(), z.number()]).pipe(z.coerce.number().min(-180).max(180)).optional(),
+  odometerMiles: z.coerce.number().int().positive("Must be > 0"),
+  gallons: z.coerce.number().positive("Must be > 0"),
+  pricePerGallon: z.coerce.number().positive("Must be > 0"),
+  totalCostOverride: z.coerce.number().optional(),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
   notes: z.string().optional(),
 });
-type FillUpForm = z.infer<typeof fillUpSchema>;
+interface FillUpForm {
+  vehicleId: string;
+  date: string;
+  stationName: string;
+  stationAddress?: string;
+  odometerMiles: number;
+  gallons: number;
+  pricePerGallon: number;
+  totalCostOverride?: number;
+  latitude?: number;
+  longitude?: number;
+  notes?: string;
+}
 
 export function NewFillUpPage() {
   const navigate = useNavigate();
