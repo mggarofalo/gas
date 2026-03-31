@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/mggarofalo/gas/compare/v1.1.0...v1.1.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* add EF Core migration and handle MinIO bucket check gracefully ([2fd3dab](https://github.com/mggarofalo/gas/commit/2fd3dab01ce5fd73728a75e21921b4296ccf100d))
+
 ## [1.1.0](https://github.com/mggarofalo/gas/compare/v1.0.1...v1.1.0) (2026-03-31)
 
 
