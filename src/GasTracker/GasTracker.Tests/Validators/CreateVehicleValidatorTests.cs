@@ -1,4 +1,3 @@
-using FluentAssertions;
 using FluentValidation.TestHelper;
 using GasTracker.Api.Validators;
 using GasTracker.Core.DTOs;

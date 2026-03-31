@@ -5,6 +5,8 @@ using GasTracker.Core.Interfaces;
 
 namespace GasTracker.Api.Endpoints;
 
+using static Mappings;
+
 public static class VehicleEndpoints
 {
     public static void MapVehicleEndpoints(this IEndpointRouteBuilder app)
@@ -14,13 +16,13 @@ public static class VehicleEndpoints
         group.MapGet("/", async (IVehicleRepository repo, bool? active) =>
         {
             var vehicles = await repo.ListAsync(active ?? true);
-            return Results.Ok(vehicles.Select(ToDto));
+            return Results.Ok(vehicles.Select(v => v.ToDto()));
         });
 
         group.MapGet("/{id:guid}", async (Guid id, IVehicleRepository repo) =>
         {
             var vehicle = await repo.GetByIdAsync(id);
-            return vehicle is null ? Results.NotFound() : Results.Ok(ToDto(vehicle));
+            return vehicle is null ? Results.NotFound() : Results.Ok(vehicle.ToDto());
         });
 
         group.MapPost("/", async (CreateVehicleRequest req, IVehicleRepository repo, IValidator<CreateVehicleRequest> validator) =>
@@ -37,7 +39,7 @@ public static class VehicleEndpoints
                 Notes = req.Notes
             };
             await repo.CreateAsync(vehicle);
-            return Results.Created($"/api/vehicles/{vehicle.Id}", ToDto(vehicle));
+            return Results.Created($"/api/vehicles/{vehicle.Id}", vehicle.ToDto());
         });
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateVehicleRequest req, IVehicleRepository repo, IValidator<UpdateVehicleRequest> validator) =>
@@ -55,7 +57,7 @@ public static class VehicleEndpoints
             if (req.Notes is not null) vehicle.Notes = req.Notes;
 
             await repo.UpdateAsync(vehicle);
-            return Results.Ok(ToDto(vehicle));
+            return Results.Ok(vehicle.ToDto());
         });
 
         group.MapDelete("/{id:guid}", async (Guid id, IVehicleRepository repo) =>
@@ -67,7 +69,4 @@ public static class VehicleEndpoints
             return Results.NoContent();
         });
     }
-
-    private static VehicleDto ToDto(Vehicle v) => new(
-        v.Id, v.Year, v.Make, v.Model, v.Notes, v.IsActive, v.Label, v.CreatedAt, v.UpdatedAt);
 }

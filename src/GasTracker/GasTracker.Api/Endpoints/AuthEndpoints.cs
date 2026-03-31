@@ -19,7 +19,7 @@ public static class AuthEndpoints
 
             var user = await userManager.FindByEmailAsync(req.Email);
             if (user is null || !await userManager.CheckPasswordAsync(user, req.Password))
-                return Results.Json(new { error = "Invalid credentials" }, statusCode: 401);
+                return Results.Problem(detail: "Invalid credentials", statusCode: 401);
 
             user.LastLoginAt = DateTimeOffset.UtcNow;
             await userManager.UpdateAsync(user);
@@ -35,16 +35,16 @@ public static class AuthEndpoints
 
             var principal = tokenService.ValidateExpiredToken(req.AccessToken);
             if (principal is null)
-                return Results.Json(new { error = "Invalid access token" }, statusCode: 401);
+                return Results.Problem(detail: "Invalid access token", statusCode: 401);
 
             var userId = principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
                       ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId is null)
-                return Results.Json(new { error = "Invalid token claims" }, statusCode: 401);
+                return Results.Problem(detail: "Invalid token claims", statusCode: 401);
 
             var user = await userManager.FindByIdAsync(userId);
             if (user is null || user.RefreshToken != req.RefreshToken || user.RefreshTokenExpiresAt <= DateTimeOffset.UtcNow)
-                return Results.Json(new { error = "Invalid or expired refresh token" }, statusCode: 401);
+                return Results.Problem(detail: "Invalid or expired refresh token", statusCode: 401);
 
             var (accessToken, refreshToken, expiresIn) = await tokenService.GenerateTokensAsync(user);
             return Results.Ok(new TokenResponse(accessToken, refreshToken, expiresIn, user.MustResetPassword, "Bearer"));
