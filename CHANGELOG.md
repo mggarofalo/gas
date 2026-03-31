@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/mggarofalo/gas/compare/v1.4.0...v1.4.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* stop admin seeder from resetting password on every restart ([961bf2f](https://github.com/mggarofalo/gas/commit/961bf2f6be544c0dee8de2816195303df99c7280))
+* stop admin seeder from resetting password on every restart ([8459952](https://github.com/mggarofalo/gas/commit/8459952a0db8164c869dc233a63d5ea910b2dbb7))
+
 ## [1.4.0](https://github.com/mggarofalo/gas/compare/v1.3.0...v1.4.0) (2026-03-31)
 
 
