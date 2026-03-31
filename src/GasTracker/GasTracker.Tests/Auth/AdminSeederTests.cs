@@ -101,47 +101,7 @@ public class AdminSeederTests
     }
 
     [Fact]
-    public async Task SeedAsync_ResetsPasswordIfSecretChanged()
-    {
-        // Seed with original password
-        var (provider1, userManager1) = CreateServices(new Dictionary<string, string?>
-        {
-            ["AdminSeed:Email"] = "admin@test.com",
-            ["AdminSeed:Password"] = "OriginalPassword123!!",
-        });
-        await AdminSeeder.SeedAsync(provider1);
-
-        var user = await userManager1.FindByEmailAsync("admin@test.com");
-        user.Should().NotBeNull();
-        (await userManager1.CheckPasswordAsync(user!, "OriginalPassword123!!")).Should().BeTrue();
-
-        // Re-seed with different password using same DB (same userManager)
-        var config2 = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["AdminSeed:Email"] = "admin@test.com",
-                ["AdminSeed:Password"] = "NewPassword456!!@@",
-            })
-            .Build();
-
-        var services2 = new ServiceCollection();
-        services2.AddSingleton<IConfiguration>(config2);
-        services2.AddSingleton(userManager1);
-        services2.AddSingleton<UserManager<ApplicationUser>>(userManager1);
-        services2.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-        services2.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
-        var provider2 = services2.BuildServiceProvider();
-
-        await AdminSeeder.SeedAsync(provider2);
-
-        // Old password should no longer work, new one should
-        (await userManager1.CheckPasswordAsync(user!, "OriginalPassword123!!")).Should().BeFalse();
-        (await userManager1.CheckPasswordAsync(user!, "NewPassword456!!@@")).Should().BeTrue();
-        user!.MustResetPassword.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SeedAsync_DoesNotResetPasswordIfAlreadyCorrect()
+    public async Task SeedAsync_DoesNotModifyExistingUser()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>
         {
@@ -151,12 +111,17 @@ public class AdminSeederTests
 
         await AdminSeeder.SeedAsync(provider);
         var user = await userManager.FindByEmailAsync("admin@test.com");
-        user!.MustResetPassword = false;
+
+        // Simulate user changing their password
+        await userManager.RemovePasswordAsync(user!);
+        await userManager.AddPasswordAsync(user!, "UserChosenPassword99!!");
+        user.MustResetPassword = false;
         await userManager.UpdateAsync(user);
 
-        // Seed again with same password — should not reset MustResetPassword
+        // Seed again — should not touch the user at all
         await AdminSeeder.SeedAsync(provider);
         var same = await userManager.FindByEmailAsync("admin@test.com");
         same!.MustResetPassword.Should().BeFalse();
+        (await userManager.CheckPasswordAsync(same, "UserChosenPassword99!!")).Should().BeTrue();
     }
 }
