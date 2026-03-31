@@ -18,14 +18,12 @@ COPY src/GasTracker/Directory.Packages.props ./
 COPY src/GasTracker/GasTracker.Core/GasTracker.Core.csproj src/GasTracker/GasTracker.Core/
 COPY src/GasTracker/GasTracker.Infrastructure/GasTracker.Infrastructure.csproj src/GasTracker/GasTracker.Infrastructure/
 COPY src/GasTracker/GasTracker.Api/GasTracker.Api.csproj src/GasTracker/GasTracker.Api/
-COPY src/GasTracker/GasTracker.slnx src/GasTracker/
-
 RUN case ${TARGETARCH} in \
       amd64) DOTNET_ARCH=x64 ;; \
       arm64) DOTNET_ARCH=arm64 ;; \
       *) echo "Unsupported: ${TARGETARCH}" >&2; exit 1 ;; \
     esac && \
-    dotnet restore src/GasTracker/GasTracker.slnx -r linux-${DOTNET_ARCH}
+    dotnet restore src/GasTracker/GasTracker.Api/GasTracker.Api.csproj -r linux-${DOTNET_ARCH}
 
 COPY src/GasTracker/ src/GasTracker/
 
