@@ -9,6 +9,7 @@ interface Props {
   prefix?: string;
   suffix?: string;
   decimals: number;
+  maxWhole?: number; // max digits before decimal (e.g. 3 for 999)
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function CurrencyInput({
   prefix,
   suffix,
   decimals,
+  maxWhole,
   className,
 }: Props) {
   const [focused, setFocused] = useState(false);
@@ -49,14 +51,21 @@ export function CurrencyInput({
         raw = parts[0] + "." + parts.slice(1).join("");
       }
 
+      // Restrict whole digits
+      if (maxWhole && parts[0].length > maxWhole) {
+        parts[0] = parts[0].slice(0, maxWhole);
+      }
+
       // Restrict decimal places
       if (parts.length === 2 && parts[1].length > decimals) {
-        raw = parts[0] + "." + parts[1].slice(0, decimals);
+        parts[1] = parts[1].slice(0, decimals);
       }
+
+      raw = parts.length === 2 ? parts[0] + "." + parts[1] : parts[0];
 
       onChange(raw);
     },
-    [onChange, decimals],
+    [onChange, decimals, maxWhole],
   );
 
   const handleBlur = useCallback(() => {
