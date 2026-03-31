@@ -23,10 +23,19 @@ public class MinioReceiptStore : IReceiptStore
 
     public async Task EnsureBucketExistsAsync()
     {
-        var buckets = await _s3.ListBucketsAsync();
-        if (buckets.Buckets.All(b => b.BucketName != _opts.BucketName))
+        try
         {
-            await _s3.PutBucketAsync(new PutBucketRequest { BucketName = _opts.BucketName });
+            var buckets = await _s3.ListBucketsAsync();
+            if (buckets.Buckets is null || buckets.Buckets.All(b => b.BucketName != _opts.BucketName))
+            {
+                await _s3.PutBucketAsync(new PutBucketRequest { BucketName = _opts.BucketName });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't crash — bucket may already exist or MinIO may not be ready yet.
+            // The app will retry on first upload.
+            Console.WriteLine($"Warning: Could not ensure MinIO bucket exists: {ex.Message}");
         }
     }
 
