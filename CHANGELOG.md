@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.4](https://github.com/mggarofalo/gas/compare/v1.8.3...v1.8.4) (2026-03-31)
+
+
+### Bug Fixes
+
+* limit gallons and price inputs to 999.999 ([6e81b98](https://github.com/mggarofalo/gas/commit/6e81b98be4afd408be50cf77a96c52c88a6dfd16))
+* limit gallons and price to 999.999 ([5788ff7](https://github.com/mggarofalo/gas/commit/5788ff72dea5ab2d161575554043245f8e3fce92))
+
 ## [1.8.3](https://github.com/mggarofalo/gas/compare/v1.8.2...v1.8.3) (2026-03-31)
 
 
