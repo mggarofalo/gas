@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/mggarofalo/gas/compare/v1.7.1...v1.8.0) (2026-03-31)
+
+
+### Features
+
+* show app version in sidebar footer ([7cac3e7](https://github.com/mggarofalo/gas/commit/7cac3e71cedae3b9cfdd3978b9d583421d809899))
+* show app version in sidebar footer ([a82f3eb](https://github.com/mggarofalo/gas/commit/a82f3eb5148d806e5237b7538c29720ced51e2ee))
+
 ## [1.7.1](https://github.com/mggarofalo/gas/compare/v1.7.0...v1.7.1) (2026-03-31)
 
 
