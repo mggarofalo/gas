@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/mggarofalo/gas/compare/v1.3.0...v1.4.0) (2026-03-31)
+
+
+### Features
+
+* UI polish — animations, toasts, spinners, empty states ([12cf3a8](https://github.com/mggarofalo/gas/commit/12cf3a8a1d14cc9a6f3a9e68fc46aa8e4a4a4d4e))
+* UI polish and backend normalization ([6626917](https://github.com/mggarofalo/gas/commit/6626917bc52e1da2a236f940477ad0c4c9d1be16))
+
 ## [1.3.0](https://github.com/mggarofalo/gas/compare/v1.2.5...v1.3.0) (2026-03-31)
 
 
