@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api";
+import { Spinner } from "../components/Spinner";
+import { EmptyState } from "../components/EmptyState";
 import type { FillUp } from "../lib/types";
 
 export function FillUpDetailPage() {
@@ -16,8 +18,8 @@ export function FillUpDetailPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["fill-ups"] }); navigate({ to: "/fill-ups" }); },
   });
 
-  if (isLoading) return <p className="text-text-secondary">Loading...</p>;
-  if (!fillUp) return <p className="text-text-secondary">Fill-up not found.</p>;
+  if (isLoading) return <Spinner />;
+  if (!fillUp) return <EmptyState message="Fill-up not found." />;
 
   return (
     <div className="mx-auto max-w-xl">

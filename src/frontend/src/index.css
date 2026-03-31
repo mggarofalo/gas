@@ -22,28 +22,93 @@
   --color-input-border: #4b5563;   /* gray-600 */
 }
 
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(16px); }
+}
+
 @layer components {
-  .input {
-    @apply w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  /* --- Page fade-in --- */
+  .page-enter {
+    animation: fade-in 200ms ease-out both;
   }
+
+  /* --- Spinner --- */
+  .spinner {
+    @apply rounded-full border-2 border-border border-t-accent;
+    animation: spin 600ms linear infinite;
+  }
+
+  /* --- Toast --- */
+  .toast-item {
+    min-width: 240px;
+    max-width: 360px;
+  }
+  .toast-enter {
+    animation: toast-in 200ms ease-out both;
+  }
+  .toast-exit {
+    animation: toast-out 200ms ease-in both;
+  }
+
+  /* --- Empty state --- */
+  .empty-state {
+    @apply flex flex-col items-center justify-center rounded border border-dashed border-border px-6 py-10 text-center;
+  }
+
+  /* --- Inputs --- */
+  .input {
+    @apply w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted
+      transition-[color,border-color,box-shadow] duration-150 ease-out
+      focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+
+  /* --- Cards --- */
   .card {
     @apply rounded border border-border bg-surface-raised;
   }
+
+  /* --- Stat card hover lift --- */
+  .stat-card {
+    @apply rounded border border-border bg-surface-raised p-4 transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-md hover:shadow-black/20;
+  }
+
+  /* --- Labels --- */
   .label {
     @apply mb-1 block text-xs font-medium text-text-secondary;
   }
+
+  /* --- Buttons --- */
   .btn-primary {
-    @apply rounded bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover disabled:opacity-50;
+    @apply rounded bg-accent px-4 py-2 text-sm text-white transition-colors duration-150 ease-out hover:bg-accent-hover disabled:opacity-50;
   }
   .btn-danger {
-    @apply rounded bg-danger px-3 py-1.5 text-sm text-white hover:bg-red-700;
+    @apply rounded bg-danger px-3 py-1.5 text-sm text-white transition-colors duration-150 ease-out hover:bg-red-700;
   }
   .btn-outline {
-    @apply rounded border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary;
+    @apply rounded border border-border px-3 py-1.5 text-sm text-text-secondary transition-colors duration-150 ease-out hover:bg-surface-hover hover:text-text-primary;
   }
+
+  /* --- Links --- */
   .link {
     @apply text-accent-text hover:underline;
   }
+
+  /* --- Badges --- */
   .badge-success {
     @apply rounded px-2 py-0.5 text-xs font-medium bg-success-bg text-success-text;
   }
@@ -55,6 +120,19 @@
   }
   .badge-muted {
     @apply rounded bg-surface-hover px-2 py-0.5 text-xs text-text-secondary;
+  }
+
+  /* --- Table alternating rows --- */
+  .table-striped tbody tr:nth-child(even) {
+    @apply bg-surface-hover/30;
+  }
+
+  /* --- Sidebar nav active accent --- */
+  .nav-item {
+    @apply block rounded-r px-3 py-2 text-sm text-text-secondary transition-colors duration-150 ease-out hover:bg-surface-hover hover:text-text-primary;
+  }
+  .nav-item-active {
+    @apply border-l-2 border-accent font-medium text-accent-text bg-accent-subtle/50;
   }
 }
 
