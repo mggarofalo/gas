@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/mggarofalo/gas/compare/v1.8.0...v1.8.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* replace numeric spinner inputs with formatted text inputs ([d8a25f2](https://github.com/mggarofalo/gas/commit/d8a25f220f080f75d09e54f9f33c10931e2b441f))
+* replace numeric spinner inputs with formatted text inputs ([9109c43](https://github.com/mggarofalo/gas/commit/9109c43bf34f2fbdf6a3244b3bdcc7b66396a0e7))
+
 ## [1.8.0](https://github.com/mggarofalo/gas/compare/v1.7.1...v1.8.0) (2026-03-31)
 
 
