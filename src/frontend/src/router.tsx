@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import {
   createRouter,
   createRootRoute,
@@ -6,14 +7,15 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { Layout } from "./components/Layout";
-import { DashboardPage } from "./routes/Dashboard";
-import { FillUpsPage } from "./routes/FillUps";
-import { NewFillUpPage } from "./routes/NewFillUp";
-import { FillUpDetailPage } from "./routes/FillUpDetail";
-import { VehiclesPage } from "./routes/Vehicles";
-import { LoginPage } from "./routes/Login";
-import { ChangePasswordPage } from "./routes/ChangePassword";
 import { getAccessToken, parseJwt } from "./lib/auth";
+
+const LoginPage = lazy(() => import("./routes/Login").then((m) => ({ default: m.LoginPage })));
+const ChangePasswordPage = lazy(() => import("./routes/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
+const DashboardPage = lazy(() => import("./routes/Dashboard").then((m) => ({ default: m.DashboardPage })));
+const FillUpsPage = lazy(() => import("./routes/FillUps").then((m) => ({ default: m.FillUpsPage })));
+const NewFillUpPage = lazy(() => import("./routes/NewFillUp").then((m) => ({ default: m.NewFillUpPage })));
+const FillUpDetailPage = lazy(() => import("./routes/FillUpDetail").then((m) => ({ default: m.FillUpDetailPage })));
+const VehiclesPage = lazy(() => import("./routes/Vehicles").then((m) => ({ default: m.VehiclesPage })));
 
 function requireAuth() {
   const token = getAccessToken();
@@ -27,7 +29,6 @@ const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
 
-// Public routes (no layout)
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
@@ -40,7 +41,6 @@ const changePasswordRoute = createRoute({
   component: ChangePasswordPage,
 });
 
-// Authenticated layout
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "authenticated",
