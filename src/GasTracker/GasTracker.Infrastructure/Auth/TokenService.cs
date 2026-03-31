@@ -24,9 +24,6 @@ public class TokenService(IOptions<JwtOptions> opts, UserManager<ApplicationUser
             new("must_reset_password", user.MustResetPassword.ToString().ToLowerInvariant()),
         };
 
-        var roles = await userManager.GetRolesAsync(user);
-        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opts.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expiresIn = _opts.AccessTokenExpiryMinutes * 60;
