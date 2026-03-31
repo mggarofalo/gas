@@ -54,6 +54,27 @@ public static class LocationEndpoints
 
             return Results.Ok(results);
         }).WithTags("Locations").RequireAuthorization();
+
+        app.MapGet("/api/stations/search", async (string q, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+                return Results.Ok(Array.Empty<object>());
+
+            var results = await db.FillUps
+                .Where(f => f.StationName.ToLower().Contains(q.ToLower()))
+                .GroupBy(f => f.StationName)
+                .Select(g => new
+                {
+                    StationName = g.Key,
+                    VisitCount = g.Count(),
+                    LastVisit = g.Max(f => f.Date),
+                })
+                .OrderByDescending(s => s.VisitCount)
+                .Take(5)
+                .ToListAsync();
+
+            return Results.Ok(results);
+        }).WithTags("Locations").RequireAuthorization();
     }
 
     private static double HaversineDistanceMiles(double lat1, double lng1, double lat2, double lng2)

@@ -5,8 +5,8 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
-import type { Vehicle, FillUp, NearbyStation } from "../lib/types";
-import { useState, useCallback } from "react";
+import type { Vehicle, FillUp, NearbyStation, StationSuggestion } from "../lib/types";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Required"),
@@ -40,7 +40,13 @@ export function NewFillUpPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
-  const [showGps, setShowGps] = useState(false);
+  const [gpsAcquired, setGpsAcquired] = useState(false);
+
+  // Station autocomplete state
+  const [suggestions, setSuggestions] = useState<StationSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
 
@@ -73,6 +79,40 @@ export function NewFillUpPage() {
     onSuccess: (fillUp) => { toast("Fill-up saved"); navigate({ to: "/fill-ups/$id", params: { id: fillUp.id } }); },
   });
 
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Station name autocomplete
+  const handleStationInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setValue("stationName", val);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await apiFetch<StationSuggestion[]>(`/stations/search?q=${encodeURIComponent(val)}`);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch { /* non-critical */ }
+    }, 200);
+  }, [setValue]);
+
+  const selectSuggestion = useCallback((name: string) => {
+    setValue("stationName", name);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  }, [setValue]);
+
   const handleReceipt = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setReceiptFile(file);
@@ -83,15 +123,16 @@ export function NewFillUpPage() {
     } else { setReceiptPreview(null); }
   }, []);
 
+  // Auto-acquire GPS on mount and look up nearby stations
   const handleGeolocation = useCallback(() => {
-    setShowGps(true);
+    setLoadingNearby(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = Math.round(pos.coords.latitude * 1e7) / 1e7;
         const lng = Math.round(pos.coords.longitude * 1e7) / 1e7;
         setValue("latitude", lat);
         setValue("longitude", lng);
-        setLoadingNearby(true);
+        setGpsAcquired(true);
         try {
           const stations = await apiFetch<NearbyStation[]>(`/locations/nearby?lat=${lat}&lng=${lng}`);
           setNearbyStations(stations);
@@ -99,15 +140,21 @@ export function NewFillUpPage() {
         } catch { /* non-critical */ }
         finally { setLoadingNearby(false); }
       },
-      (err) => alert(`Geolocation error: ${err.message}`),
+      () => { setLoadingNearby(false); },
     );
   }, [setValue]);
+
+  // Auto-fire geolocation on mount
+  useEffect(() => { handleGeolocation(); }, [handleGeolocation]);
+
+  const stationNameReg = register("stationName");
 
   return (
     <div className="mx-auto max-w-lg">
       <h2 className="mb-6 text-2xl font-semibold">New Fill-Up</h2>
-      <form onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-5">
-        {/* Vehicle + Date row */}
+      <form onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-6">
+
+        {/* --- Section: Vehicle + Date --- */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Vehicle" error={errors.vehicleId?.message}>
             <select {...register("vehicleId")} className="input">
@@ -120,41 +167,59 @@ export function NewFillUpPage() {
           </Field>
         </div>
 
-        {/* Station */}
-        <Field label="Gas Station" error={errors.stationName?.message}>
-          <div className="flex gap-2">
-            <input {...register("stationName")} className="input" placeholder="Shell, BP, etc." />
-            <button type="button" onClick={handleGeolocation} className="btn-outline shrink-0 text-xs" title="Auto-fill from GPS">
-              {loadingNearby ? "..." : "GPS"}
-            </button>
-          </div>
+        {/* --- Section: Station / Location --- */}
+        <div>
+          <Field label="Gas Station" error={errors.stationName?.message}>
+            <div className="relative" ref={suggestionsRef}>
+              <input
+                {...stationNameReg}
+                onChange={(e) => { stationNameReg.onChange(e); handleStationInput(e); }}
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                className="input"
+                placeholder={loadingNearby ? "Locating..." : "Start typing..."}
+                autoComplete="off"
+              />
+              {showSuggestions && (
+                <div className="absolute z-10 mt-1 w-full rounded border border-border bg-surface-raised shadow-lg">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.stationName}
+                      type="button"
+                      onClick={() => selectSuggestion(s.stationName)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-sm text-text-primary hover:bg-surface-hover"
+                    >
+                      <span>{s.stationName}</span>
+                      <span className="text-xs text-text-muted">{s.visitCount}x</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Field>
           {nearbyStations.length > 1 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {nearbyStations.map((s, i) => (
-                <button key={`${s.stationName}-${s.stationAddress}`} type="button"
-                  onClick={() => setValue("stationName", s.stationName)}
+                <button key={`${s.stationName}-${i}`} type="button"
+                  onClick={() => { setValue("stationName", s.stationName); setShowSuggestions(false); }}
                   className={`rounded border px-2 py-0.5 text-xs transition-colors ${i === 0 ? "border-accent bg-accent-subtle text-accent-text" : "border-border text-text-secondary hover:bg-surface-hover"}`}>
                   {s.stationName} ({s.distanceMiles.toFixed(2)} mi)
                 </button>
               ))}
             </div>
           )}
-        </Field>
+          {gpsAcquired && (
+            <p className="mt-1 text-xs text-text-muted">
+              Location acquired ({watch("latitude")}, {watch("longitude")})
+            </p>
+          )}
+        </div>
 
-        {/* Odometer */}
-        <Field label="Odometer" error={errors.odometerMiles?.message}>
-          <div className="relative">
-            <input type="number" inputMode="numeric" {...register("odometerMiles")} className="input pr-10" placeholder="45,000" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">mi</span>
-          </div>
-        </Field>
-
-        {/* Gallons + Price + Total row */}
+        {/* --- Section: Gallons + Price --- */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Gallons" error={errors.gallons?.message}>
             <input type="number" inputMode="decimal" step="0.001" {...register("gallons")} className="input" placeholder="0.000" />
           </Field>
-          <Field label="Price" error={errors.pricePerGallon?.message}>
+          <Field label="Price / gal" error={errors.pricePerGallon?.message}>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">$</span>
               <input type="number" inputMode="decimal" step="0.001" {...register("pricePerGallon")} className="input pl-6" placeholder="0.000" />
@@ -163,36 +228,23 @@ export function NewFillUpPage() {
           <Field label="Total">
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">$</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                className="input pl-6"
-                placeholder={computedTotal.toFixed(2)}
-                {...register("totalCostOverride")}
-              />
+              <input type="number" inputMode="decimal" step="0.01" className="input pl-6" placeholder={computedTotal > 0 ? computedTotal.toFixed(2) : "0.00"} {...register("totalCostOverride")} />
             </div>
           </Field>
         </div>
         {computedTotal > 0 && !watch("totalCostOverride") && (
-          <p className="mt-[-0.75rem] text-xs text-text-muted">
-            Calculated: ${computedTotal.toFixed(2)}
-          </p>
+          <p className="-mt-4 text-xs text-text-muted">Calculated: ${computedTotal.toFixed(2)}</p>
         )}
 
-        {/* GPS (hidden until requested) */}
-        {showGps && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Latitude">
-              <input type="number" inputMode="decimal" step="any" {...register("latitude")} className="input" />
-            </Field>
-            <Field label="Longitude">
-              <input type="number" inputMode="decimal" step="any" {...register("longitude")} className="input" />
-            </Field>
+        {/* --- Section: Mileage --- */}
+        <Field label="Odometer" error={errors.odometerMiles?.message}>
+          <div className="relative">
+            <input type="number" inputMode="numeric" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">mi</span>
           </div>
-        )}
+        </Field>
 
-        {/* Receipt */}
+        {/* --- Section: Receipt --- */}
         <Field label="Receipt">
           <label className="flex cursor-pointer items-center justify-center rounded border-2 border-dashed border-border p-4 transition-colors hover:border-accent hover:bg-accent-subtle/30">
             <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleReceipt} className="hidden" />

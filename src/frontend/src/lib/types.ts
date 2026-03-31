@@ -39,6 +39,12 @@ export interface FillUpPage {
   totalCount: number;
 }
 
+export interface StationSuggestion {
+  stationName: string;
+  visitCount: number;
+  lastVisit: string;
+}
+
 export interface NearbyStation {
   stationName: string;
   stationAddress: string | null;
