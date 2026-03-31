@@ -249,6 +249,7 @@ export function NewFillUpPage() {
               value={gallonsStr}
               onChange={(v) => { setGallonsStr(v); setValue("gallons", parseFloat(v) || 0); }}
               decimals={3}
+              maxWhole={3}
               placeholder="0.000"
             />
           </Field>
@@ -257,6 +258,7 @@ export function NewFillUpPage() {
               value={priceStr}
               onChange={(v) => { setPriceStr(v); setValue("pricePerGallon", parseFloat(v) || 0); }}
               decimals={3}
+              maxWhole={3}
               prefix="$"
               placeholder="0.000"
             />
