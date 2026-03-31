@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.3](https://github.com/mggarofalo/gas/compare/v1.8.2...v1.8.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* iOS Safari geolocation, document scanner, and Bitwarden suppression ([acb222a](https://github.com/mggarofalo/gas/commit/acb222a25da532e73eb3620111da121ce69ac034))
+* iOS Safari geolocation, document scanner, and Bitwarden suppression ([b218cf0](https://github.com/mggarofalo/gas/commit/b218cf09dc8c0bde87c4586f12bde53e20fcdf0c))
+
 ## [1.8.2](https://github.com/mggarofalo/gas/compare/v1.8.1...v1.8.2) (2026-03-31)
 
 
