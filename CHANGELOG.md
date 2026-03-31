@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/mggarofalo/gas/compare/v1.8.1...v1.8.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* GPS requires user gesture, receipt shows iOS scanner, suppress password managers ([7e66546](https://github.com/mggarofalo/gas/commit/7e66546ebd3834d50082898afb1072656e03b4a3))
+* GPS user gesture, iOS scanner, password manager suppression ([c48ece4](https://github.com/mggarofalo/gas/commit/c48ece4a20f5bd512c3d42b14315889a69bd793a))
+
 ## [1.8.1](https://github.com/mggarofalo/gas/compare/v1.8.0...v1.8.1) (2026-03-31)
 
 
