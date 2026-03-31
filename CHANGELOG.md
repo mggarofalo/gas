@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.2](https://github.com/mggarofalo/gas/compare/v1.2.1...v1.2.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* dark mode theme system, login password sync, code splitting ([9d8ef7e](https://github.com/mggarofalo/gas/commit/9d8ef7e27918996abb3908b211e1280cded66a47))
+* dark mode theme, login password sync, code splitting ([f1b8fa4](https://github.com/mggarofalo/gas/commit/f1b8fa4a368cb000f0c53053e4ad5ba26d21912a))
+
 ## [1.2.1](https://github.com/mggarofalo/gas/compare/v1.2.0...v1.2.1) (2026-03-31)
 
 
