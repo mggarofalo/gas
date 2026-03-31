@@ -16,13 +16,10 @@ services:
             echo "/secrets/$${secret} already exists, skipping"
           fi
         done
-        # Admin password: strong random with mixed character classes
+        # Admin password: 44 alphanum + guaranteed uppercase, digit, and special char
         if [ ! -f "/secrets/admin_password" ]; then
-          pw=$$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 44)
-          sym=$$(tr -dc '!@#%&*' < /dev/urandom | head -c 2)
-          digit=$$(tr -dc '0-9' < /dev/urandom | head -c 1)
-          upper=$$(tr -dc 'A-Z' < /dev/urandom | head -c 1)
-          printf '%s%s%s%s' "$${pw}" "$${sym}" "$${digit}" "$${upper}" > "/secrets/admin_password"
+          base=$$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 44)
+          printf '%s@A1!' "$${base}" > "/secrets/admin_password"
           chmod 644 "/secrets/admin_password"
           echo "Generated /secrets/admin_password"
         else
