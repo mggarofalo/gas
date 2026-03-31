@@ -152,8 +152,7 @@ export function NewFillUpPage() {
     );
   }, [setValue]);
 
-  // Auto-fire geolocation on mount
-  useEffect(() => { handleGeolocation(); }, [handleGeolocation]);
+  // No auto-fire — iOS Safari requires a user gesture for geolocation
 
   const stationNameReg = register("stationName");
 
@@ -264,7 +263,7 @@ export function NewFillUpPage() {
         {/* --- Section: Mileage --- */}
         <Field label="Odometer" error={errors.odometerMiles?.message}>
           <div className="relative">
-            <input type="text" inputMode="numeric" pattern="[0-9]*" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
+            <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" data-1p-ignore data-lpignore="true" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">mi</span>
           </div>
         </Field>
@@ -286,8 +285,8 @@ export function NewFillUpPage() {
             </div>
           ) : (
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded border-2 border-dashed border-border p-6 transition-colors hover:border-accent hover:bg-accent-subtle/30">
-              {/* No capture attr — iOS shows full sheet: Scan Documents, Camera, Photo Library */}
-              <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} className="hidden" />
+              {/* accept="image/*" only — adding PDF disables iOS document scanner */}
+              <input type="file" accept="image/*" onChange={handleReceipt} className="hidden" />
               <svg className="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />

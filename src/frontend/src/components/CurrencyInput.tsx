@@ -88,6 +88,9 @@ export function CurrencyInput({
         placeholder={focused ? "" : placeholder}
         className={`${className ?? "input"} ${prefix ? "pl-6" : ""} ${suffix ? "pr-10" : ""}`}
         autoComplete="off"
+        data-1p-ignore=""
+        data-lpignore="true"
+        data-form-type="other"
       />
       {suffix && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
