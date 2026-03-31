@@ -2,8 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      mode === "production"
+        ? process.env.npm_package_version ?? "dev"
+        : "dev",
+    ),
+  },
   build: {
     rolldownOptions: {
       output: {
@@ -24,4 +31,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
