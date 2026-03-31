@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/mggarofalo/gas/compare/v1.0.0...v1.0.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* restore API project directly in Dockerfile instead of solution ([92a6916](https://github.com/mggarofalo/gas/commit/92a69164cb8c65b535b641b90077280b9434fab5))
+
 ## 1.0.0 (2026-03-31)
 
 
