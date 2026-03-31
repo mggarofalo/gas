@@ -1,27 +1,72 @@
+using System.Text;
 using FluentValidation;
 using GasTracker.Api.Endpoints;
+using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
+using GasTracker.Infrastructure.Auth;
 using GasTracker.Infrastructure.Data;
 using GasTracker.Infrastructure.Repositories;
 using GasTracker.Infrastructure.Storage;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
            .UseSnakeCaseNamingConvention());
 
+// Identity
+builder.Services.AddIdentityCore<ApplicationUser>(opts =>
+    {
+        opts.Password.RequiredLength = 12;
+        opts.Password.RequireDigit = true;
+        opts.Password.RequireUppercase = true;
+        opts.Password.RequireNonAlphanumeric = true;
+        opts.Password.RequireLowercase = true;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+// JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is required");
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts =>
+    {
+        opts.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "gas-api",
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "gas-app",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        };
+    });
+builder.Services.AddAuthorization();
+
+// Validation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+// Repositories
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IFillUpRepository, FillUpRepository>();
 
+// MinIO
 builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("MinIO"));
 builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
 
+// CORS
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.WithOrigins(builder.Configuration.GetValue<string>("AllowedOrigins") ?? "http://localhost:5173")
@@ -35,6 +80,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    await AdminSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 // Ensure MinIO bucket exists
@@ -47,8 +94,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
+// Public endpoints
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapAuthEndpoints();
+
+// Protected endpoints
 app.MapVehicleEndpoints();
 app.MapFillUpEndpoints();
 app.MapStatsEndpoints();

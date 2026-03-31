@@ -5,7 +5,7 @@ import { apiFetch } from "../lib/api";
 import type { FillUp } from "../lib/types";
 
 export function FillUpDetailPage() {
-  const { id } = useParams({ from: "/fill-ups/$id" });
+  const { id } = useParams({ from: "/authenticated/fill-ups/$id" });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);

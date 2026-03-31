@@ -7,7 +7,7 @@ services:
     command:
       - -c
       - |
-        for secret in pg_password minio_access_key minio_secret_key; do
+        for secret in pg_password minio_access_key minio_secret_key jwt_key; do
           if [ ! -f "/secrets/$${secret}" ]; then
             tr -dc 'A-Za-z0-9+/' < /dev/urandom | head -c 48 > "/secrets/$${secret}"
             chmod 644 "/secrets/$${secret}"
@@ -16,6 +16,18 @@ services:
             echo "/secrets/$${secret} already exists, skipping"
           fi
         done
+        # Admin password: strong random with mixed character classes
+        if [ ! -f "/secrets/admin_password" ]; then
+          pw=$$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 44)
+          sym=$$(tr -dc '!@#%&*' < /dev/urandom | head -c 2)
+          digit=$$(tr -dc '0-9' < /dev/urandom | head -c 1)
+          upper=$$(tr -dc 'A-Z' < /dev/urandom | head -c 1)
+          printf '%s%s%s%s' "$${pw}" "$${sym}" "$${digit}" "$${upper}" > "/secrets/admin_password"
+          chmod 644 "/secrets/admin_password"
+          echo "Generated /secrets/admin_password"
+        else
+          echo "/secrets/admin_password already exists, skipping"
+        fi
         echo "Secrets ready"
     volumes:
       - secrets:/secrets
@@ -117,6 +129,11 @@ services:
       - MinIO__UseSSL=false
       - AllowedOrigins=*
       - Paperless__Enabled=false
+      - AdminSeed__Email=admin@gastracker.local
+      - AdminSeed__FirstName=Admin
+      - AdminSeed__LastName=User
+      - Jwt__Issuer=gas-api
+      - Jwt__Audience=gas-app
     depends_on:
       db:
         condition: service_healthy

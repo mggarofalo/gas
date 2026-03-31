@@ -10,6 +10,6 @@ public static class StatsEndpoints
         {
             var stats = await repo.GetStatsAsync(vehicleId, startDate, endDate);
             return Results.Ok(stats);
-        }).WithTags("Stats");
+        }).WithTags("Stats").RequireAuthorization();
     }
 }
