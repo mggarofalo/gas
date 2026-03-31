@@ -23,7 +23,7 @@ export function FillUpDetailPage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-semibold">Fill-Up Detail</h2>
         <div className="flex gap-2">
           <button onClick={() => navigate({ to: "/fill-ups" })} className="btn-outline">Back</button>
@@ -31,26 +31,26 @@ export function FillUpDetailPage() {
             <button onClick={() => setConfirmDelete(true)} className="btn-danger">Delete</button>
           ) : (
             <div className="flex gap-1">
-              <button onClick={() => deleteMut.mutate()} className="btn-danger">Confirm Delete</button>
+              <button onClick={() => deleteMut.mutate()} className="btn-danger">Confirm</button>
               <button onClick={() => setConfirmDelete(false)} className="btn-outline">Cancel</button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="card space-y-4 p-6">
+      <div className="card space-y-4 p-4 sm:p-6">
         <Row label="Vehicle" value={fillUp.vehicleLabel} />
         <Row label="Date" value={fillUp.date} />
         <Row label="Station" value={fillUp.stationName} />
         {fillUp.stationAddress && <Row label="Address" value={fillUp.stationAddress} />}
         <Row label="Odometer" value={`${fillUp.odometerMiles.toLocaleString()} mi`} />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Row label="Gallons" value={fillUp.gallons.toFixed(3)} />
           <Row label="$/Gallon" value={`$${fillUp.pricePerGallon.toFixed(3)}`} />
           <Row label="Total" value={`$${fillUp.totalCost.toFixed(2)}`} />
         </div>
         {fillUp.tripMiles != null && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Row label="Trip Miles" value={fillUp.tripMiles.toLocaleString()} />
             <Row label="MPG" value={fillUp.mpg?.toFixed(1) ?? "\u2014"} />
             <Row label="$/Mile" value={fillUp.costPerMile != null ? `$${fillUp.costPerMile.toFixed(2)}` : "\u2014"} />
