@@ -116,8 +116,6 @@ services:
       - MinIO__BucketName=gas-receipts
       - MinIO__UseSSL=false
       - AllowedOrigins=*
-      - Paperless__BaseUrl=
-      - Paperless__Token=
       - Paperless__Enabled=false
     depends_on:
       db:
