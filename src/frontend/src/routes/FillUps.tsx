@@ -14,10 +14,7 @@ export function FillUpsPage() {
   const [sortDir, setSortDir] = useState("desc");
   const pageSize = 25;
 
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ["vehicles"],
-    queryFn: () => apiFetch<Vehicle[]>("/vehicles"),
-  });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
 
   const params = new URLSearchParams();
   if (vehicleId) params.set("vehicleId", vehicleId);
@@ -28,93 +25,51 @@ export function FillUpsPage() {
   params.set("sortBy", sortBy);
   params.set("sortDir", sortDir);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["fill-ups", vehicleId, startDate, endDate, page, sortBy, sortDir],
-    queryFn: () => apiFetch<FillUpPage>(`/fill-ups?${params}`),
-  });
-
+  const { data, isLoading } = useQuery({ queryKey: ["fill-ups", vehicleId, startDate, endDate, page, sortBy, sortDir], queryFn: () => apiFetch<FillUpPage>(`/fill-ups?${params}`) });
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
 
   const toggleSort = (col: string) => {
-    if (sortBy === col) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(col);
-      setSortDir("desc");
-    }
+    if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortBy(col); setSortDir("desc"); }
     setPage(1);
   };
-
-  const sortIndicator = (col: string) =>
-    sortBy === col ? (sortDir === "asc" ? " \u25b2" : " \u25bc") : "";
+  const sortIndicator = (col: string) => sortBy === col ? (sortDir === "asc" ? " \u25b2" : " \u25bc") : "";
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Fill-Up History</h2>
-        <Link
-          to="/fill-ups/new"
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-        >
-          Add Fill-Up
-        </Link>
+        <Link to="/fill-ups/new" className="btn-primary">Add Fill-Up</Link>
       </div>
 
-      {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-3">
-        <select
-          value={vehicleId}
-          onChange={(e) => { setVehicleId(e.target.value); setPage(1); }}
-          className="input w-48"
-        >
+        <select value={vehicleId} onChange={(e) => { setVehicleId(e.target.value); setPage(1); }} className="input w-48">
           <option value="">All Vehicles</option>
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>{v.label}</option>
-          ))}
+          {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
         </select>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-          className="input"
-          placeholder="Start date"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-          className="input"
-          placeholder="End date"
-        />
+        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} className="input w-auto" />
+        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} className="input w-auto" />
       </div>
 
-      {isLoading ? (
-        <p className="text-gray-500">Loading...</p>
-      ) : !data || data.items.length === 0 ? (
-        <p className="text-gray-500">No fill-ups found.</p>
-      ) : (
+      {isLoading ? <p className="text-text-secondary">Loading...</p> : !data || data.items.length === 0 ? <p className="text-text-secondary">No fill-ups found.</p> : (
         <>
-          <div className="overflow-x-auto rounded border">
+          <div className="card overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-surface-hover/50">
                 <tr>
                   <Th onClick={() => toggleSort("date")}>Date{sortIndicator("date")}</Th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Vehicle</th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Station</th>
+                  <th className="px-3 py-2 font-medium text-text-secondary">Vehicle</th>
+                  <th className="px-3 py-2 font-medium text-text-secondary">Station</th>
                   <Th onClick={() => toggleSort("gallons")}>Gallons{sortIndicator("gallons")}</Th>
-                  <th className="px-3 py-2 font-medium text-gray-600">$/Gal</th>
+                  <th className="px-3 py-2 font-medium text-text-secondary">$/Gal</th>
                   <Th onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</Th>
                   <Th onClick={() => toggleSort("odometer")}>Odometer{sortIndicator("odometer")}</Th>
-                  <th className="px-3 py-2 font-medium text-gray-600">MPG</th>
+                  <th className="px-3 py-2 font-medium text-text-secondary">MPG</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map((f) => (
-                  <tr
-                    key={f.id}
-                    onClick={() => navigate({ to: "/fill-ups/$id", params: { id: f.id } })}
-                    className="cursor-pointer border-t hover:bg-blue-50"
-                  >
+                  <tr key={f.id} onClick={() => navigate({ to: "/fill-ups/$id", params: { id: f.id } })} className="cursor-pointer border-t border-border hover:bg-accent-subtle">
                     <td className="px-3 py-2">{f.date}</td>
                     <td className="px-3 py-2">{f.vehicleLabel}</td>
                     <td className="px-3 py-2">{f.stationName}</td>
@@ -128,28 +83,12 @@ export function FillUpsPage() {
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+          <div className="mt-3 flex items-center justify-between text-sm text-text-secondary">
             <span>{data.totalCount} fill-ups</span>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded border px-3 py-1 disabled:opacity-40"
-              >
-                Prev
-              </button>
-              <span className="px-2 py-1">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded border px-3 py-1 disabled:opacity-40"
-              >
-                Next
-              </button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-outline disabled:opacity-40">Prev</button>
+              <span className="px-2 py-1">{page} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-outline disabled:opacity-40">Next</button>
             </div>
           </div>
         </>
@@ -159,12 +98,5 @@ export function FillUpsPage() {
 }
 
 function Th({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <th
-      onClick={onClick}
-      className="cursor-pointer select-none px-3 py-2 font-medium text-gray-600 hover:text-blue-600"
-    >
-      {children}
-    </th>
-  );
+  return <th onClick={onClick} className="cursor-pointer select-none px-3 py-2 font-medium text-text-secondary hover:text-accent-text">{children}</th>;
 }

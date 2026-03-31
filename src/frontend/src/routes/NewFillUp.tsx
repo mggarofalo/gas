@@ -41,33 +41,17 @@ export function NewFillUpPage() {
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
 
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ["vehicles"],
-    queryFn: () => apiFetch<Vehicle[]>("/vehicles"),
-  });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-    control,
-  } = useForm<FillUpForm>({
+  const { register, handleSubmit, watch, setValue, formState: { errors }, control } = useForm<FillUpForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: standardSchemaResolver(fillUpSchema) as any,
-    defaultValues: {
-      date: new Date().toISOString().slice(0, 10),
-      vehicleId: "",
-    },
+    defaultValues: { date: new Date().toISOString().slice(0, 10), vehicleId: "" },
   });
 
   const gallons = watch("gallons");
   const pricePerGallon = watch("pricePerGallon");
-  const computedTotal =
-    gallons && pricePerGallon
-      ? Math.round(gallons * pricePerGallon * 100) / 100
-      : 0;
+  const computedTotal = gallons && pricePerGallon ? Math.round(gallons * pricePerGallon * 100) / 100 : 0;
 
   const createMut = useMutation({
     mutationFn: async (data: FillUpForm) => {
@@ -79,16 +63,11 @@ export function NewFillUpPage() {
       fd.append("odometerMiles", String(data.odometerMiles));
       fd.append("gallons", String(data.gallons));
       fd.append("pricePerGallon", String(data.pricePerGallon));
-      fd.append(
-        "totalCost",
-        String(data.totalCostOverride || computedTotal),
-      );
+      fd.append("totalCost", String(data.totalCostOverride || computedTotal));
       if (data.latitude != null) fd.append("latitude", String(data.latitude));
-      if (data.longitude != null)
-        fd.append("longitude", String(data.longitude));
+      if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
       if (receiptFile) fd.append("receipt", receiptFile);
-
       return apiFetch<FillUp>("/fill-ups", { method: "POST", body: fd });
     },
     onSuccess: (fillUp) => navigate({ to: "/fill-ups/$id", params: { id: fillUp.id } }),
@@ -101,9 +80,7 @@ export function NewFillUpPage() {
       const reader = new FileReader();
       reader.onload = () => setReceiptPreview(reader.result as string);
       reader.readAsDataURL(file);
-    } else {
-      setReceiptPreview(null);
-    }
+    } else { setReceiptPreview(null); }
   }, []);
 
   const handleGeolocation = useCallback(() => {
@@ -113,25 +90,16 @@ export function NewFillUpPage() {
         const lng = Math.round(pos.coords.longitude * 1e7) / 1e7;
         setValue("latitude", lat);
         setValue("longitude", lng);
-
-        // Async background lookup — auto-fill station from history
         setLoadingNearby(true);
         try {
-          const stations = await apiFetch<NearbyStation[]>(
-            `/locations/nearby?lat=${lat}&lng=${lng}`,
-          );
+          const stations = await apiFetch<NearbyStation[]>(`/locations/nearby?lat=${lat}&lng=${lng}`);
           setNearbyStations(stations);
           if (stations.length > 0) {
             setValue("stationName", stations[0].stationName);
-            if (stations[0].stationAddress) {
-              setValue("stationAddress", stations[0].stationAddress);
-            }
+            if (stations[0].stationAddress) setValue("stationAddress", stations[0].stationAddress);
           }
-        } catch {
-          // Non-critical — user can still type manually
-        } finally {
-          setLoadingNearby(false);
-        }
+        } catch { /* non-critical */ }
+        finally { setLoadingNearby(false); }
       },
       (err) => alert(`Geolocation error: ${err.message}`),
     );
@@ -140,43 +108,27 @@ export function NewFillUpPage() {
   return (
     <div className="mx-auto max-w-xl">
       <h2 className="mb-4 text-2xl font-semibold">New Fill-Up</h2>
-
       <form onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-4">
-        {/* Vehicle */}
         <Field label="Vehicle" error={errors.vehicleId?.message}>
           <select {...register("vehicleId")} className="input">
             <option value="">Select vehicle...</option>
-            {vehicles.map((v) => (
-              <option key={v.id} value={v.id}>{v.label}</option>
-            ))}
+            {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
           </select>
         </Field>
 
-        {/* Date */}
         <Field label="Date" error={errors.date?.message}>
           <input type="date" {...register("date")} className="input" />
         </Field>
 
-        {/* Station */}
         <Field label="Gas Station" error={errors.stationName?.message}>
           <input {...register("stationName")} className="input" placeholder="Shell, BP, etc." />
-          {loadingNearby && (
-            <p className="mt-1 text-xs text-gray-400">Looking up nearby stations...</p>
-          )}
+          {loadingNearby && <p className="mt-1 text-xs text-text-muted">Looking up nearby stations...</p>}
           {nearbyStations.length > 1 && (
             <div className="mt-1 flex flex-wrap gap-1">
               {nearbyStations.map((s, i) => (
-                <button
-                  key={`${s.stationName}-${s.stationAddress}`}
-                  type="button"
-                  onClick={() => {
-                    setValue("stationName", s.stationName);
-                    if (s.stationAddress) setValue("stationAddress", s.stationAddress);
-                  }}
-                  className={`rounded border px-2 py-0.5 text-xs ${
-                    i === 0 ? "border-blue-300 bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
+                <button key={`${s.stationName}-${s.stationAddress}`} type="button"
+                  onClick={() => { setValue("stationName", s.stationName); if (s.stationAddress) setValue("stationAddress", s.stationAddress); }}
+                  className={`rounded border px-2 py-0.5 text-xs ${i === 0 ? "border-accent bg-accent-subtle text-accent-text" : "border-border text-text-secondary hover:bg-surface-hover"}`}>
                   {s.stationName} ({s.distanceMiles.toFixed(2)} mi, {s.visitCount}x)
                 </button>
               ))}
@@ -184,57 +136,27 @@ export function NewFillUpPage() {
           )}
         </Field>
 
-        <Field label="Station Address (optional)">
-          <input {...register("stationAddress")} className="input" placeholder="123 Main St" />
-        </Field>
+        <Field label="Station Address (optional)"><input {...register("stationAddress")} className="input" placeholder="123 Main St" /></Field>
+        <Field label="Current Mileage" error={errors.odometerMiles?.message}><input type="number" {...register("odometerMiles")} className="input" /></Field>
 
-        {/* Odometer */}
-        <Field label="Current Mileage" error={errors.odometerMiles?.message}>
-          <input type="number" {...register("odometerMiles")} className="input" />
-        </Field>
-
-        {/* Gallons + Price */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Gallons" error={errors.gallons?.message}>
-            <input type="number" step="0.001" {...register("gallons")} className="input" />
-          </Field>
-          <Field label="Price / Gallon" error={errors.pricePerGallon?.message}>
-            <input type="number" step="0.001" {...register("pricePerGallon")} className="input" />
-          </Field>
+          <Field label="Gallons" error={errors.gallons?.message}><input type="number" step="0.001" {...register("gallons")} className="input" /></Field>
+          <Field label="Price / Gallon" error={errors.pricePerGallon?.message}><input type="number" step="0.001" {...register("pricePerGallon")} className="input" /></Field>
         </div>
 
-        {/* Total */}
         <Field label="Total Cost">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">${computedTotal.toFixed(2)}</span>
-            <Controller
-              name="totalCostOverride"
-              control={control}
-              render={({ field }) => (
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Override"
-                  className="input flex-1"
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                />
-              )}
-            />
+            <span className="text-sm text-text-secondary">${computedTotal.toFixed(2)}</span>
+            <Controller name="totalCostOverride" control={control} render={({ field }) => (
+              <input type="number" step="0.01" placeholder="Override" className="input flex-1" value={field.value ?? ""} onChange={field.onChange} />
+            )} />
           </div>
         </Field>
 
-        {/* GPS */}
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-600">GPS Coordinates</span>
-            <button
-              type="button"
-              onClick={handleGeolocation}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Use My Location
-            </button>
+            <span className="label mb-0">GPS Coordinates</span>
+            <button type="button" onClick={handleGeolocation} className="link text-xs">Use My Location</button>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <input type="number" step="any" {...register("latitude")} placeholder="Latitude" className="input" />
@@ -242,31 +164,16 @@ export function NewFillUpPage() {
           </div>
         </div>
 
-        {/* Receipt */}
         <Field label="Receipt (optional)">
           <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleReceipt} className="input" />
-          {receiptPreview && (
-            <img src={receiptPreview} alt="Receipt preview" className="mt-2 h-32 rounded border object-contain" />
-          )}
-          {receiptFile && !receiptPreview && (
-            <p className="mt-1 text-sm text-gray-500">{receiptFile.name}</p>
-          )}
+          {receiptPreview && <img src={receiptPreview} alt="Receipt preview" className="mt-2 h-32 rounded border border-border object-contain" />}
+          {receiptFile && !receiptPreview && <p className="mt-1 text-sm text-text-secondary">{receiptFile.name}</p>}
         </Field>
 
-        {/* Notes */}
-        <Field label="Notes (optional)">
-          <textarea {...register("notes")} className="input" rows={2} />
-        </Field>
+        <Field label="Notes (optional)"><textarea {...register("notes")} className="input" rows={2} /></Field>
 
-        {createMut.isError && (
-          <p className="text-sm text-red-600">Error: {createMut.error.message}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={createMut.isPending}
-          className="w-full rounded bg-blue-600 py-2.5 text-white hover:bg-blue-700 disabled:opacity-50"
-        >
+        {createMut.isError && <p className="text-sm text-danger-text">Error: {createMut.error.message}</p>}
+        <button type="submit" disabled={createMut.isPending} className="btn-primary w-full py-2.5">
           {createMut.isPending ? "Saving..." : "Save Fill-Up"}
         </button>
       </form>
@@ -274,20 +181,6 @@ export function NewFillUpPage() {
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
-      {children}
-      {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
-    </div>
-  );
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return <div><label className="label">{label}</label>{children}{error && <p className="mt-0.5 text-xs text-danger-text">{error}</p>}</div>;
 }
