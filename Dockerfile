@@ -43,6 +43,10 @@ LABEL org.opencontainers.image.title="Gas Tracker" \
       org.opencontainers.image.description="Personal fuel tracking API with React SPA" \
       org.opencontainers.image.source="https://github.com/mggarofalo/gas"
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
 
@@ -51,9 +55,14 @@ WORKDIR /app
 COPY --from=api-build /app/publish .
 COPY --from=client-build /app/client/dist ./wwwroot/
 
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
+
+RUN mkdir -p /secrets
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -sf http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["dotnet", "GasTracker.Api.dll"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

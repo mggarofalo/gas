@@ -1,59 +1,152 @@
 services:
+  init:
+    image: alpine:3.21
+    container_name: gas-init
+    restart: "no"
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        for secret in pg_password minio_access_key minio_secret_key; do
+          if [ ! -f "/secrets/$${secret}" ]; then
+            tr -dc 'A-Za-z0-9+/' < /dev/urandom | head -c 48 > "/secrets/$${secret}"
+            chmod 644 "/secrets/$${secret}"
+            echo "Generated /secrets/$${secret}"
+          else
+            echo "/secrets/$${secret} already exists, skipping"
+          fi
+        done
+        echo "Secrets ready"
+    volumes:
+      - secrets:/secrets
+    networks: []
+
   db:
     image: postgres:17
+    container_name: gas-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: gastracker
-      POSTGRES_USER: gas
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      - POSTGRES_USER=gas
+      - POSTGRES_PASSWORD_FILE=/secrets/pg_password
+      - POSTGRES_DB=gastracker
+    depends_on:
+      init:
+        condition: service_completed_successfully
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - secrets:/secrets:ro
+      - db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gas -d gastracker"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - FOWNER
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - gas-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   minio:
     image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    container_name: gas-minio
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        export MINIO_ROOT_USER=$$(cat /secrets/minio_access_key)
+        export MINIO_ROOT_PASSWORD=$$(cat /secrets/minio_secret_key)
+        exec minio server /data --console-address ":9001"
+    depends_on:
+      init:
+        condition: service_completed_successfully
     volumes:
-      - miniodata:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      - secrets:/secrets:ro
+      - minio-data:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 15s
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - gas-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Default: Host=db;Port=5432;Database=gastracker;Username=gas;Password=${DB_PASSWORD:-changeme}
-      MinIO__Endpoint: minio:9000
-      MinIO__AccessKey: ${MINIO_ACCESS_KEY:-minioadmin}
-      MinIO__SecretKey: ${MINIO_SECRET_KEY:-minioadmin}
-      MinIO__BucketName: gas-receipts
-      MinIO__UseSSL: "false"
-      AllowedOrigins: http://localhost:5173
+  app:
+    image: ghcr.io/mggarofalo/gas:${IMAGE_TAG:-latest}
+    container_name: gas-app
+    restart: unless-stopped
     ports:
-      - "5000:8080"
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      - TZ=America/New_York
+      - ASPNETCORE_ENVIRONMENT=Production
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=gas
+      - POSTGRES_DB=gastracker
+      - MinIO__Endpoint=minio:9000
+      - MinIO__BucketName=gas-receipts
+      - MinIO__UseSSL=false
+      - AllowedOrigins=*
     depends_on:
       db:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: unless-stopped
+    volumes:
+      - secrets:/secrets:ro
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - gas-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
-  pgdata:
-  miniodata:
+  secrets:
+  db-data:
+  minio-data:
+
+networks:
+  gas-net:
+    driver: bridge
