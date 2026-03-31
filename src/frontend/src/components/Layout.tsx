@@ -54,6 +54,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <button onClick={handleLogout} className="nav-item w-full text-left">
           Sign Out
         </button>
+        <p className="mt-2 px-3 text-[10px] text-text-muted/50">v{__APP_VERSION__}</p>
       </div>
     </>
   );
