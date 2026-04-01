@@ -137,6 +137,7 @@ app.MapVehicleEndpoints();
 app.MapFillUpEndpoints();
 app.MapStatsEndpoints();
 app.MapLocationEndpoints();
+app.MapIngestEndpoints();
 
 // SPA fallback — serve index.html for any non-API, non-file route
 app.MapFallbackToFile("index.html");
