@@ -52,6 +52,18 @@ public class IngestMemoParserTests
     }
 
     [Fact]
+    public void ParseMemo_ZeroOctane_ReturnsNull()
+    {
+        IngestEndpoints.ParseMemo("Tacoma, 0, $3.299, 45200").Should().BeNull();
+    }
+
+    [Fact]
+    public void ParseMemo_NegativeOctane_ReturnsNull()
+    {
+        IngestEndpoints.ParseMemo("Tacoma, -1, $3.299, 45200").Should().BeNull();
+    }
+
+    [Fact]
     public void ParseMemo_InvalidPrice_ReturnsNull()
     {
         IngestEndpoints.ParseMemo("Tacoma, 87, notaprice, 45200").Should().BeNull();

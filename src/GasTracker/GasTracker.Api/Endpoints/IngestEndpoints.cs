@@ -56,7 +56,7 @@ public static class IngestEndpoints
                 return Results.BadRequest(new { error = "CSV must have a header row and at least one data row" });
 
             // Parse header to find column indices
-            var header = ParseCsvLine(lines[0]);
+            var header = ParseCsvLine(lines[0].Trim());
             var colDate = Array.FindIndex(header, h => h.Equals("Date", StringComparison.OrdinalIgnoreCase));
             var colPayee = Array.FindIndex(header, h => h.Equals("Payee", StringComparison.OrdinalIgnoreCase));
             var colMemo = Array.FindIndex(header, h => h.Equals("Memo", StringComparison.OrdinalIgnoreCase));
@@ -194,7 +194,7 @@ public static class IngestEndpoints
         var vehicleName = parts[0].Trim();
         if (string.IsNullOrWhiteSpace(vehicleName)) return null;
 
-        if (!short.TryParse(parts[1].Trim(), out var octane)) return null;
+        if (!short.TryParse(parts[1].Trim(), out var octane) || octane <= 0) return null;
 
         var priceStr = parts[2].Trim().TrimStart('$');
         if (!decimal.TryParse(priceStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) || price <= 0)
