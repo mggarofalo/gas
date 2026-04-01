@@ -90,12 +90,10 @@ public class YnabClient(HttpClient http) : IYnabClient
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         req.Content = JsonContent.Create(new { transaction = tx }, options: JsonOpts);
 
-        var res = await http.SendAsync(req);
+        var res = await SendAsync(req, allowConflict: true);
 
         if (res.StatusCode == HttpStatusCode.Conflict)
             return new YnabTransactionResult(null, IsDuplicate: true);
-
-        res.EnsureSuccessStatusCode();
 
         var doc = await JsonDocument.ParseAsync(await res.Content.ReadAsStreamAsync());
         var data = doc.RootElement.GetProperty("data");
@@ -105,7 +103,7 @@ public class YnabClient(HttpClient http) : IYnabClient
         return new YnabTransactionResult(id, IsDuplicate: false);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req)
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, bool allowConflict = false)
     {
         var res = await http.SendAsync(req);
 
@@ -114,6 +112,9 @@ public class YnabClient(HttpClient http) : IYnabClient
 
         if (res.StatusCode == HttpStatusCode.TooManyRequests)
             throw new InvalidOperationException("YNAB API rate limit exceeded (200 requests/hour)");
+
+        if (allowConflict && res.StatusCode == HttpStatusCode.Conflict)
+            return res;
 
         res.EnsureSuccessStatusCode();
         return res;

@@ -24,7 +24,7 @@ public static class YnabProxyEndpoints
                 var plans = await ynab.GetPlansAsync(token);
                 return Results.Ok(plans);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
@@ -41,7 +41,7 @@ public static class YnabProxyEndpoints
                 var accounts = await ynab.GetAccountsAsync(token, planId);
                 return Results.Ok(accounts);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
@@ -58,7 +58,7 @@ public static class YnabProxyEndpoints
                 var categories = await ynab.GetCategoriesAsync(token, planId);
                 return Results.Ok(categories);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
