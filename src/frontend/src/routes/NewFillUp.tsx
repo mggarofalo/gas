@@ -185,7 +185,7 @@ export function NewFillUpPage() {
             <select {...register("vehicleId", {
               onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
                 const v = vehicles.find((v) => v.id === e.target.value);
-                if (v?.octaneRating) setValue("octaneRating", v.octaneRating);
+                setValue("octaneRating", v?.octaneRating ?? undefined);
               },
             })} className="input">
               <option value="">Select...</option>
