@@ -106,7 +106,7 @@ public static class FillUpEndpoints
                 await repo.UpdateAsync(fillUp);
             }
 
-            // YNAB sync (fire-and-forget — never fail the fill-up creation)
+            // YNAB sync — awaited inline but wrapped in try/catch so it never fails the fill-up
             await TrySyncToYnab(fillUp, db, dp, ynab, repo);
 
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
@@ -233,9 +233,8 @@ public static class FillUpEndpoints
             if (fillUp.OctaneRating.HasValue) memo += $", {fillUp.OctaneRating} oct";
             memo += $", {fillUp.OdometerMiles}mi";
 
-            var importId = $"GAS:{amount}:{date}:1";
-            if (importId.Length > 36)
-                importId = importId[..36];
+            // Use fill-up GUID (32 hex chars) for unique import_id within 36-char limit
+            var importId = $"GAS:{fillUp.Id:N}"[..36];
 
             var tx = new YnabTransaction(
                 AccountId: settings.AccountId,
@@ -249,8 +248,8 @@ public static class FillUpEndpoints
             var result = await ynab.CreateTransactionAsync(token, settings.PlanId, tx);
 
             fillUp.YnabSyncStatus = "synced";
-            fillUp.YnabTransactionId = result.TransactionId;
-            fillUp.YnabSyncError = null;
+            fillUp.YnabTransactionId = result.IsDuplicate ? null : result.TransactionId;
+            fillUp.YnabSyncError = result.IsDuplicate ? "Duplicate (already exists in YNAB)" : null;
             await repo.UpdateAsync(fillUp);
         }
         catch (Exception ex)
