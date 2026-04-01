@@ -69,7 +69,7 @@ services:
         max-file: "3"
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-03-12T18-04-18Z
     container_name: gas-minio
     restart: unless-stopped
     entrypoint: /bin/sh
@@ -115,22 +115,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - TZ=America/New_York
-      - ASPNETCORE_ENVIRONMENT=Production
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=gas
-      - POSTGRES_DB=gastracker
-      - MinIO__Endpoint=minio:9000
-      - MinIO__BucketName=gas-receipts
-      - MinIO__UseSSL=false
-      - AllowedOrigins=*
-      - Paperless__Enabled=false
-      - AdminSeed__Email=admin@gastracker.local
-      - AdminSeed__FirstName=Admin
-      - AdminSeed__LastName=User
-      - Jwt__Issuer=gas-api
-      - Jwt__Audience=gas-app
+      - TZ=${TZ:-America/New_York}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-gas}
+      - POSTGRES_DB=${POSTGRES_DB:-gastracker}
+      - MinIO__Endpoint=${MinIO__Endpoint:-minio:9000}
+      - MinIO__BucketName=${MinIO__BucketName:-gas-receipts}
+      - MinIO__UseSSL=${MinIO__UseSSL:-false}
+      - AllowedOrigins=${AllowedOrigins:-*}
+      - Paperless__Enabled=${Paperless__Enabled:-false}
+      - AdminSeed__Email=${AdminSeed__Email:-admin@gastracker.local}
+      - AdminSeed__FirstName=${AdminSeed__FirstName:-Admin}
+      - AdminSeed__LastName=${AdminSeed__LastName:-User}
+      - Jwt__Issuer=${Jwt__Issuer:-gas-api}
+      - Jwt__Audience=${Jwt__Audience:-gas-app}
     depends_on:
       db:
         condition: service_healthy

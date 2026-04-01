@@ -1,92 +1,70 @@
 # Deployment
 
-## Docker Compose
+## Architecture
 
-Single `docker-compose.yml` runs the full stack locally and in production.
+Single `docker-compose.yml` runs the full stack. The API and React SPA are combined into one container — .NET serves the SPA from `wwwroot` alongside the API endpoints. No nginx reverse proxy is needed.
 
 ### Services
 
-| Service    | Image                          | Port  |
-| ---------- | ------------------------------ | ----- |
-| api        | Custom Dockerfile (.NET)       | 5000  |
-| frontend   | Custom Dockerfile (nginx)      | 3000  |
-| db         | postgres:17                    | 5432  |
-| minio      | minio/minio                    | 9000/9001 |
+| Service | Image | Purpose |
+| ------- | ----- | ------- |
+| init | alpine:3.21 | One-shot: generates secrets on first run |
+| db | postgres:17 | PostgreSQL database |
+| minio | minio/minio:RELEASE.2025-03-12T18-04-18Z | S3-compatible receipt storage |
+| app | ghcr.io/mggarofalo/gas:latest | .NET API + React SPA (port 8080) |
 
-### Compose Topology
+### Startup Order
 
-```yaml
-services:
-  db:
-    image: postgres:17
-    environment:
-      POSTGRES_DB: gastracker
-      POSTGRES_USER: gas
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-    volumes:
-      - miniodata:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-
-  api:
-    build:
-      context: ./src/GasTracker
-      dockerfile: GasTracker.Api/Dockerfile
-    environment:
-      ConnectionStrings__Default: Host=db;Database=gastracker;Username=gas;Password=${DB_PASSWORD}
-      MinIO__Endpoint: minio:9000
-      MinIO__AccessKey: ${MINIO_ACCESS_KEY}
-      MinIO__SecretKey: ${MINIO_SECRET_KEY}
-    ports:
-      - "5000:8080"
-    depends_on:
-      - db
-      - minio
-
-  frontend:
-    build:
-      context: ./src/frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - api
-
-volumes:
-  pgdata:
-  miniodata:
+```
+init (generates secrets) → db + minio (wait for healthy) → app
 ```
 
-### Frontend Dockerfile
+## Dockerfile
 
-Multi-stage: `node` for build, `nginx` for serving. Nginx proxies `/api/*` to the API service.
+Three-stage multi-arch build (amd64 + arm64):
 
-### API Dockerfile
+1. **client-build** (`node:22-alpine`) — `npm ci && npm run build` produces the React SPA in `/app/client/dist`
+2. **api-build** (`dotnet/sdk:10.0`) — `dotnet publish` produces the .NET API in `/app/publish`
+3. **runtime** (`dotnet/aspnet:10.0`) — copies API output + SPA into `wwwroot`, runs via `docker-entrypoint.sh`
 
-Multi-stage: `dotnet/sdk` for build, `dotnet/aspnet` for runtime. EF migrations run on startup via `db.Database.Migrate()`.
+The runtime image installs `curl` for the health check probe and listens on port 8080.
+
+## Secrets
+
+Secrets are **auto-generated** on first run by the `init` service and stored in a Docker named volume (`secrets`). The entrypoint script (`docker-entrypoint.sh`) reads these files and bridges them to environment variables:
+
+| Secret file | Environment variable |
+| ----------- | -------------------- |
+| `/secrets/pg_password` | `ConnectionStrings__Default` (full connection string) |
+| `/secrets/minio_access_key` | `MinIO__AccessKey` |
+| `/secrets/minio_secret_key` | `MinIO__SecretKey` |
+| `/secrets/jwt_key` | `Jwt__Key` |
+| `/secrets/admin_password` | `AdminSeed__Password` |
+
+To override a secret, write to its file in the volume before starting the stack.
 
 ## Environment Variables
 
-Managed via `.env` file (gitignored):
+Non-secret configuration is set directly in `docker-compose.yml` environment blocks. See `.env.example` for all configurable variables with defaults.
 
-```
-DB_PASSWORD=changeme
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=changeme
-```
+## Health Checks
+
+All services have Docker health checks:
+
+- **db**: `pg_isready -U gas -d gastracker`
+- **minio**: `mc ready local`
+- **app**: `curl -sf http://localhost:8080/health` — returns JSON with per-dependency status (PostgreSQL, MinIO)
+
+The `app` service waits for `db` and `minio` to be healthy before starting.
+
+## Security Hardening
+
+- All containers drop all Linux capabilities and add back only what's required
+- `no-new-privileges:true` on all containers
+- App container runs with `tmpfs` on `/tmp` and 512MB memory limit
+- Secrets volume is mounted read-only everywhere except the `init` service
 
 ## Backup
 
-- PostgreSQL: cron job running `pg_dump` to a mounted volume or remote target
-- MinIO: data persisted in Docker volume; can enable MinIO replication for redundancy if needed
+- **PostgreSQL**: periodic `pg_dump` to a mounted volume (see GAS-27)
+- **MinIO**: data persisted in Docker volume (`minio-data`)
