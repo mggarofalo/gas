@@ -7,6 +7,7 @@ using GasTracker.Infrastructure.Auth;
 using GasTracker.Infrastructure.Data;
 using GasTracker.Infrastructure.Repositories;
 using GasTracker.Infrastructure.Storage;
+using GasTracker.Infrastructure.Ynab;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,10 @@ builder.Services.AddScoped<IFillUpRepository, FillUpRepository>();
 builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("MinIO"));
 builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
 
+// YNAB API client
+builder.Services.AddHttpClient<IYnabClient, YnabClient>(c =>
+    c.BaseAddress = new Uri("https://api.ynab.com"));
+
 // Health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("postgresql")
@@ -153,6 +158,7 @@ app.MapStatsEndpoints();
 app.MapLocationEndpoints();
 app.MapIngestEndpoints();
 app.MapYnabSettingsEndpoints();
+app.MapYnabProxyEndpoints();
 
 // SPA fallback — serve index.html for any non-API, non-file route
 app.MapFallbackToFile("index.html");
