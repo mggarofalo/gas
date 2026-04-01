@@ -66,5 +66,29 @@ The `app` service waits for `db` and `minio` to be healthy before starting.
 
 ## Backup
 
-- **PostgreSQL**: periodic `pg_dump` to a mounted volume (see GAS-27)
-- **MinIO**: data persisted in Docker volume (`minio-data`)
+### PostgreSQL
+
+A `backup` service in Docker Compose runs `pg_dump -Fc` and stores compressed dumps in the `backups` volume. It uses the `backup` profile so it doesn't start with `docker compose up`.
+
+```bash
+# Run a one-off backup
+docker compose --profile backup run --rm backup
+
+# Schedule daily backups via host cron (2 AM)
+# crontab -e
+0 2 * * * cd /path/to/gas && docker compose --profile backup run --rm backup >> /var/log/gas-backup.log 2>&1
+```
+
+Backups are named `gastracker_YYYY-MM-DD.dump` and rotated after 7 days.
+
+### Restore
+
+```bash
+docker compose --profile backup run --rm backup \
+  pg_restore -h db -U gas -d gastracker --clean --if-exists \
+    /backups/gastracker_2026-03-30.dump
+```
+
+### MinIO
+
+Data persisted in Docker volume (`minio-data`). No automated backup — volume-level snapshots or MinIO replication can be added if needed.
