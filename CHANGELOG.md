@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/mggarofalo/gas/compare/v1.8.4...v1.9.0) (2026-04-01)
+
+
+### Features
+
+* add health check endpoint with DB and MinIO validation ([#41](https://github.com/mggarofalo/gas/issues/41)) ([427024e](https://github.com/mggarofalo/gas/commit/427024eb64507086e67fdc222a9837e40b795453))
+
 ## [1.8.4](https://github.com/mggarofalo/gas/compare/v1.8.3...v1.8.4) (2026-03-31)
 
 
