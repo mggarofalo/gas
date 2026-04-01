@@ -2,6 +2,9 @@ using FluentValidation;
 using GasTracker.Core.DTOs;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
+using GasTracker.Infrastructure.Data;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 
 namespace GasTracker.Api.Endpoints;
 
@@ -44,7 +47,7 @@ public static class FillUpEndpoints
             return Results.Ok(fillUp.ToDto(tripMiles));
         });
 
-        group.MapPost("/", async (HttpRequest request, IFillUpRepository repo, IVehicleRepository vehicleRepo, IReceiptStore receiptStore, IValidator<CreateFillUpRequest> validator) =>
+        group.MapPost("/", async (HttpRequest request, IFillUpRepository repo, IVehicleRepository vehicleRepo, IReceiptStore receiptStore, IValidator<CreateFillUpRequest> validator, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
         {
             var form = await request.ReadFormAsync();
 
@@ -103,9 +106,21 @@ public static class FillUpEndpoints
                 await repo.UpdateAsync(fillUp);
             }
 
+            // YNAB sync (fire-and-forget — never fail the fill-up creation)
+            await TrySyncToYnab(fillUp, db, dp, ynab, repo);
+
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
             return Results.Created($"/api/fill-ups/{fillUp.Id}", fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
+
+        group.MapPost("/{id:guid}/ynab-sync", async (Guid id, IFillUpRepository repo, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        {
+            var fillUp = await repo.GetByIdAsync(id);
+            if (fillUp is null) return Results.NotFound();
+
+            await TrySyncToYnab(fillUp, db, dp, ynab, repo);
+            return Results.Ok(new { fillUp.YnabSyncStatus, fillUp.YnabTransactionId, fillUp.YnabSyncError });
+        });
 
         group.MapPut("/{id:guid}", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore) =>
         {
@@ -188,5 +203,61 @@ public static class FillUpEndpoints
         if (!AllowedContentTypes.Contains(receipt.ContentType))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["receipt"] = [$"File type {receipt.ContentType} not allowed"] });
         return null;
+    }
+
+    private static async Task TrySyncToYnab(FillUp fillUp, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab, IFillUpRepository repo)
+    {
+        try
+        {
+            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            if (settings is null || !settings.Enabled || string.IsNullOrWhiteSpace(settings.AccountId) || string.IsNullOrWhiteSpace(settings.PlanId))
+                return;
+
+            string token;
+            try
+            {
+                var protector = dp.CreateProtector("YnabApiToken");
+                token = protector.Unprotect(settings.ApiToken);
+            }
+            catch
+            {
+                fillUp.YnabSyncStatus = "failed";
+                fillUp.YnabSyncError = "Failed to decrypt YNAB token";
+                await repo.UpdateAsync(fillUp);
+                return;
+            }
+
+            var amount = -(long)Math.Round(fillUp.TotalCost * 1000);
+            var date = fillUp.Date.ToString("yyyy-MM-dd");
+            var memo = $"{fillUp.Gallons:F3}gal @ ${fillUp.PricePerGallon:F3}/gal";
+            if (fillUp.OctaneRating.HasValue) memo += $", {fillUp.OctaneRating} oct";
+            memo += $", {fillUp.OdometerMiles}mi";
+
+            var importId = $"GAS:{amount}:{date}:1";
+            if (importId.Length > 36)
+                importId = importId[..36];
+
+            var tx = new YnabTransaction(
+                AccountId: settings.AccountId,
+                Date: date,
+                Amount: amount,
+                PayeeName: fillUp.StationName,
+                CategoryId: settings.CategoryId,
+                Memo: memo,
+                ImportId: importId);
+
+            var result = await ynab.CreateTransactionAsync(token, settings.PlanId, tx);
+
+            fillUp.YnabSyncStatus = "synced";
+            fillUp.YnabTransactionId = result.TransactionId;
+            fillUp.YnabSyncError = null;
+            await repo.UpdateAsync(fillUp);
+        }
+        catch (Exception ex)
+        {
+            fillUp.YnabSyncStatus = "failed";
+            fillUp.YnabSyncError = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+            try { await repo.UpdateAsync(fillUp); } catch { /* best effort */ }
+        }
     }
 }

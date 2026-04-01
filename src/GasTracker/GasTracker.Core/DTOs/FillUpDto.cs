@@ -19,6 +19,7 @@ public record FillUpDto(
     decimal? Mpg,
     decimal? CostPerMile,
     string PaperlessSyncStatus,
+    string YnabSyncStatus,
     string? Notes,
     string CreatedAt);
 

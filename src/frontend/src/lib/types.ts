@@ -30,6 +30,7 @@ export interface FillUp {
   mpg: number | null;
   costPerMile: number | null;
   paperlessSyncStatus: string;
+  ynabSyncStatus: string;
   notes: string | null;
   createdAt: string;
 }
