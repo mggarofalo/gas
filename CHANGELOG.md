@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/mggarofalo/gas/compare/v1.10.0...v1.11.0) (2026-04-01)
+
+
+### Features
+
+* add octane rating to vehicles and fill-ups ([#46](https://github.com/mggarofalo/gas/issues/46)) ([e92e36b](https://github.com/mggarofalo/gas/commit/e92e36b86e6d1073c54e8383ed7cf370237be4ae))
+
 ## [1.10.0](https://github.com/mggarofalo/gas/compare/v1.9.0...v1.10.0) (2026-04-01)
 
 
