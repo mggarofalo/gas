@@ -13,11 +13,18 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+
+// Data Protection (encrypts YNAB API tokens at rest)
+var dpBuilder = builder.Services.AddDataProtection();
+var dpKeysPath = "/secrets/dp-keys";
+if (Directory.Exists(Path.GetDirectoryName(dpKeysPath)!))
+    dpBuilder.PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath));
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -138,6 +145,7 @@ app.MapFillUpEndpoints();
 app.MapStatsEndpoints();
 app.MapLocationEndpoints();
 app.MapIngestEndpoints();
+app.MapYnabSettingsEndpoints();
 
 // SPA fallback — serve index.html for any non-API, non-file route
 app.MapFallbackToFile("index.html");
