@@ -9,6 +9,7 @@ public class Vehicle : ITimestamped
     public required string Make { get; set; }
     public required string Model { get; set; }
     public string? Notes { get; set; }
+    public short? OctaneRating { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

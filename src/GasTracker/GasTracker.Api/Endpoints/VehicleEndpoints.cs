@@ -36,7 +36,8 @@ public static class VehicleEndpoints
                 Make = req.Make,
                 Model = req.Model,
                 Year = req.Year,
-                Notes = req.Notes
+                Notes = req.Notes,
+                OctaneRating = req.OctaneRating,
             };
             await repo.CreateAsync(vehicle);
             return Results.Created($"/api/vehicles/{vehicle.Id}", vehicle.ToDto());
@@ -55,6 +56,7 @@ public static class VehicleEndpoints
             if (req.Make is not null) vehicle.Make = req.Make;
             if (req.Model is not null) vehicle.Model = req.Model;
             if (req.Notes is not null) vehicle.Notes = req.Notes;
+            if (req.OctaneRating.HasValue) vehicle.OctaneRating = req.OctaneRating.Value;
 
             await repo.UpdateAsync(vehicle);
             return Results.Ok(vehicle.ToDto());

@@ -17,6 +17,7 @@ const fillUpSchema = z.object({
   gallons: z.coerce.number().positive("Must be > 0"),
   pricePerGallon: z.coerce.number().positive("Must be > 0"),
   totalCostOverride: z.coerce.number().optional(),
+  octaneRating: z.coerce.number().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   notes: z.string().optional(),
@@ -29,6 +30,7 @@ interface FillUpForm {
   gallons: number;
   pricePerGallon: number;
   totalCostOverride?: number;
+  octaneRating?: number;
   latitude?: number;
   longitude?: number;
   notes?: string;
@@ -78,6 +80,7 @@ export function NewFillUpPage() {
       fd.append("gallons", gallonsStr);
       fd.append("pricePerGallon", priceStr);
       fd.append("totalCost", totalNum > 0 ? totalStr : String(computedTotal));
+      if (data.octaneRating) fd.append("octaneRating", String(data.octaneRating));
       if (data.latitude != null) fd.append("latitude", String(data.latitude));
       if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
@@ -179,7 +182,12 @@ export function NewFillUpPage() {
         {/* --- Section: Vehicle + Date --- */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Vehicle" error={errors.vehicleId?.message}>
-            <select {...register("vehicleId")} className="input">
+            <select {...register("vehicleId", {
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
+                const v = vehicles.find((v) => v.id === e.target.value);
+                setValue("octaneRating", v?.octaneRating ?? undefined);
+              },
+            })} className="input">
               <option value="">Select...</option>
               {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
             </select>
@@ -242,8 +250,8 @@ export function NewFillUpPage() {
           )}
         </div>
 
-        {/* --- Section: Gallons + Price --- */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* --- Section: Gallons + Price + Octane --- */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Field label="Gallons" error={gallonsStr && gallonsNum <= 0 ? "Must be > 0" : undefined}>
             <CurrencyInput
               value={gallonsStr}
@@ -271,6 +279,15 @@ export function NewFillUpPage() {
               prefix="$"
               placeholder={computedTotal > 0 ? computedTotal.toFixed(2) : "0.00"}
             />
+          </Field>
+          <Field label="Octane">
+            <select {...register("octaneRating")} className="input">
+              <option value="">—</option>
+              <option value="87">87</option>
+              <option value="89">89</option>
+              <option value="91">91</option>
+              <option value="93">93</option>
+            </select>
           </Field>
         </div>
         {computedTotal > 0 && !totalNum && (

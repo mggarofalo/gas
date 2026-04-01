@@ -11,6 +11,7 @@ public class FillUp : ITimestamped
     public decimal Gallons { get; set; }
     public decimal PricePerGallon { get; set; }
     public decimal TotalCost { get; set; }
+    public short? OctaneRating { get; set; }
     public required string StationName { get; set; }
     public string? StationAddress { get; set; }
     public decimal? Latitude { get; set; }

@@ -4,6 +4,7 @@ export interface Vehicle {
   make: string;
   model: string;
   notes: string | null;
+  octaneRating: number | null;
   isActive: boolean;
   label: string;
   createdAt: string;
@@ -19,6 +20,7 @@ export interface FillUp {
   gallons: number;
   pricePerGallon: number;
   totalCost: number;
+  octaneRating: number | null;
   stationName: string;
   stationAddress: string | null;
   latitude: number | null;

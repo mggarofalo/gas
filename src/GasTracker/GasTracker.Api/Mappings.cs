@@ -6,7 +6,7 @@ namespace GasTracker.Api;
 public static class Mappings
 {
     public static VehicleDto ToDto(this Vehicle v) => new(
-        v.Id, v.Year, v.Make, v.Model, v.Notes, v.IsActive, v.Label, v.CreatedAt, v.UpdatedAt);
+        v.Id, v.Year, v.Make, v.Model, v.Notes, v.OctaneRating, v.IsActive, v.Label, v.CreatedAt, v.UpdatedAt);
 
     public static FillUpDto ToDto(this FillUp f, int? tripMiles)
     {
@@ -25,7 +25,7 @@ public static class Mappings
             f.Id, f.VehicleId,
             f.Vehicle?.Label ?? "",
             f.Date.ToString("yyyy-MM-dd"),
-            f.OdometerMiles, f.Gallons, f.PricePerGallon, f.TotalCost,
+            f.OdometerMiles, f.Gallons, f.PricePerGallon, f.TotalCost, f.OctaneRating,
             f.StationName, f.StationAddress,
             f.Latitude, f.Longitude,
             receiptUrl, tripMiles, mpg, costPerMile,
