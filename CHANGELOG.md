@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/mggarofalo/gas/compare/v1.12.0...v1.13.0) (2026-04-01)
+
+
+### Features
+
+* add YNAB settings table and configuration API ([#50](https://github.com/mggarofalo/gas/issues/50)) ([5f012dc](https://github.com/mggarofalo/gas/commit/5f012dcc25b551bf1b160fd494001d4b86bede0d))
+
 ## [1.12.0](https://github.com/mggarofalo/gas/compare/v1.11.0...v1.12.0) (2026-04-01)
 
 
