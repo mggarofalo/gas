@@ -8,6 +8,8 @@ namespace GasTracker.Api.Endpoints;
 public static class YnabSettingsEndpoints
 {
     private const string Purpose = "YnabApiToken";
+    // Fixed singleton ID prevents duplicate inserts from concurrent requests
+    private static readonly Guid SingletonId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     public static void MapYnabSettingsEndpoints(this IEndpointRouteBuilder app)
     {
@@ -54,10 +56,10 @@ public static class YnabSettingsEndpoints
             var protector = dp.CreateProtector(Purpose);
             var encryptedToken = protector.Protect(req.ApiToken);
 
-            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            var settings = await db.YnabSettings.FindAsync(SingletonId);
             if (settings is null)
             {
-                settings = new YnabSettings { ApiToken = encryptedToken };
+                settings = new YnabSettings { Id = SingletonId, ApiToken = encryptedToken };
                 db.YnabSettings.Add(settings);
             }
             else
