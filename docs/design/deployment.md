@@ -84,7 +84,7 @@ Backups are named `gastracker_YYYY-MM-DD.dump` and rotated after 7 days.
 ### Restore
 
 ```bash
-docker compose run --rm -v gas_backups:/backups postgres:17 \
+docker compose --profile backup run --rm backup \
   pg_restore -h db -U gas -d gastracker --clean --if-exists \
     /backups/gastracker_2026-03-30.dump
 ```
