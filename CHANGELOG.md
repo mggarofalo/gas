@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/mggarofalo/gas/compare/v1.11.0...v1.12.0) (2026-04-01)
+
+
+### Features
+
+* add YNAB CSV ingest endpoint for historical fill-ups ([#48](https://github.com/mggarofalo/gas/issues/48)) ([991cdf5](https://github.com/mggarofalo/gas/commit/991cdf5b11eea96acc0194bcd06c2031521e8881))
+
 ## [1.11.0](https://github.com/mggarofalo/gas/compare/v1.10.0...v1.11.0) (2026-04-01)
 
 
