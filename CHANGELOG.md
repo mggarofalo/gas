@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/mggarofalo/gas/compare/v1.9.0...v1.10.0) (2026-04-01)
+
+
+### Features
+
+* add PostgreSQL backup script with 7-day rotation ([#44](https://github.com/mggarofalo/gas/issues/44)) ([8509367](https://github.com/mggarofalo/gas/commit/850936759d7c4c5b223a83a7eb99caab68dd73ac))
+
 ## [1.9.0](https://github.com/mggarofalo/gas/compare/v1.8.4...v1.9.0) (2026-04-01)
 
 
