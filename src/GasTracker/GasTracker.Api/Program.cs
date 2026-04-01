@@ -13,11 +13,25 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+
+// Data Protection (encrypts YNAB API tokens at rest)
+var dpBuilder = builder.Services.AddDataProtection();
+var dpKeysDir = new DirectoryInfo("/secrets/dp-keys");
+if (dpKeysDir.Parent is { Exists: true })
+{
+    dpKeysDir.Create();
+    dpBuilder.PersistKeysToFileSystem(dpKeysDir);
+}
+else
+{
+    Console.WriteLine("WARNING: /secrets not mounted — Data Protection keys are ephemeral. Encrypted tokens will be lost on restart.");
+}
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -138,6 +152,7 @@ app.MapFillUpEndpoints();
 app.MapStatsEndpoints();
 app.MapLocationEndpoints();
 app.MapIngestEndpoints();
+app.MapYnabSettingsEndpoints();
 
 // SPA fallback — serve index.html for any non-API, non-file route
 app.MapFallbackToFile("index.html");
