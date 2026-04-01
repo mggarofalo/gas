@@ -8,9 +8,9 @@ public class VehicleMappingTests
 {
     private static Vehicle MakeVehicle(
         short year = 2021, string make = "Toyota", string model = "Tacoma",
-        bool isActive = true, string? notes = null)
+        bool isActive = true, string? notes = null, short? octaneRating = null)
     {
-        var v = new Vehicle { Year = year, Make = make, Model = model, IsActive = isActive, Notes = notes };
+        var v = new Vehicle { Year = year, Make = make, Model = model, IsActive = isActive, Notes = notes, OctaneRating = octaneRating };
         v.CreatedAt = new DateTimeOffset(2026, 1, 15, 10, 0, 0, TimeSpan.Zero);
         v.UpdatedAt = new DateTimeOffset(2026, 3, 20, 14, 30, 0, TimeSpan.Zero);
         return v;
@@ -53,6 +53,20 @@ public class VehicleMappingTests
     {
         var dto = MakeVehicle(notes: null).ToDto();
         dto.Notes.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToDto_OctaneRating_MapsValue()
+    {
+        var dto = MakeVehicle(octaneRating: 87).ToDto();
+        dto.OctaneRating.Should().Be(87);
+    }
+
+    [Fact]
+    public void ToDto_OctaneRating_NullMapsAsNull()
+    {
+        var dto = MakeVehicle(octaneRating: null).ToDto();
+        dto.OctaneRating.Should().BeNull();
     }
 }
 
@@ -255,5 +269,23 @@ public class FillUpMappingTests
         dto.Latitude.Should().BeNull();
         dto.Longitude.Should().BeNull();
         dto.Notes.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToDto_OctaneRating_MapsValue()
+    {
+        var f = MakeFillUp();
+        f.OctaneRating = 93;
+        var dto = f.ToDto(tripMiles: null);
+        dto.OctaneRating.Should().Be(93);
+    }
+
+    [Fact]
+    public void ToDto_OctaneRating_NullMapsAsNull()
+    {
+        var f = MakeFillUp();
+        f.OctaneRating = null;
+        var dto = f.ToDto(tripMiles: null);
+        dto.OctaneRating.Should().BeNull();
     }
 }

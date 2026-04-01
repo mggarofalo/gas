@@ -6,6 +6,7 @@ public record VehicleDto(
     string Make,
     string Model,
     string? Notes,
+    short? OctaneRating,
     bool IsActive,
     string Label,
     DateTimeOffset CreatedAt,
@@ -15,10 +16,12 @@ public record CreateVehicleRequest(
     short Year,
     string Make,
     string Model,
-    string? Notes);
+    string? Notes,
+    short? OctaneRating);
 
 public record UpdateVehicleRequest(
     short? Year,
     string? Make,
     string? Model,
-    string? Notes);
+    string? Notes,
+    short? OctaneRating);

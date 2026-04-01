@@ -14,8 +14,9 @@ const vehicleSchema = z.object({
   make: z.string().min(1, "Required").max(100),
   model: z.string().min(1, "Required").max(100),
   notes: z.string().max(500).optional(),
+  octaneRating: z.coerce.number().optional(),
 });
-interface VehicleForm { year: number; make: string; model: string; notes?: string; }
+interface VehicleForm { year: number; make: string; model: string; notes?: string; octaneRating?: number; }
 
 export function VehiclesPage() {
   const qc = useQueryClient();
@@ -57,6 +58,7 @@ export function VehiclesPage() {
             <div key={v.id} className={`flex flex-col gap-3 rounded border border-border p-4 sm:flex-row sm:items-center sm:justify-between ${v.isActive ? "bg-surface-raised" : "bg-surface-hover/50 opacity-60"}`}>
               <div className="min-w-0">
                 <span className="font-medium">{v.label}</span>
+                {v.octaneRating && <span className="ml-2 text-xs text-text-muted">{v.octaneRating} octane</span>}
                 {v.notes && <span className="ml-2 text-sm text-text-secondary">{v.notes}</span>}
                 {!v.isActive && <span className="badge-muted ml-2">Inactive</span>}
               </div>
@@ -79,7 +81,7 @@ export function VehiclesPage() {
 }
 
 function VehicleFormCard({ defaults, onSubmit, onCancel, isPending }: {
-  defaults?: { year: number; make: string; model: string; notes?: string | null };
+  defaults?: { year: number; make: string; model: string; notes?: string | null; octaneRating?: number | null };
   onSubmit: (data: VehicleForm) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -87,15 +89,16 @@ function VehicleFormCard({ defaults, onSubmit, onCancel, isPending }: {
   const { register, handleSubmit, formState: { errors } } = useForm<VehicleForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: standardSchemaResolver(vehicleSchema) as any,
-    defaultValues: defaults ? { year: defaults.year, make: defaults.make, model: defaults.model, notes: defaults.notes ?? "" } : { year: new Date().getFullYear(), make: "", model: "", notes: "" },
+    defaultValues: defaults ? { year: defaults.year, make: defaults.make, model: defaults.model, notes: defaults.notes ?? "", octaneRating: defaults.octaneRating ?? undefined } : { year: new Date().getFullYear(), make: "", model: "", notes: "" },
   });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="card mb-3 p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div><label className="label">Year</label><input type="number" inputMode="numeric" {...register("year")} className="input" />{errors.year && <p className="mt-0.5 text-xs text-danger-text">{errors.year.message}</p>}</div>
         <div><label className="label">Make</label><input {...register("make")} className="input" />{errors.make && <p className="mt-0.5 text-xs text-danger-text">{errors.make.message}</p>}</div>
         <div><label className="label">Model</label><input {...register("model")} className="input" />{errors.model && <p className="mt-0.5 text-xs text-danger-text">{errors.model.message}</p>}</div>
+        <div><label className="label">Octane</label><select {...register("octaneRating")} className="input"><option value="">—</option><option value="87">87</option><option value="89">89</option><option value="91">91</option><option value="93">93</option></select></div>
         <div><label className="label">Notes</label><input {...register("notes")} className="input" /></div>
       </div>
       <div className="mt-3 flex gap-2">

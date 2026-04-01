@@ -15,6 +15,7 @@ public class CreateFillUpValidatorTests
         Gallons: 14.5m,
         PricePerGallon: 3.299m,
         TotalCost: null,
+        OctaneRating: null,
         StationName: "Shell",
         StationAddress: null,
         Latitude: null,
@@ -148,5 +149,29 @@ public class CreateFillUpValidatorTests
         var result = _validator.TestValidate(req);
         result.ShouldNotHaveValidationErrorFor(x => x.Latitude);
         result.ShouldNotHaveValidationErrorFor(x => x.Longitude);
+    }
+
+    [Theory]
+    [InlineData((short)87)]
+    [InlineData((short)91)]
+    public void OctaneRating_ValidValues_Passes(short octane)
+    {
+        var req = ValidRequest() with { OctaneRating = octane };
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.OctaneRating);
+    }
+
+    [Fact]
+    public void OctaneRating_Null_Passes()
+    {
+        _validator.TestValidate(ValidRequest()).ShouldNotHaveValidationErrorFor(x => x.OctaneRating);
+    }
+
+    [Theory]
+    [InlineData((short)88)]
+    [InlineData((short)90)]
+    public void OctaneRating_InvalidValues_Fails(short octane)
+    {
+        var req = ValidRequest() with { OctaneRating = octane };
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.OctaneRating);
     }
 }

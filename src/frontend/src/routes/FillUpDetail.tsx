@@ -49,6 +49,7 @@ export function FillUpDetailPage() {
           <Row label="$/Gallon" value={`$${fillUp.pricePerGallon.toFixed(3)}`} />
           <Row label="Total" value={`$${fillUp.totalCost.toFixed(2)}`} />
         </div>
+        {fillUp.octaneRating != null && <Row label="Octane" value={String(fillUp.octaneRating)} />}
         {fillUp.tripMiles != null && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Row label="Trip Miles" value={fillUp.tripMiles.toLocaleString()} />

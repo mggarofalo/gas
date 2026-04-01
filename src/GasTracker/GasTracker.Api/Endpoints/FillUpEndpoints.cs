@@ -55,6 +55,7 @@ public static class FillUpEndpoints
                 Gallons: decimal.Parse(form["gallons"].ToString()),
                 PricePerGallon: decimal.Parse(form["pricePerGallon"].ToString()),
                 TotalCost: form.ContainsKey("totalCost") && !string.IsNullOrEmpty(form["totalCost"].ToString()) ? decimal.Parse(form["totalCost"].ToString()) : null,
+                OctaneRating: form.TryGetValue("octaneRating", out var octane) && !string.IsNullOrEmpty(octane.ToString()) ? short.Parse(octane.ToString()) : null,
                 StationName: form["stationName"].ToString(),
                 StationAddress: form.TryGetValue("stationAddress", out var addr) ? addr.ToString() : null,
                 Latitude: form.TryGetValue("latitude", out var lat) && !string.IsNullOrEmpty(lat.ToString()) ? decimal.Parse(lat.ToString()) : null,
@@ -77,6 +78,7 @@ public static class FillUpEndpoints
                 Gallons = req.Gallons,
                 PricePerGallon = req.PricePerGallon,
                 TotalCost = req.TotalCost ?? Math.Round(req.Gallons * req.PricePerGallon, 2),
+                OctaneRating = req.OctaneRating ?? vehicle.OctaneRating,
                 StationName = req.StationName,
                 StationAddress = req.StationAddress,
                 Latitude = req.Latitude,
@@ -122,6 +124,7 @@ public static class FillUpEndpoints
             if (form.ContainsKey("latitude") && !string.IsNullOrEmpty(form["latitude"].ToString())) fillUp.Latitude = decimal.Parse(form["latitude"].ToString());
             if (form.ContainsKey("longitude") && !string.IsNullOrEmpty(form["longitude"].ToString())) fillUp.Longitude = decimal.Parse(form["longitude"].ToString());
             if (form.ContainsKey("notes")) fillUp.Notes = form["notes"].ToString();
+            if (form.ContainsKey("octaneRating") && !string.IsNullOrEmpty(form["octaneRating"].ToString())) fillUp.OctaneRating = short.Parse(form["octaneRating"].ToString());
 
             var receipt = form.Files.GetFile("receipt");
             if (receipt is not null)

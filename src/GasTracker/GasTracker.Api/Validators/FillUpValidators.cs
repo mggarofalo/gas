@@ -24,5 +24,8 @@ public class CreateFillUpValidator : AbstractValidator<CreateFillUpRequest>
         RuleFor(x => x.Latitude)
             .NotNull().When(x => x.Longitude.HasValue)
             .WithMessage("Latitude required when longitude is provided");
+        RuleFor(x => x.OctaneRating)
+            .Must(v => v is null or 87 or 89 or 91 or 93)
+            .WithMessage("Octane must be 87, 89, 91, or 93");
     }
 }
