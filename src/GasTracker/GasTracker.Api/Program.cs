@@ -98,7 +98,7 @@ if (paperlessOpts.Enabled && !string.IsNullOrWhiteSpace(paperlessOpts.Token))
 {
     builder.Services.AddHttpClient<IPaperlessClient, PaperlessClient>(c =>
     {
-        c.BaseAddress = new Uri(paperlessOpts.BaseUrl.TrimEnd('/'));
+        c.BaseAddress = new Uri(paperlessOpts.BaseUrl.TrimEnd('/') + "/");
         c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Token", paperlessOpts.Token);
         c.Timeout = TimeSpan.FromSeconds(30);
     });

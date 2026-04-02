@@ -28,13 +28,11 @@ public class PaperlessClient(HttpClient http) : IPaperlessClient
             form.Add(new StringContent(tagId.ToString()), "tags");
         }
 
-        var res = await http.PostAsync("/api/documents/post_document/", form);
+        using var res = await http.PostAsync("api/documents/post_document/", form);
         res.EnsureSuccessStatusCode();
 
-        // Paperless returns a task ID string like "OK", or in newer versions a JSON response
         var body = await res.Content.ReadAsStringAsync();
 
-        // Try to parse as JSON with a document ID
         try
         {
             using var doc = JsonDocument.Parse(body);
@@ -46,14 +44,12 @@ public class PaperlessClient(HttpClient http) : IPaperlessClient
             // Older Paperless versions return plain text "OK"
         }
 
-        // Return 0 if we can't extract an ID (document was accepted but ID not returned synchronously)
-        return 0;
+        return -1;
     }
 
     public async Task<int> EnsureTagExistsAsync(string tagName)
     {
-        // Search for existing tag
-        var searchRes = await http.GetAsync($"/api/tags/?name__iexact={Uri.EscapeDataString(tagName)}");
+        using var searchRes = await http.GetAsync($"api/tags/?name__iexact={Uri.EscapeDataString(tagName)}");
         searchRes.EnsureSuccessStatusCode();
 
         using var searchDoc = await JsonDocument.ParseAsync(await searchRes.Content.ReadAsStreamAsync());
@@ -61,8 +57,7 @@ public class PaperlessClient(HttpClient http) : IPaperlessClient
         if (results.GetArrayLength() > 0)
             return results[0].GetProperty("id").GetInt32();
 
-        // Create new tag
-        var createRes = await http.PostAsJsonAsync("/api/tags/", new { name = tagName });
+        using var createRes = await http.PostAsJsonAsync("api/tags/", new { name = tagName });
         createRes.EnsureSuccessStatusCode();
 
         using var createDoc = await JsonDocument.ParseAsync(await createRes.Content.ReadAsStreamAsync());
@@ -73,7 +68,7 @@ public class PaperlessClient(HttpClient http) : IPaperlessClient
     {
         try
         {
-            var res = await http.GetAsync("/api/");
+            using var res = await http.GetAsync("api/");
             return res.IsSuccessStatusCode;
         }
         catch
