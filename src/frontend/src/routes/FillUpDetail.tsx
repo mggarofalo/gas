@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api";
@@ -73,8 +73,8 @@ function Row({ label, value }: { label: string; value: string }) {
   return <div><span className="text-xs font-medium text-text-muted">{label}</span><p className="text-sm">{value}</p></div>;
 }
 
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+function formatRelativeTime(iso: string, now: number): string {
+  const diff = now - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -84,14 +84,21 @@ function formatRelativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
+function useNow(intervalMs = 30000) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), intervalMs); return () => clearInterval(id); }, [intervalMs]);
+  return now;
+}
+
 function SyncBadge({ label, status, syncedAt, syncError, retryEndpoint, fillUpId }: { label: string; status: string; syncedAt?: string | null; syncError?: string | null; retryEndpoint: string; fillUpId: string }) {
   const qc = useQueryClient();
+  const now = useNow();
   const resyncMut = useMutation({
     mutationFn: () => apiFetch<void>(retryEndpoint, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fill-up", fillUpId] }),
   });
   const badgeClass: Record<string, string> = { pending: "badge-warning", synced: "badge-success", failed: "badge-danger" };
-  const syncedLabel = syncedAt ? `Synced to ${label} \u2014 ${formatRelativeTime(syncedAt)}` : `Synced to ${label}`;
+  const syncedLabel = syncedAt ? `Synced to ${label} \u2014 ${formatRelativeTime(syncedAt, now)}` : `Synced to ${label}`;
   const labels: Record<string, string> = { pending: "Syncing...", synced: syncedLabel, failed: `${label} sync failed` };
   return (
     <div>
