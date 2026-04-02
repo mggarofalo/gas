@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/mggarofalo/gas/compare/v1.17.0...v1.18.0) (2026-04-02)
+
+
+### Features
+
+* add Paperless sync status UI to fill-up pages ([#63](https://github.com/mggarofalo/gas/issues/63)) ([e7144f0](https://github.com/mggarofalo/gas/commit/e7144f0805787643f3ef570ab691dc8ea6997af7))
+
 ## [1.17.0](https://github.com/mggarofalo/gas/compare/v1.16.0...v1.17.0) (2026-04-02)
 
 
