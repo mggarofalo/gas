@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/mggarofalo/gas/compare/v1.13.0...v1.14.0) (2026-04-02)
+
+
+### Features
+
+* implement YNAB API client and proxy endpoints ([#52](https://github.com/mggarofalo/gas/issues/52)) ([981c6b0](https://github.com/mggarofalo/gas/commit/981c6b0d5ecc50ff6ebc5ba614a107054494bb62))
+* push fill-up transactions to YNAB on creation ([#53](https://github.com/mggarofalo/gas/issues/53)) ([cbd6238](https://github.com/mggarofalo/gas/commit/cbd6238ca02bd021e8ddabb7319b04c16946eead))
+
 ## [1.13.0](https://github.com/mggarofalo/gas/compare/v1.12.0...v1.13.0) (2026-04-01)
 
 
