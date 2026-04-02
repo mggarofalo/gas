@@ -13,14 +13,15 @@ public class PaperlessSyncService(
     IOptions<PaperlessOptions> options,
     ILogger<PaperlessSyncService> logger) : BackgroundService
 {
-    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(options.Value.PollIntervalSeconds);
     private const int MaxAttempts = 3;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!options.Value.Enabled)
+        if (!options.Value.Enabled || string.IsNullOrWhiteSpace(options.Value.Token))
         {
-            logger.LogInformation("Paperless sync disabled");
+            logger.LogInformation("Paperless sync disabled (enabled={Enabled}, token={HasToken})",
+                options.Value.Enabled, !string.IsNullOrWhiteSpace(options.Value.Token));
             return;
         }
 
