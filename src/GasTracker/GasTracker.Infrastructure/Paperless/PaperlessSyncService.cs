@@ -38,7 +38,14 @@ public class PaperlessSyncService(
                 logger.LogError(ex, "Paperless sync tick failed");
             }
 
-            await Task.Delay(_pollInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(_pollInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
