@@ -107,6 +107,8 @@ else
 {
     builder.Services.AddSingleton<IPaperlessClient, NoOpPaperlessClient>();
 }
+builder.Services.Configure<PaperlessOptions>(builder.Configuration.GetSection("Paperless"));
+builder.Services.AddHostedService<PaperlessSyncService>();
 
 // Health checks
 builder.Services.AddHealthChecks()
