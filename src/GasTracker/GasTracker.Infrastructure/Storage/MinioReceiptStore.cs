@@ -52,6 +52,19 @@ public class MinioReceiptStore : IReceiptStore
         return key;
     }
 
+    public async Task<Stream> DownloadAsync(string objectKey)
+    {
+        using var response = await _s3.GetObjectAsync(new GetObjectRequest
+        {
+            BucketName = _opts.BucketName,
+            Key = objectKey,
+        });
+        var ms = new MemoryStream();
+        await response.ResponseStream.CopyToAsync(ms);
+        ms.Position = 0;
+        return ms;
+    }
+
     public async Task DeleteAsync(string objectKey)
     {
         await _s3.DeleteObjectAsync(new DeleteObjectRequest
