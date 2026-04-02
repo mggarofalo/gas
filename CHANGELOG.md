@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/mggarofalo/gas/compare/v1.16.0...v1.17.0) (2026-04-02)
+
+
+### Features
+
+* add Paperless-ngx background sync service ([#61](https://github.com/mggarofalo/gas/issues/61)) ([ba7cf75](https://github.com/mggarofalo/gas/commit/ba7cf75d90c9a972bce1561e54bf70eebf83fedf))
+
 ## [1.16.0](https://github.com/mggarofalo/gas/compare/v1.15.1...v1.16.0) (2026-04-02)
 
 
