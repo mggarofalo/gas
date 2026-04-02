@@ -62,7 +62,8 @@ export function FillUpDetailPage() {
         {fillUp.receiptUrl && (
           <div><span className="text-xs font-medium text-text-muted">Receipt</span><img src={fillUp.receiptUrl} alt="Receipt" className="mt-1 max-h-64 rounded border border-border object-contain" /></div>
         )}
-        {fillUp.paperlessSyncStatus !== "none" && <SyncBadge status={fillUp.paperlessSyncStatus} fillUpId={fillUp.id} />}
+        {fillUp.paperlessSyncStatus !== "none" && <SyncBadge label="Paperless" status={fillUp.paperlessSyncStatus} retryEndpoint={`/fill-ups/${fillUp.id}/resync`} fillUpId={fillUp.id} />}
+        {fillUp.ynabSyncStatus !== "none" && <SyncBadge label="YNAB" status={fillUp.ynabSyncStatus} retryEndpoint={`/fill-ups/${fillUp.id}/ynab-sync`} fillUpId={fillUp.id} />}
       </div>
     </div>
   );
@@ -72,14 +73,14 @@ function Row({ label, value }: { label: string; value: string }) {
   return <div><span className="text-xs font-medium text-text-muted">{label}</span><p className="text-sm">{value}</p></div>;
 }
 
-function SyncBadge({ status, fillUpId }: { status: string; fillUpId: string }) {
+function SyncBadge({ label, status, retryEndpoint, fillUpId }: { label: string; status: string; retryEndpoint: string; fillUpId: string }) {
   const qc = useQueryClient();
   const resyncMut = useMutation({
-    mutationFn: () => apiFetch<void>(`/fill-ups/${fillUpId}/resync`, { method: "POST" }),
+    mutationFn: () => apiFetch<void>(retryEndpoint, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fill-up", fillUpId] }),
   });
   const badgeClass: Record<string, string> = { pending: "badge-warning", synced: "badge-success", failed: "badge-danger" };
-  const labels: Record<string, string> = { pending: "Syncing...", synced: "Synced to Paperless", failed: "Sync failed" };
+  const labels: Record<string, string> = { pending: "Syncing...", synced: `Synced to ${label}`, failed: `${label} sync failed` };
   return (
     <div className="flex items-center gap-2">
       <span className={badgeClass[status] ?? ""}>{labels[status] ?? status}</span>

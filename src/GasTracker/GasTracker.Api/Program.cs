@@ -86,7 +86,10 @@ builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
 
 // YNAB API client
 builder.Services.AddHttpClient<IYnabClient, YnabClient>(c =>
-    c.BaseAddress = new Uri("https://api.ynab.com"));
+{
+    c.BaseAddress = new Uri("https://api.ynab.com");
+    c.Timeout = TimeSpan.FromSeconds(15);
+});
 
 // Health checks
 builder.Services.AddHealthChecks()

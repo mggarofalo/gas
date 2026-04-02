@@ -26,6 +26,11 @@ public class FillUp : ITimestamped
     public DateTimeOffset? PaperlessSyncedAt { get; set; }
     public short PaperlessSyncAttempts { get; set; }
 
+    // YNAB sync state
+    public string YnabSyncStatus { get; set; } = "none";
+    public string? YnabTransactionId { get; set; }
+    public string? YnabSyncError { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
