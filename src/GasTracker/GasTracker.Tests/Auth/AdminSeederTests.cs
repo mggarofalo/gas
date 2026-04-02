@@ -113,9 +113,10 @@ public class AdminSeederTests
         var user = await userManager.FindByEmailAsync("admin@test.com");
 
         // Simulate user changing their password
+        user.Should().NotBeNull();
         await userManager.RemovePasswordAsync(user!);
         await userManager.AddPasswordAsync(user!, "UserChosenPassword99!!");
-        user.MustResetPassword = false;
+        user!.MustResetPassword = false;
         await userManager.UpdateAsync(user);
 
         // Seed again — should not touch the user at all
