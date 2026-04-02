@@ -7,6 +7,7 @@ const navItems = [
   { to: "/fill-ups", label: "Fill-Ups" },
   { to: "/fill-ups/new", label: "New Fill-Up" },
   { to: "/vehicles", label: "Vehicles" },
+  { to: "/settings/ynab", label: "Settings" },
 ] as const;
 
 export function Layout({ children }: { children: ReactNode }) {
