@@ -75,6 +75,7 @@ export function FillUpsPage() {
                   <Th onClick={() => toggleSort("total")}>Total{sortIndicator("total")}</Th>
                   <Th onClick={() => toggleSort("odometer")}>Odometer{sortIndicator("odometer")}</Th>
                   <th className="px-3 py-2 font-medium text-text-secondary">MPG</th>
+                  <th className="px-3 py-2 font-medium text-text-secondary" title="Paperless sync status">Sync</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,6 +89,7 @@ export function FillUpsPage() {
                     <td className="whitespace-nowrap px-3 py-2">${f.totalCost.toFixed(2)}</td>
                     <td className="whitespace-nowrap px-3 py-2">{f.odometerMiles.toLocaleString()}</td>
                     <td className="whitespace-nowrap px-3 py-2">{f.mpg?.toFixed(1) ?? "\u2014"}</td>
+                    <td className="whitespace-nowrap px-3 py-2"><SyncIcon status={f.paperlessSyncStatus} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -103,7 +105,10 @@ export function FillUpsPage() {
                 className="fill-up-card cursor-pointer active:bg-surface-hover"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{f.date}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium">{f.date}</span>
+                    <SyncIcon status={f.paperlessSyncStatus} />
+                  </div>
                   <span className="text-sm font-semibold">${f.totalCost.toFixed(2)}</span>
                 </div>
                 <div className="fill-up-card-row">
@@ -137,4 +142,12 @@ export function FillUpsPage() {
 
 function Th({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return <th onClick={onClick} className="cursor-pointer select-none whitespace-nowrap px-3 py-2 font-medium text-text-secondary hover:text-accent-text">{children}</th>;
+}
+
+function SyncIcon({ status }: { status: string }) {
+  if (status === "none") return null;
+  if (status === "pending") return <span title="Syncing to Paperless" className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-400" />;
+  if (status === "synced") return <svg aria-label="Synced to Paperless" role="img" className="inline-block h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>;
+  if (status === "failed") return <svg aria-label="Paperless sync failed" role="img" className="inline-block h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+  return null;
 }
