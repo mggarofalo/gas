@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/mggarofalo/gas/compare/v1.15.0...v1.15.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* resolve all build warnings and enable TreatWarningsAsErrors ([#57](https://github.com/mggarofalo/gas/issues/57)) ([b0f42e0](https://github.com/mggarofalo/gas/commit/b0f42e04c3dbe3f8c5cdea9492af23bb9c02d41b))
+
 ## [1.15.0](https://github.com/mggarofalo/gas/compare/v1.14.0...v1.15.0) (2026-04-02)
 
 
