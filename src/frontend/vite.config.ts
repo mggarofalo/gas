@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rolldownOptions: {
       output: {
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             { name: "vendor-react", test: /node_modules\/(react|react-dom|@tanstack)/ },
             { name: "vendor-recharts", test: /node_modules\/recharts/ },
