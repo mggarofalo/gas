@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api";
 import { Spinner } from "../components/Spinner";
@@ -53,10 +53,12 @@ export function YnabSettingsPage() {
   const [categoryName, setCategoryName] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const initialized = useRef(false);
 
-  // Sync local state from server config
+  // Sync local state from server config on initial load only
   useEffect(() => {
-    if (config?.configured) {
+    if (config?.configured && !initialized.current) {
+      initialized.current = true;
       setPlanId(config.planId ?? "");
       setPlanName(config.planName ?? "");
       setAccountId(config.accountId ?? "");
@@ -105,10 +107,14 @@ export function YnabSettingsPage() {
       qc.invalidateQueries({ queryKey: ["ynab-settings"] });
       qc.removeQueries({ queryKey: ["ynab-plans"] });
       setPlanId("");
+      setPlanName("");
       setAccountId("");
+      setAccountName("");
       setCategoryId("");
+      setCategoryName("");
       setToken("");
       setEnabled(false);
+      initialized.current = false;
       toast("YNAB disconnected");
     },
   });
@@ -236,7 +242,7 @@ export function YnabSettingsPage() {
             </label>
 
             {/* Save button */}
-            <button onClick={handleSave} disabled={saveMut.isPending} className="btn-primary w-full">
+            <button onClick={handleSave} disabled={saveMut.isPending || (showToken && !token.trim())} className="btn-primary w-full">
               {saveMut.isPending ? "Saving..." : "Save Settings"}
             </button>
           </>
