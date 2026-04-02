@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/mggarofalo/gas/compare/v1.15.1...v1.16.0) (2026-04-02)
+
+
+### Features
+
+* implement Paperless-ngx API client for document upload ([#59](https://github.com/mggarofalo/gas/issues/59)) ([e0e2dc7](https://github.com/mggarofalo/gas/commit/e0e2dc7e2c942d3f8cf2aa0480bf022ff98337f5))
+
 ## [1.15.1](https://github.com/mggarofalo/gas/compare/v1.15.0...v1.15.1) (2026-04-02)
 
 
