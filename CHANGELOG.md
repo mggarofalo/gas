@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0](https://github.com/mggarofalo/gas/compare/v1.14.0...v1.15.0) (2026-04-02)
+
+
+### Features
+
+* add YNAB settings page with cascading dropdowns ([#55](https://github.com/mggarofalo/gas/issues/55)) ([dd24a18](https://github.com/mggarofalo/gas/commit/dd24a18c382eaaf4029f53b3e4c811ae787edb34))
+
 ## [1.14.0](https://github.com/mggarofalo/gas/compare/v1.13.0...v1.14.0) (2026-04-02)
 
 
