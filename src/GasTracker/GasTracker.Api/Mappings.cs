@@ -29,7 +29,8 @@ public static class Mappings
             f.StationName, f.StationAddress,
             f.Latitude, f.Longitude,
             receiptUrl, tripMiles, mpg, costPerMile,
-            f.PaperlessSyncStatus, f.YnabSyncStatus, f.Notes,
+            f.PaperlessSyncStatus, f.PaperlessSyncedAt?.ToString("o"), f.PaperlessSyncError,
+            f.YnabSyncStatus, f.Notes,
             f.CreatedAt.ToString("o"));
     }
 }

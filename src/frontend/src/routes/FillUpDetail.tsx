@@ -62,7 +62,7 @@ export function FillUpDetailPage() {
         {fillUp.receiptUrl && (
           <div><span className="text-xs font-medium text-text-muted">Receipt</span><img src={fillUp.receiptUrl} alt="Receipt" className="mt-1 max-h-64 rounded border border-border object-contain" /></div>
         )}
-        {fillUp.paperlessSyncStatus !== "none" && <SyncBadge label="Paperless" status={fillUp.paperlessSyncStatus} retryEndpoint={`/fill-ups/${fillUp.id}/resync`} fillUpId={fillUp.id} />}
+        {fillUp.paperlessSyncStatus !== "none" && <SyncBadge label="Paperless" status={fillUp.paperlessSyncStatus} syncedAt={fillUp.paperlessSyncedAt} syncError={fillUp.paperlessSyncError} retryEndpoint={`/fill-ups/${fillUp.id}/resync`} fillUpId={fillUp.id} />}
         {fillUp.ynabSyncStatus !== "none" && <SyncBadge label="YNAB" status={fillUp.ynabSyncStatus} retryEndpoint={`/fill-ups/${fillUp.id}/ynab-sync`} fillUpId={fillUp.id} />}
       </div>
     </div>
@@ -73,18 +73,33 @@ function Row({ label, value }: { label: string; value: string }) {
   return <div><span className="text-xs font-medium text-text-muted">{label}</span><p className="text-sm">{value}</p></div>;
 }
 
-function SyncBadge({ label, status, retryEndpoint, fillUpId }: { label: string; status: string; retryEndpoint: string; fillUpId: string }) {
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function SyncBadge({ label, status, syncedAt, syncError, retryEndpoint, fillUpId }: { label: string; status: string; syncedAt?: string | null; syncError?: string | null; retryEndpoint: string; fillUpId: string }) {
   const qc = useQueryClient();
   const resyncMut = useMutation({
     mutationFn: () => apiFetch<void>(retryEndpoint, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fill-up", fillUpId] }),
   });
   const badgeClass: Record<string, string> = { pending: "badge-warning", synced: "badge-success", failed: "badge-danger" };
-  const labels: Record<string, string> = { pending: "Syncing...", synced: `Synced to ${label}`, failed: `${label} sync failed` };
+  const syncedLabel = syncedAt ? `Synced to ${label} \u2014 ${formatRelativeTime(syncedAt)}` : `Synced to ${label}`;
+  const labels: Record<string, string> = { pending: "Syncing...", synced: syncedLabel, failed: `${label} sync failed` };
   return (
-    <div className="flex items-center gap-2">
-      <span className={badgeClass[status] ?? ""}>{labels[status] ?? status}</span>
-      {status === "failed" && <button onClick={() => resyncMut.mutate()} disabled={resyncMut.isPending} className="link text-xs">Retry</button>}
+    <div>
+      <div className="flex items-center gap-2">
+        <span className={badgeClass[status] ?? ""}>{labels[status] ?? status}</span>
+        {status === "failed" && <button onClick={() => resyncMut.mutate()} disabled={resyncMut.isPending} className="link text-xs">Retry</button>}
+      </div>
+      {status === "failed" && syncError && <p className="mt-1 text-xs text-red-400">{syncError}</p>}
     </div>
   );
 }
