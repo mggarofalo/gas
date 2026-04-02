@@ -7,6 +7,7 @@ using GasTracker.Infrastructure.Auth;
 using GasTracker.Infrastructure.Data;
 using GasTracker.Infrastructure.Repositories;
 using GasTracker.Infrastructure.Storage;
+using GasTracker.Infrastructure.Paperless;
 using GasTracker.Infrastructure.Ynab;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -90,6 +91,22 @@ builder.Services.AddHttpClient<IYnabClient, YnabClient>(c =>
     c.BaseAddress = new Uri("https://api.ynab.com");
     c.Timeout = TimeSpan.FromSeconds(15);
 });
+
+// Paperless-ngx
+var paperlessOpts = builder.Configuration.GetSection("Paperless").Get<PaperlessOptions>() ?? new PaperlessOptions();
+if (paperlessOpts.Enabled && !string.IsNullOrWhiteSpace(paperlessOpts.Token))
+{
+    builder.Services.AddHttpClient<IPaperlessClient, PaperlessClient>(c =>
+    {
+        c.BaseAddress = new Uri(paperlessOpts.BaseUrl.TrimEnd('/') + "/");
+        c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Token", paperlessOpts.Token);
+        c.Timeout = TimeSpan.FromSeconds(30);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IPaperlessClient, NoOpPaperlessClient>();
+}
 
 // Health checks
 builder.Services.AddHealthChecks()
