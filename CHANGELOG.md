@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.3](https://github.com/mggarofalo/gas/compare/v1.23.2...v1.23.3) (2026-04-03)
+
+
+### Bug Fixes
+
+* frontend gallons calculation + parser ordering tests ([#92](https://github.com/mggarofalo/gas/issues/92)) ([818eb88](https://github.com/mggarofalo/gas/commit/818eb888df8ba114476b6e516794f62b86036745))
+
 ## [1.23.2](https://github.com/mggarofalo/gas/compare/v1.23.1...v1.23.2) (2026-04-03)
 
 
