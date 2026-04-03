@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/mggarofalo/gas/compare/v1.19.1...v1.20.0) (2026-04-03)
+
+
+### Features
+
+* per-fill-up YNAB account and category selection ([#76](https://github.com/mggarofalo/gas/issues/76)) ([2fa7797](https://github.com/mggarofalo/gas/commit/2fa7797d745a6ae7e45a362526495178c3b31dea))
+
 ## [1.19.1](https://github.com/mggarofalo/gas/compare/v1.19.0...v1.19.1) (2026-04-03)
 
 
