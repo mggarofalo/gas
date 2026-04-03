@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.0](https://github.com/mggarofalo/gas/compare/v1.22.1...v1.23.0) (2026-04-03)
+
+
+### Features
+
+* flexible memo parser, auto-apply mappings on list, validation icons ([#86](https://github.com/mggarofalo/gas/issues/86)) ([c0f22ff](https://github.com/mggarofalo/gas/commit/c0f22ff0b356ecd3e44ab8aba3fcc2538595566b))
+
 ## [1.22.1](https://github.com/mggarofalo/gas/compare/v1.22.0...v1.22.1) (2026-04-03)
 
 
