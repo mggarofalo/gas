@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.1](https://github.com/mggarofalo/gas/compare/v1.23.0...v1.23.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* strip parens from memos, auto-calculate gallons from amount/price ([#88](https://github.com/mggarofalo/gas/issues/88)) ([59018a4](https://github.com/mggarofalo/gas/commit/59018a4c2fdcd92839b32c344b2ec8cafac0e84c))
+
 ## [1.23.0](https://github.com/mggarofalo/gas/compare/v1.22.1...v1.23.0) (2026-04-03)
 
 
