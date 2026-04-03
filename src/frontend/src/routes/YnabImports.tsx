@@ -202,13 +202,14 @@ function ImportRow({ imp, vehicles }: { imp: YnabImport; vehicles: Vehicle[] }) 
   const qc = useQueryClient();
   const { toast } = useToast();
   const totalCost = Math.abs(imp.amountMilliunits) / 1000;
-  const complete = isComplete(imp);
 
   const [gallons, setGallons] = useState(imp.gallons?.toString() ?? "");
   const [price, setPrice] = useState(imp.pricePerGallon?.toString() ?? "");
   const [octane, setOctane] = useState(imp.octaneRating?.toString() ?? "");
   const [odometer, setOdometer] = useState(imp.odometerMiles?.toString() ?? "");
   const [vehicleId, setVehicleId] = useState(imp.vehicleId ?? "");
+
+  const localComplete = !!(vehicleId && gallons && parseFloat(gallons) > 0 && price && parseFloat(price) > 0 && odometer && parseInt(odometer) > 0);
 
   const saveMut = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -257,13 +258,16 @@ function ImportRow({ imp, vehicles }: { imp: YnabImport; vehicles: Vehicle[] }) 
   }, [gallons, price, octane, odometer, vehicleId, saveMut, approveMut]);
 
   return (
-    <div className={`card p-3 ${complete ? "border-l-2 border-l-success-text" : "border-l-2 border-l-warning-text"}`}>
-      {/* Header: date, payee, amount */}
+    <div className={`card p-3 ${localComplete ? "border-l-2 border-l-success-text" : "border-l-2 border-l-warning-text"}`}>
+      {/* Header: date, payee, amount, status */}
       <div className="mb-2 flex items-center justify-between text-sm">
-        <div>
+        <div className="flex items-center gap-2">
+          {localComplete
+            ? <svg className="h-4 w-4 text-green-500 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-label="Ready to approve" role="img"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+            : <span className="h-2.5 w-2.5 rounded-full bg-yellow-400 shrink-0" title="Missing required fields" />}
           <span className="font-medium">{imp.date}</span>
-          <span className="mx-2 text-text-muted">{imp.payeeName}</span>
-          {imp.memo && <span className="text-xs text-text-muted italic">({imp.memo})</span>}
+          <span className="text-text-muted">{imp.payeeName}</span>
+          {imp.memo && <span className="text-xs text-text-muted italic truncate max-w-48">({imp.memo})</span>}
         </div>
         <span className="font-semibold">${totalCost.toFixed(2)}</span>
       </div>
