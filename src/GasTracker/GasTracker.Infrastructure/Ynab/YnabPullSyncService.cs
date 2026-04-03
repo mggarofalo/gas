@@ -35,6 +35,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
         // Load memo-to-vehicle mappings for auto-resolution
         var memoMappings = await db.VehicleMemoMappings
             .ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
+        var knownVehicleNames = memoMappings.Keys.ToHashSet();
 
         foreach (var tx in page.Transactions)
         {
@@ -60,7 +61,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
             }
 
             // Only import if memo is parseable OR category matches the configured gas category
-            var parsed = MemoParser.Parse(tx.Memo);
+            var parsed = MemoParser.Parse(tx.Memo, knownVehicleNames);
             var categoryMatch = categoryId is not null && tx.CategoryId == categoryId;
 
             if (parsed is null && !categoryMatch)
