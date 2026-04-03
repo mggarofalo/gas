@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.0](https://github.com/mggarofalo/gas/compare/v1.18.1...v1.19.0) (2026-04-03)
+
+
+### Features
+
+* add YNAB two-way sync with import review queue ([#72](https://github.com/mggarofalo/gas/issues/72)) ([3a87f77](https://github.com/mggarofalo/gas/commit/3a87f77918f2d27662aee380327d5fe31cc8b14e))
+* YNAB API-driven backfill and per-fill-up account selection ([#70](https://github.com/mggarofalo/gas/issues/70)) ([f65c357](https://github.com/mggarofalo/gas/commit/f65c357b28327cc62ed2cd67a6329b3b7ac85fc9))
+
 ## [1.18.1](https://github.com/mggarofalo/gas/compare/v1.18.0...v1.18.1) (2026-04-03)
 
 
