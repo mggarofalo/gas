@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.1](https://github.com/mggarofalo/gas/compare/v1.19.0...v1.19.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* separate token endpoint, suppress log noise, stop 401 retry loop (GAS-71, GAS-72) ([#74](https://github.com/mggarofalo/gas/issues/74)) ([e6c8606](https://github.com/mggarofalo/gas/commit/e6c8606db8e66e391518fc82d962f45b2d303127))
+
 ## [1.19.0](https://github.com/mggarofalo/gas/compare/v1.18.1...v1.19.0) (2026-04-03)
 
 
