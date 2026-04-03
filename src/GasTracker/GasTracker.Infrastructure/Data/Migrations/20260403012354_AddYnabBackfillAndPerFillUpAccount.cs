@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -34,7 +34,7 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     balance = table.Column<long>(type: "bigint", nullable: false),
-                    fetched_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    fetched_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -45,10 +45,16 @@ namespace GasTracker.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "ynab_account_cache");
+            migrationBuilder.DropTable(
+                name: "ynab_account_cache");
 
-            migrationBuilder.DropColumn(name: "ynab_account_id", table: "fill_ups");
-            migrationBuilder.DropColumn(name: "ynab_account_name", table: "fill_ups");
+            migrationBuilder.DropColumn(
+                name: "ynab_account_id",
+                table: "fill_ups");
+
+            migrationBuilder.DropColumn(
+                name: "ynab_account_name",
+                table: "fill_ups");
         }
     }
 }

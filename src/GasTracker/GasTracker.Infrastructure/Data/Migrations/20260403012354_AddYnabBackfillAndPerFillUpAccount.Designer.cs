@@ -12,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GasTracker.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260402_AddYnabBackfillAndPerFillUpAccount")]
+    [Migration("20260403012354_AddYnabBackfillAndPerFillUpAccount")]
     partial class AddYnabBackfillAndPerFillUpAccount
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
