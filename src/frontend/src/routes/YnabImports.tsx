@@ -92,6 +92,8 @@ export function YnabImportsPage() {
         </div>
       )}
 
+      <VehicleMemoMappingsSection vehicles={vehicles} />
+
       {isLoading ? <Spinner /> : !data || data.items.length === 0 ? (
         <EmptyState message="No pending imports. Click 'Pull from YNAB' to scan for transactions." />
       ) : (
@@ -111,6 +113,83 @@ export function YnabImportsPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+interface MemoMapping {
+  id: string;
+  memoName: string;
+  vehicleId: string;
+  vehicleLabel: string;
+}
+
+function VehicleMemoMappingsSection({ vehicles }: { vehicles: Vehicle[] }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [newName, setNewName] = useState("");
+  const [newVehicleId, setNewVehicleId] = useState("");
+
+  const { data: mappings = [] } = useQuery({
+    queryKey: ["vehicle-memo-mappings"],
+    queryFn: () => apiFetch<MemoMapping[]>("/vehicle-memo-mappings"),
+  });
+
+  const upsertMut = useMutation({
+    mutationFn: (body: { memoName: string; vehicleId: string }) =>
+      apiFetch("/vehicle-memo-mappings", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vehicle-memo-mappings"] });
+      setNewName("");
+      setNewVehicleId("");
+      toast("Mapping saved");
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/vehicle-memo-mappings/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicle-memo-mappings"] }),
+  });
+
+  return (
+    <div className="card mb-4 space-y-3 p-4">
+      <h3 className="text-sm font-semibold">Vehicle Memo Mappings</h3>
+      <p className="text-xs text-text-muted">
+        Map vehicle names from YNAB memos to your vehicles. Pull sync uses these to auto-assign vehicles on import.
+      </p>
+
+      {mappings.length > 0 && (
+        <div className="space-y-1">
+          {mappings.map((m) => (
+            <div key={m.id} className="flex items-center gap-2 text-sm">
+              <span className="w-32 truncate font-medium">{m.memoName}</span>
+              <span className="text-text-muted">{m.vehicleLabel}</span>
+              <button onClick={() => deleteMut.mutate(m.id)} disabled={deleteMut.isPending} className="ml-auto text-xs text-danger-text hover:underline">Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          className="input text-sm"
+          placeholder="Memo name (e.g., Tacoma)"
+        />
+        <select value={newVehicleId} onChange={(e) => setNewVehicleId(e.target.value)} className="input text-sm">
+          <option value="">Vehicle...</option>
+          {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+        </select>
+        <button
+          onClick={() => upsertMut.mutate({ memoName: newName.trim(), vehicleId: newVehicleId })}
+          disabled={!newName.trim() || !newVehicleId || upsertMut.isPending}
+          className="btn-primary text-xs whitespace-nowrap"
+        >
+          Add
+        </button>
+      </div>
     </div>
   );
 }
