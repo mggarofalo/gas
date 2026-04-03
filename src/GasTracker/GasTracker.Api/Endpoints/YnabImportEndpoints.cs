@@ -47,24 +47,28 @@ public static class YnabImportEndpoints
             var p = page ?? 1;
             var ps = Math.Clamp(pageSize ?? 50, 1, 200);
 
-            // Apply memo mappings to any unmapped imports before returning
+            // Auto-apply memo mappings and calculate missing gallons
             var memoMappings = await db.VehicleMemoMappings.ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
-            if (memoMappings.Count > 0)
+            var needsFixup = await db.YnabImports
+                .Where(i => i.Status == filterStatus &&
+                    ((i.VehicleId == null && i.VehicleName != null) || (i.Gallons == null && i.PricePerGallon != null && i.PricePerGallon > 0)))
+                .ToListAsync();
+            var updated = false;
+            foreach (var imp in needsFixup)
             {
-                var unmapped = await db.YnabImports
-                    .Where(i => i.Status == filterStatus && i.VehicleId == null && i.VehicleName != null)
-                    .ToListAsync();
-                var updated = false;
-                foreach (var imp in unmapped)
+                if (imp.VehicleId is null && imp.VehicleName is not null && memoMappings.TryGetValue(imp.VehicleName, out var vid))
                 {
-                    if (imp.VehicleName is not null && memoMappings.TryGetValue(imp.VehicleName, out var vid))
-                    {
-                        imp.VehicleId = vid;
-                        updated = true;
-                    }
+                    imp.VehicleId = vid;
+                    updated = true;
                 }
-                if (updated) await db.SaveChangesAsync();
+                if (imp.Gallons is null && imp.PricePerGallon is > 0)
+                {
+                    var cost = Math.Abs(imp.AmountMilliunits) / 1000m;
+                    imp.Gallons = Math.Round(cost / imp.PricePerGallon.Value, 3);
+                    updated = true;
+                }
             }
+            if (updated) await db.SaveChangesAsync();
 
             var query = db.YnabImports.Where(i => i.Status == filterStatus);
             var totalCount = await query.CountAsync();

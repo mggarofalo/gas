@@ -40,8 +40,9 @@ public static partial class MemoParser
         }
 
         // Flexible comma-separated format
-        // Split and classify each field by heuristics
-        var parts = memo.Split(',').Select(p => p.Trim()).Where(p => p.Length > 0).ToArray();
+        // Strip wrapping parens/brackets before splitting
+        var cleaned = memo.Trim().Trim('(', ')', '[', ']');
+        var parts = cleaned.Split(',').Select(p => p.Trim()).Where(p => p.Length > 0).ToArray();
         if (parts.Length < 2) return null;
 
         string? vehicleName = null;
