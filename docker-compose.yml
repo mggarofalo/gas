@@ -138,6 +138,7 @@ services:
         condition: service_healthy
     volumes:
       - secrets:/secrets:ro
+      - dp-keys:/secrets/dp-keys
     tmpfs:
       - /tmp
     deploy:
@@ -190,6 +191,7 @@ services:
 
 volumes:
   secrets:
+  dp-keys:
   db-data:
   minio-data:
   backups:
