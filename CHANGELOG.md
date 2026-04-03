@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.1](https://github.com/mggarofalo/gas/compare/v1.18.0...v1.18.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* add writable dp-keys volume for Data Protection key persistence ([#66](https://github.com/mggarofalo/gas/issues/66)) ([4b54841](https://github.com/mggarofalo/gas/commit/4b54841aa482944863d8bd51aba70cba92cfe735))
+* mount dp-keys volume outside read-only /secrets ([#69](https://github.com/mggarofalo/gas/issues/69)) ([7b6226b](https://github.com/mggarofalo/gas/commit/7b6226bc440e84cfc35b9b6903ab0c6795a4eaf2))
+
 ## [1.18.0](https://github.com/mggarofalo/gas/compare/v1.17.0...v1.18.0) (2026-04-02)
 
 
