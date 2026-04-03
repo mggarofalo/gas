@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
@@ -8,6 +8,14 @@ import { useToast } from "../components/Toast";
 import type { Vehicle, FillUp, NearbyStation, StationSuggestion } from "../lib/types";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { CurrencyInput } from "../components/CurrencyInput";
+
+interface CachedYnabAccount {
+  accountId: string;
+  name: string;
+  type: string;
+  balance: number;
+  fetchedAt: string;
+}
 
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Required"),
@@ -57,7 +65,43 @@ export function NewFillUpPage() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  const qc = useQueryClient();
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
+
+  // YNAB account selection
+  const [ynabAccountId, setYnabAccountId] = useState("");
+  const [ynabAccountName, setYnabAccountName] = useState("");
+  const [refreshingAccounts, setRefreshingAccounts] = useState(false);
+
+  interface YnabConfig { configured: boolean; enabled?: boolean; accountId?: string; accountName?: string }
+  const { data: ynabConfig } = useQuery({
+    queryKey: ["ynab-settings"],
+    queryFn: () => apiFetch<YnabConfig>("/settings/ynab"),
+  });
+  const ynabEnabled = !!ynabConfig?.configured && !!ynabConfig?.enabled;
+
+  const { data: cachedAccounts = [] } = useQuery({
+    queryKey: ["ynab-accounts-cached"],
+    queryFn: () => apiFetch<CachedYnabAccount[]>("/ynab/accounts/cached"),
+    enabled: ynabEnabled,
+  });
+
+  // Default to the global account from settings
+  useEffect(() => {
+    if (ynabConfig?.accountId && !ynabAccountId) {
+      setYnabAccountId(ynabConfig.accountId);
+      setYnabAccountName(ynabConfig.accountName ?? "");
+    }
+  }, [ynabConfig, ynabAccountId]);
+
+  const handleRefreshAccounts = useCallback(async () => {
+    setRefreshingAccounts(true);
+    try {
+      await apiFetch("/ynab/accounts/refresh", { method: "POST" });
+      qc.invalidateQueries({ queryKey: ["ynab-accounts-cached"] });
+    } catch { /* non-critical */ }
+    finally { setRefreshingAccounts(false); }
+  }, [qc]);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FillUpForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,6 +128,7 @@ export function NewFillUpPage() {
       if (data.latitude != null) fd.append("latitude", String(data.latitude));
       if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
+      if (ynabAccountId) { fd.append("ynabAccountId", ynabAccountId); fd.append("ynabAccountName", ynabAccountName); }
       if (receiptFile) fd.append("receipt", receiptFile);
       return apiFetch<FillUp>("/fill-ups", { method: "POST", body: fd });
     },
@@ -329,6 +374,39 @@ export function NewFillUpPage() {
             </label>
           )}
         </Field>
+
+        {/* --- Section: YNAB Account --- */}
+        {ynabEnabled && (
+          <Field label="YNAB Account">
+            <div className="flex gap-2">
+              <select
+                value={ynabAccountId}
+                onChange={(e) => {
+                  setYnabAccountId(e.target.value);
+                  const acct = cachedAccounts.find((a) => a.accountId === e.target.value);
+                  setYnabAccountName(acct?.name ?? "");
+                }}
+                className="input"
+              >
+                <option value="">Default ({ynabConfig?.accountName || "none"})</option>
+                {cachedAccounts.map((a) => (
+                  <option key={a.accountId} value={a.accountId}>
+                    {a.name} ({a.type})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleRefreshAccounts}
+                disabled={refreshingAccounts}
+                className="shrink-0 rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
+                title="Refresh accounts from YNAB"
+              >
+                {refreshingAccounts ? "..." : "\u21BB"}
+              </button>
+            </div>
+          </Field>
+        )}
 
         {/* Notes */}
         <Field label="Notes">

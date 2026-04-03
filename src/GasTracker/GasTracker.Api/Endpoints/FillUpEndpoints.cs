@@ -87,6 +87,8 @@ public static class FillUpEndpoints
                 Latitude = req.Latitude,
                 Longitude = req.Longitude,
                 Notes = req.Notes,
+                YnabAccountId = form.TryGetValue("ynabAccountId", out var yAccId) && !string.IsNullOrEmpty(yAccId.ToString()) ? yAccId.ToString() : null,
+                YnabAccountName = form.TryGetValue("ynabAccountName", out var yAccName) && !string.IsNullOrEmpty(yAccName.ToString()) ? yAccName.ToString() : null,
             };
 
             await repo.CreateAsync(fillUp);
@@ -140,6 +142,8 @@ public static class FillUpEndpoints
             if (form.ContainsKey("longitude") && !string.IsNullOrEmpty(form["longitude"].ToString())) fillUp.Longitude = decimal.Parse(form["longitude"].ToString());
             if (form.ContainsKey("notes")) fillUp.Notes = form["notes"].ToString();
             if (form.ContainsKey("octaneRating") && !string.IsNullOrEmpty(form["octaneRating"].ToString())) fillUp.OctaneRating = short.Parse(form["octaneRating"].ToString());
+            if (form.ContainsKey("ynabAccountId")) fillUp.YnabAccountId = string.IsNullOrEmpty(form["ynabAccountId"].ToString()) ? null : form["ynabAccountId"].ToString();
+            if (form.ContainsKey("ynabAccountName")) fillUp.YnabAccountName = string.IsNullOrEmpty(form["ynabAccountName"].ToString()) ? null : form["ynabAccountName"].ToString();
 
             var receipt = form.Files.GetFile("receipt");
             if (receipt is not null)
@@ -210,7 +214,12 @@ public static class FillUpEndpoints
         try
         {
             var settings = await db.YnabSettings.FirstOrDefaultAsync();
-            if (settings is null || !settings.Enabled || string.IsNullOrWhiteSpace(settings.AccountId) || string.IsNullOrWhiteSpace(settings.PlanId))
+            if (settings is null || !settings.Enabled || string.IsNullOrWhiteSpace(settings.PlanId))
+                return;
+
+            // Per-fill-up account takes precedence over global default
+            var effectiveAccountId = fillUp.YnabAccountId ?? settings.AccountId;
+            if (string.IsNullOrWhiteSpace(effectiveAccountId))
                 return;
 
             string token;
@@ -237,7 +246,7 @@ public static class FillUpEndpoints
             var importId = $"GAS:{fillUp.Id:N}"[..36];
 
             var tx = new YnabTransaction(
-                AccountId: settings.AccountId,
+                AccountId: effectiveAccountId,
                 Date: date,
                 Amount: amount,
                 PayeeName: fillUp.StationName,

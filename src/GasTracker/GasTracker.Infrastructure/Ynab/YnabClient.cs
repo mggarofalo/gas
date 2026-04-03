@@ -103,6 +103,32 @@ public class YnabClient(HttpClient http) : IYnabClient
         return new YnabTransactionResult(id, IsDuplicate: false);
     }
 
+    public async Task<List<YnabTransactionRead>> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null)
+    {
+        var url = $"/v1/plans/{planId}/accounts/{accountId}/transactions";
+        if (sinceDate.HasValue)
+            url += $"?since_date={sinceDate.Value:yyyy-MM-dd}";
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var res = await SendAsync(req);
+        var doc = await JsonDocument.ParseAsync(await res.Content.ReadAsStreamAsync());
+        var transactions = doc.RootElement.GetProperty("data").GetProperty("transactions");
+
+        return transactions.EnumerateArray()
+            .Where(t => !t.GetProperty("deleted").GetBoolean())
+            .Select(t => new YnabTransactionRead(
+                t.GetProperty("id").GetString()!,
+                t.GetProperty("date").GetString()!,
+                t.GetProperty("amount").GetInt64(),
+                t.TryGetProperty("payee_name", out var pn) ? pn.GetString() : null,
+                t.TryGetProperty("memo", out var m) ? m.GetString() : null,
+                t.TryGetProperty("category_id", out var ci) ? ci.GetString() : null,
+                t.GetProperty("account_id").GetString()!
+            )).ToList();
+    }
+
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, bool allowConflict = false)
     {
         var res = await http.SendAsync(req);

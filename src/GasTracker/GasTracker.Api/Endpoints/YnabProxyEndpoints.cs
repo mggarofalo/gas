@@ -63,6 +63,70 @@ public static class YnabProxyEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
+
+        group.MapGet("/accounts/cached", async (AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        {
+            var cached = await db.YnabAccountCache.OrderBy(a => a.Name).ToListAsync();
+            if (cached.Count > 0)
+                return Results.Ok(cached.Select(a => new { a.AccountId, a.Name, a.Type, a.Balance, a.FetchedAt }));
+
+            // Cache is empty — fetch from YNAB if configured
+            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
+                return Results.Ok(Array.Empty<object>());
+
+            var token = await GetDecryptedToken(db, dp);
+            if (token is null)
+                return Results.Ok(Array.Empty<object>());
+
+            try
+            {
+                var accounts = await ynab.GetAccountsAsync(token, settings.PlanId);
+                return Results.Ok(await RefreshCache(db, accounts));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        group.MapPost("/accounts/refresh", async (AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        {
+            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
+                return Results.BadRequest(new { error = "YNAB is not configured" });
+
+            var token = await GetDecryptedToken(db, dp);
+            if (token is null)
+                return Results.BadRequest(new { error = "Failed to decrypt YNAB token" });
+
+            try
+            {
+                var accounts = await ynab.GetAccountsAsync(token, settings.PlanId);
+                return Results.Ok(await RefreshCache(db, accounts));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+    }
+
+    private static async Task<object[]> RefreshCache(AppDbContext db, List<YnabAccount> accounts)
+    {
+        var now = DateTimeOffset.UtcNow;
+        db.YnabAccountCache.RemoveRange(await db.YnabAccountCache.ToListAsync());
+        var cached = accounts.Select(a => new Core.Entities.YnabAccountCache
+        {
+            AccountId = a.Id,
+            Name = a.Name,
+            Type = a.Type,
+            Balance = a.Balance,
+            FetchedAt = now,
+        }).ToList();
+        db.YnabAccountCache.AddRange(cached);
+        await db.SaveChangesAsync();
+        return cached.Select(a => new { a.AccountId, a.Name, a.Type, a.Balance, a.FetchedAt } as object).ToArray();
     }
 
     private static async Task<string?> GetDecryptedToken(AppDbContext db, IDataProtectionProvider dp)

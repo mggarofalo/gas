@@ -31,6 +31,8 @@ public class FillUpConfiguration : IEntityTypeConfiguration<FillUp>
         builder.Property(f => f.YnabSyncStatus).HasMaxLength(20).HasDefaultValue("none");
         builder.Property(f => f.YnabTransactionId).HasMaxLength(100);
         builder.Property(f => f.YnabSyncError).HasMaxLength(500);
+        builder.Property(f => f.YnabAccountId).HasMaxLength(100);
+        builder.Property(f => f.YnabAccountName).HasMaxLength(200);
 
         builder.HasIndex(f => new { f.VehicleId, f.Date })
             .IsDescending(false, true)
