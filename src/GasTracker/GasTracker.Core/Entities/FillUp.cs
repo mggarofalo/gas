@@ -32,6 +32,8 @@ public class FillUp : ITimestamped
     public string? YnabSyncError { get; set; }
     public string? YnabAccountId { get; set; }
     public string? YnabAccountName { get; set; }
+    public string? YnabCategoryId { get; set; }
+    public string? YnabCategoryName { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

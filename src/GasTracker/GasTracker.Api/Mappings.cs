@@ -30,7 +30,8 @@ public static class Mappings
             f.Latitude, f.Longitude,
             receiptUrl, tripMiles, mpg, costPerMile,
             f.PaperlessSyncStatus, f.PaperlessSyncedAt?.ToString("o"), f.PaperlessSyncError,
-            f.YnabSyncStatus, f.YnabAccountId, f.YnabAccountName, f.Notes,
+            f.YnabSyncStatus, f.YnabAccountId, f.YnabAccountName,
+            f.YnabCategoryId, f.YnabCategoryName, f.Notes,
             f.CreatedAt.ToString("o"));
     }
 }

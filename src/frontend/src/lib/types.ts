@@ -35,6 +35,8 @@ export interface FillUp {
   ynabSyncStatus: string;
   ynabAccountId: string | null;
   ynabAccountName: string | null;
+  ynabCategoryId: string | null;
+  ynabCategoryName: string | null;
   notes: string | null;
   createdAt: string;
 }
