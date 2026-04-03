@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.1](https://github.com/mggarofalo/gas/compare/v1.24.0...v1.24.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* re-parse memos on import list load for stale imports ([#95](https://github.com/mggarofalo/gas/issues/95)) ([f5533a2](https://github.com/mggarofalo/gas/commit/f5533a2fac9db1f58c85979ba53c911ba7559ad7))
+
 ## [1.24.0](https://github.com/mggarofalo/gas/compare/v1.23.3...v1.24.0) (2026-04-03)
 
 
