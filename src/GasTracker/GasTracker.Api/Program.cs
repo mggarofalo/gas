@@ -25,15 +25,8 @@ builder.Services.AddOpenApi();
 // Data Protection (encrypts YNAB API tokens at rest)
 var dpBuilder = builder.Services.AddDataProtection();
 var dpKeysDir = new DirectoryInfo("/secrets/dp-keys");
-if (dpKeysDir.Parent is { Exists: true })
-{
-    dpKeysDir.Create();
-    dpBuilder.PersistKeysToFileSystem(dpKeysDir);
-}
-else
-{
-    Console.WriteLine("WARNING: /secrets not mounted — Data Protection keys are ephemeral. Encrypted tokens will be lost on restart.");
-}
+dpKeysDir.Create();
+dpBuilder.PersistKeysToFileSystem(dpKeysDir);
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
