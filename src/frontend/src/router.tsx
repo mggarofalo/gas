@@ -26,6 +26,7 @@ const NewFillUpPage = lazy(() => import("./routes/NewFillUp").then((m) => ({ def
 const FillUpDetailPage = lazy(() => import("./routes/FillUpDetail").then((m) => ({ default: m.FillUpDetailPage })));
 const VehiclesPage = lazy(() => import("./routes/Vehicles").then((m) => ({ default: m.VehiclesPage })));
 const YnabSettingsPage = lazy(() => import("./routes/YnabSettings").then((m) => ({ default: m.YnabSettingsPage })));
+const YnabImportsPage = lazy(() => import("./routes/YnabImports").then((m) => ({ default: m.YnabImportsPage })));
 
 function requireAuth() {
   const token = getAccessToken();
@@ -98,6 +99,12 @@ const ynabSettingsRoute = createRoute({
   component: () => <SuspenseRoute><YnabSettingsPage /></SuspenseRoute>,
 });
 
+const ynabImportsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/settings/ynab/imports",
+  component: () => <SuspenseRoute><YnabImportsPage /></SuspenseRoute>,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   changePasswordRoute,
@@ -108,6 +115,7 @@ const routeTree = rootRoute.addChildren([
     fillUpDetailRoute,
     vehiclesRoute,
     ynabSettingsRoute,
+    ynabImportsRoute,
   ]),
 ]);
 

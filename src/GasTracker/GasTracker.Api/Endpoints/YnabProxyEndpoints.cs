@@ -1,23 +1,21 @@
 using GasTracker.Core.Interfaces;
 using GasTracker.Infrastructure.Data;
-using Microsoft.AspNetCore.DataProtection;
+using GasTracker.Infrastructure.Ynab;
 using Microsoft.EntityFrameworkCore;
 
 namespace GasTracker.Api.Endpoints;
 
 public static class YnabProxyEndpoints
 {
-    private const string TokenPurpose = "YnabApiToken";
-
     public static void MapYnabProxyEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/ynab").WithTags("YNAB").RequireAuthorization();
 
-        group.MapGet("/plans", async (AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapGet("/plans", async (YnabTokenService tokenService, IYnabClient ynab) =>
         {
-            var token = await GetDecryptedToken(db, dp);
-            if (token is null)
-                return Results.BadRequest(new { error = "YNAB is not configured" });
+            string token;
+            try { token = await tokenService.GetDecryptedTokenAsync(); }
+            catch { return Results.BadRequest(new { error = "YNAB is not configured" }); }
 
             try
             {
@@ -30,11 +28,11 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapGet("/plans/{planId}/accounts", async (string planId, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapGet("/plans/{planId}/accounts", async (string planId, YnabTokenService tokenService, IYnabClient ynab) =>
         {
-            var token = await GetDecryptedToken(db, dp);
-            if (token is null)
-                return Results.BadRequest(new { error = "YNAB is not configured" });
+            string token;
+            try { token = await tokenService.GetDecryptedTokenAsync(); }
+            catch { return Results.BadRequest(new { error = "YNAB is not configured" }); }
 
             try
             {
@@ -47,11 +45,11 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapGet("/plans/{planId}/categories", async (string planId, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapGet("/plans/{planId}/categories", async (string planId, YnabTokenService tokenService, IYnabClient ynab) =>
         {
-            var token = await GetDecryptedToken(db, dp);
-            if (token is null)
-                return Results.BadRequest(new { error = "YNAB is not configured" });
+            string token;
+            try { token = await tokenService.GetDecryptedTokenAsync(); }
+            catch { return Results.BadRequest(new { error = "YNAB is not configured" }); }
 
             try
             {
@@ -64,7 +62,7 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapGet("/accounts/cached", async (AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapGet("/accounts/cached", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab) =>
         {
             var cached = await db.YnabAccountCache.OrderBy(a => a.Name).ToListAsync();
             if (cached.Count > 0)
@@ -75,9 +73,9 @@ public static class YnabProxyEndpoints
             if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
                 return Results.Ok(Array.Empty<object>());
 
-            var token = await GetDecryptedToken(db, dp);
-            if (token is null)
-                return Results.Ok(Array.Empty<object>());
+            string token;
+            try { token = await tokenService.GetDecryptedTokenAsync(); }
+            catch { return Results.Ok(Array.Empty<object>()); }
 
             try
             {
@@ -90,15 +88,15 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapPost("/accounts/refresh", async (AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapPost("/accounts/refresh", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab) =>
         {
             var settings = await db.YnabSettings.FirstOrDefaultAsync();
             if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
                 return Results.BadRequest(new { error = "YNAB is not configured" });
 
-            var token = await GetDecryptedToken(db, dp);
-            if (token is null)
-                return Results.BadRequest(new { error = "Failed to decrypt YNAB token" });
+            string token;
+            try { token = await tokenService.GetDecryptedTokenAsync(); }
+            catch { return Results.BadRequest(new { error = "Failed to decrypt YNAB token" }); }
 
             try
             {
@@ -129,19 +127,4 @@ public static class YnabProxyEndpoints
         return cached.Select(a => new { a.AccountId, a.Name, a.Type, a.Balance, a.FetchedAt } as object).ToArray();
     }
 
-    private static async Task<string?> GetDecryptedToken(AppDbContext db, IDataProtectionProvider dp)
-    {
-        var settings = await db.YnabSettings.FirstOrDefaultAsync();
-        if (settings is null) return null;
-
-        try
-        {
-            var protector = dp.CreateProtector(TokenPurpose);
-            return protector.Unprotect(settings.ApiToken);
-        }
-        catch
-        {
-            return null;
-        }
-    }
 }

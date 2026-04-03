@@ -103,6 +103,10 @@ else
 builder.Services.Configure<PaperlessOptions>(builder.Configuration.GetSection("Paperless"));
 builder.Services.AddHostedService<PaperlessSyncService>();
 
+// YNAB services
+builder.Services.AddScoped<YnabTokenService>();
+builder.Services.AddScoped<YnabPullSyncService>();
+
 // Health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("postgresql")
@@ -174,6 +178,7 @@ app.MapLocationEndpoints();
 app.MapYnabSettingsEndpoints();
 app.MapYnabProxyEndpoints();
 app.MapYnabBackfillEndpoints();
+app.MapYnabImportEndpoints();
 
 // SPA fallback — serve index.html for any non-API, non-file route
 app.MapFallbackToFile("index.html");

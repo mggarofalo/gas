@@ -13,6 +13,7 @@ public class YnabSettings : ITimestamped
     public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public bool Enabled { get; set; }
+    public long? LastServerKnowledge { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

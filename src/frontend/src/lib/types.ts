@@ -59,6 +59,29 @@ export interface NearbyStation {
   visitCount: number;
 }
 
+export interface YnabImport {
+  id: string;
+  ynabTransactionId: string;
+  date: string;
+  payeeName: string;
+  amountMilliunits: number;
+  memo: string | null;
+  gallons: number | null;
+  pricePerGallon: number | null;
+  octaneRating: number | null;
+  odometerMiles: number | null;
+  vehicleName: string | null;
+  vehicleId: string | null;
+  status: string;
+}
+
+export interface YnabImportPage {
+  items: YnabImport[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
 export interface Stats {
   totalFillUps: number;
   totalGallons: number;
