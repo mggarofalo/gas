@@ -41,5 +41,10 @@ public class FillUpConfiguration : IEntityTypeConfiguration<FillUp>
         builder.HasIndex(f => f.Date)
             .IsDescending()
             .HasDatabaseName("ix_fill_ups_date");
+
+        builder.HasIndex(f => f.YnabTransactionId)
+            .IsUnique()
+            .HasFilter("ynab_transaction_id IS NOT NULL")
+            .HasDatabaseName("ix_fill_ups_ynab_transaction_id");
     }
 }

@@ -23,7 +23,9 @@ public static class YnabImportEndpoints
             {
                 var token = await tokenService.GetDecryptedTokenAsync();
                 var sinceDate = req?.SinceDate is not null ? DateOnly.Parse(req.SinceDate) : (DateOnly?)null;
-                var result = await pullSync.PullAsync(token, settings.PlanId, settings.AccountId, sinceDate, settings.LastServerKnowledge);
+                // When sinceDate is explicit, do a date-based query (skip delta sync)
+                var serverKnowledge = sinceDate.HasValue ? null : settings.LastServerKnowledge;
+                var result = await pullSync.PullAsync(token, settings.PlanId, settings.AccountId, sinceDate, serverKnowledge);
                 return Results.Ok(new
                 {
                     newImports = result.NewImports,
@@ -68,11 +70,11 @@ public static class YnabImportEndpoints
             if (import is null) return Results.NotFound();
             if (import.Status != "pending") return Results.BadRequest(new { error = "Import is not pending" });
 
-            if (req.Gallons.HasValue) import.Gallons = req.Gallons;
-            if (req.PricePerGallon.HasValue) import.PricePerGallon = req.PricePerGallon;
-            if (req.OctaneRating.HasValue) import.OctaneRating = req.OctaneRating;
-            if (req.OdometerMiles.HasValue) import.OdometerMiles = req.OdometerMiles;
-            if (req.VehicleId.HasValue) import.VehicleId = req.VehicleId;
+            import.Gallons = req.Gallons;
+            import.PricePerGallon = req.PricePerGallon;
+            import.OctaneRating = req.OctaneRating;
+            import.OdometerMiles = req.OdometerMiles;
+            import.VehicleId = req.VehicleId;
 
             await db.SaveChangesAsync();
             return Results.Ok(ToDto(import));
