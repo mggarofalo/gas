@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.1](https://github.com/mggarofalo/gas/compare/v1.21.0...v1.21.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* increase YNAB HttpClient timeout for large plan fetches ([#80](https://github.com/mggarofalo/gas/issues/80)) ([4dfbaa0](https://github.com/mggarofalo/gas/commit/4dfbaa001917756267a1ed13be2842b8046b9935))
+
 ## [1.21.0](https://github.com/mggarofalo/gas/compare/v1.20.0...v1.21.0) (2026-04-03)
 
 
