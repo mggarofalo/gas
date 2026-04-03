@@ -147,4 +147,26 @@ public class MemoParserTests
         result.Should().NotBeNull();
         result!.OdometerMiles.Should().Be(45200);
     }
+
+    // --- Wrapped in parentheses ---
+
+    [Fact]
+    public void Parse_Flexible_WrappedInParens()
+    {
+        var known = new HashSet<string> { "Sienna" };
+        var result = MemoParser.Parse("(Sienna, $2.469, 77642)", known);
+        result.Should().NotBeNull();
+        result!.VehicleName.Should().Be("Sienna");
+        result.PricePerGallon.Should().Be(2.469m);
+        result.OdometerMiles.Should().Be(77642);
+    }
+
+    [Fact]
+    public void Parse_Flexible_WrappedInBrackets()
+    {
+        var result = MemoParser.Parse("[Tacoma, $3.50, 45000]");
+        result.Should().NotBeNull();
+        result!.VehicleName.Should().Be("Tacoma");
+        result.PricePerGallon.Should().Be(3.50m);
+    }
 }
