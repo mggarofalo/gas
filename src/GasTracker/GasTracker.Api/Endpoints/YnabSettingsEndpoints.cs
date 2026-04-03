@@ -30,7 +30,7 @@ public static class YnabSettingsEndpoints
             }
             catch
             {
-                maskedToken = "(decrypt failed)";
+                maskedToken = "(decrypt failed — re-enter token)";
             }
 
             return Results.Ok(new
@@ -47,25 +47,35 @@ public static class YnabSettingsEndpoints
             });
         });
 
-        group.MapPut("/", async (YnabSettingsRequest req, AppDbContext db, IDataProtectionProvider dp) =>
+        // Set/replace the YNAB API token (separate from settings to avoid accidental overwrite)
+        group.MapPut("/token", async (TokenRequest req, AppDbContext db, IDataProtectionProvider dp) =>
         {
             if (string.IsNullOrWhiteSpace(req.ApiToken))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                     { ["apiToken"] = ["API token is required"] });
 
             var protector = dp.CreateProtector(Purpose);
-            var encryptedToken = protector.Protect(req.ApiToken);
-
             var settings = await db.YnabSettings.FindAsync(SingletonId);
             if (settings is null)
             {
-                settings = new YnabSettings { Id = SingletonId, ApiToken = encryptedToken };
+                settings = new YnabSettings { Id = SingletonId, ApiToken = protector.Protect(req.ApiToken) };
                 db.YnabSettings.Add(settings);
             }
             else
             {
-                settings.ApiToken = encryptedToken;
+                settings.ApiToken = protector.Protect(req.ApiToken);
             }
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new { configured = true });
+        });
+
+        // Update settings (plan, account, category, enabled) — never touches the token
+        group.MapPut("/", async (YnabSettingsRequest req, AppDbContext db) =>
+        {
+            var settings = await db.YnabSettings.FindAsync(SingletonId);
+            if (settings is null)
+                return Results.BadRequest(new { error = "Set a token first via PUT /api/settings/ynab/token" });
 
             settings.PlanId = req.PlanId;
             settings.PlanName = req.PlanName;
@@ -91,8 +101,9 @@ public static class YnabSettingsEndpoints
         });
     }
 
+    private record TokenRequest(string ApiToken);
+
     private record YnabSettingsRequest(
-        string ApiToken,
         string? PlanId,
         string? PlanName,
         string? AccountId,

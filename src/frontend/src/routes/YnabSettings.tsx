@@ -74,6 +74,7 @@ export function YnabSettingsPage() {
     queryKey: ["ynab-plans"],
     queryFn: () => apiFetch<YnabPlan[]>("/ynab/plans"),
     enabled: !!config?.configured,
+    retry: false,
   });
 
   // Fetch accounts when plan is selected
@@ -81,6 +82,7 @@ export function YnabSettingsPage() {
     queryKey: ["ynab-accounts", planId],
     queryFn: () => apiFetch<YnabAccount[]>(`/ynab/plans/${planId}/accounts`),
     enabled: !!planId && !!config?.configured,
+    retry: false,
   });
 
   // Fetch categories when plan is selected
@@ -88,6 +90,18 @@ export function YnabSettingsPage() {
     queryKey: ["ynab-categories", planId],
     queryFn: () => apiFetch<YnabCategory[]>(`/ynab/plans/${planId}/categories`),
     enabled: !!planId && !!config?.configured,
+    retry: false,
+  });
+
+  const tokenMut = useMutation({
+    mutationFn: (apiToken: string) =>
+      apiFetch("/settings/ynab/token", { method: "PUT", body: JSON.stringify({ apiToken }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ynab-settings"] });
+      toast("YNAB token saved");
+      setToken("");
+      setShowToken(false);
+    },
   });
 
   const saveMut = useMutation({
@@ -96,8 +110,6 @@ export function YnabSettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ynab-settings"] });
       toast("YNAB settings saved");
-      setToken("");
-      setShowToken(false);
     },
   });
 
@@ -119,18 +131,38 @@ export function YnabSettingsPage() {
     },
   });
 
+  const handleConnect = () => {
+    if (!token.trim()) return;
+    tokenMut.mutate(token.trim());
+  };
+
   const handleSave = () => {
-    if (!config?.configured && !token.trim()) return;
-    saveMut.mutate({
-      apiToken: token.trim() || "unchanged",
-      planId: planId || null,
-      planName: planName || null,
-      accountId: accountId || null,
-      accountName: accountName || null,
-      categoryId: categoryId || null,
-      categoryName: categoryName || null,
-      enabled,
-    });
+    // Save token first if provided, then save settings
+    if (token.trim()) {
+      tokenMut.mutate(token.trim(), {
+        onSuccess: () => {
+          saveMut.mutate({
+            planId: planId || null,
+            planName: planName || null,
+            accountId: accountId || null,
+            accountName: accountName || null,
+            categoryId: categoryId || null,
+            categoryName: categoryName || null,
+            enabled,
+          });
+        },
+      });
+    } else {
+      saveMut.mutate({
+        planId: planId || null,
+        planName: planName || null,
+        accountId: accountId || null,
+        accountName: accountName || null,
+        categoryId: categoryId || null,
+        categoryName: categoryName || null,
+        enabled,
+      });
+    }
   };
 
   const handlePlanChange = (id: string) => {
@@ -196,8 +228,8 @@ export function YnabSettingsPage() {
 
         {/* Initial connect button */}
         {!config?.configured && (
-          <button onClick={handleSave} disabled={!token.trim() || saveMut.isPending} className="btn-primary w-full">
-            {saveMut.isPending ? "Connecting..." : "Connect to YNAB"}
+          <button onClick={handleConnect} disabled={!token.trim() || tokenMut.isPending} className="btn-primary w-full">
+            {tokenMut.isPending ? "Connecting..." : "Connect to YNAB"}
           </button>
         )}
 
@@ -248,6 +280,7 @@ export function YnabSettingsPage() {
           </>
         )}
 
+        {tokenMut.isError && <p className="text-sm text-danger-text">Token error: {tokenMut.error.message}</p>}
         {saveMut.isError && <p className="text-sm text-danger-text">Error: {saveMut.error.message}</p>}
         {deleteMut.isError && <p className="text-sm text-danger-text">Error: {deleteMut.error.message}</p>}
       </div>
