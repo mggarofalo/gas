@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<YnabAccountCache> YnabAccountCache => Set<YnabAccountCache>();
     public DbSet<YnabImport> YnabImports => Set<YnabImport>();
     public DbSet<YnabCategoryCache> YnabCategoryCache => Set<YnabCategoryCache>();
+    public DbSet<VehicleMemoMapping> VehicleMemoMappings => Set<VehicleMemoMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

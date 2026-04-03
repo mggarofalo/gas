@@ -155,6 +155,47 @@ public static class YnabImportEndpoints
             await db.SaveChangesAsync();
             return Results.Ok(new { cleared = staleImports.Count });
         });
+
+        // --- Vehicle memo mappings ---
+        var mappings = app.MapGroup("/api/vehicle-memo-mappings").WithTags("VehicleMemoMappings").RequireAuthorization();
+
+        mappings.MapGet("/", async (AppDbContext db) =>
+        {
+            var items = await db.VehicleMemoMappings
+                .Include(m => m.Vehicle)
+                .OrderBy(m => m.MemoName)
+                .Select(m => new { m.Id, m.MemoName, m.VehicleId, vehicleLabel = m.Vehicle.Year + " " + m.Vehicle.Make + " " + m.Vehicle.Model })
+                .ToListAsync();
+            return Results.Ok(items);
+        });
+
+        mappings.MapPut("/", async (MemoMappingRequest req, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.MemoName))
+                return Results.BadRequest(new { error = "memoName is required" });
+
+            var existing = await db.VehicleMemoMappings.FirstOrDefaultAsync(m => m.MemoName == req.MemoName);
+            if (existing is not null)
+            {
+                existing.VehicleId = req.VehicleId;
+            }
+            else
+            {
+                db.VehicleMemoMappings.Add(new VehicleMemoMapping { MemoName = req.MemoName, VehicleId = req.VehicleId });
+            }
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new { mapped = true });
+        });
+
+        mappings.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
+        {
+            var mapping = await db.VehicleMemoMappings.FindAsync(id);
+            if (mapping is null) return Results.NotFound();
+            db.VehicleMemoMappings.Remove(mapping);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
     }
 
     private static string? ValidateForApproval(YnabImport import)
@@ -204,4 +245,6 @@ public static class YnabImportEndpoints
         string PayeeName, long AmountMilliunits, string? Memo,
         decimal? Gallons, decimal? PricePerGallon, short? OctaneRating, int? OdometerMiles,
         string? VehicleName, Guid? VehicleId, string Status);
+
+    private record MemoMappingRequest(string MemoName, Guid VehicleId);
 }

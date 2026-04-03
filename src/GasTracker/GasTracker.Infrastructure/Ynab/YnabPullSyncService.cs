@@ -32,6 +32,10 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
             .Select(f => f.YnabTransactionId!)
             .ToHashSetAsync();
 
+        // Load memo-to-vehicle mappings for auto-resolution
+        var memoMappings = await db.VehicleMemoMappings
+            .ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
+
         foreach (var tx in page.Transactions)
         {
             // Skip our own pushes
@@ -88,6 +92,10 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
                     import.Gallons = parsed.Gallons ?? (parsed.PricePerGallon > 0
                         ? Math.Round(totalCost / parsed.PricePerGallon.Value, 3)
                         : null);
+
+                    // Auto-resolve vehicle from memo mapping
+                    if (parsed.VehicleName is not null && memoMappings.TryGetValue(parsed.VehicleName, out var vehicleId))
+                        import.VehicleId = vehicleId;
                 }
 
                 db.YnabImports.Add(import);
