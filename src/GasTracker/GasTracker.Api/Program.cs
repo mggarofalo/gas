@@ -24,7 +24,7 @@ builder.Services.AddOpenApi();
 
 // Data Protection (encrypts YNAB API tokens at rest)
 var dpBuilder = builder.Services.AddDataProtection();
-var dpKeysDir = new DirectoryInfo("/secrets/dp-keys");
+var dpKeysDir = new DirectoryInfo("/dp-keys");
 dpKeysDir.Create();
 dpBuilder.PersistKeysToFileSystem(dpKeysDir);
 

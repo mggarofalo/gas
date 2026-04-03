@@ -138,7 +138,7 @@ services:
         condition: service_healthy
     volumes:
       - secrets:/secrets:ro
-      - dp-keys:/secrets/dp-keys
+      - dp-keys:/dp-keys
     tmpfs:
       - /tmp
     deploy:
