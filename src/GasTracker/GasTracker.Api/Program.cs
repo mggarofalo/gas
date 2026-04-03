@@ -82,7 +82,7 @@ builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
 builder.Services.AddHttpClient<IYnabClient, YnabClient>(c =>
 {
     c.BaseAddress = new Uri("https://api.ynab.com");
-    c.Timeout = TimeSpan.FromSeconds(15);
+    c.Timeout = TimeSpan.FromSeconds(60);
 });
 
 // Paperless-ngx
