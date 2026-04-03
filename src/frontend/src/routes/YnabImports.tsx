@@ -203,7 +203,10 @@ function ImportRow({ imp, vehicles }: { imp: YnabImport; vehicles: Vehicle[] }) 
   const { toast } = useToast();
   const totalCost = Math.abs(imp.amountMilliunits) / 1000;
 
-  const [gallons, setGallons] = useState(imp.gallons?.toString() ?? "");
+  const calcGallons = imp.pricePerGallon && imp.pricePerGallon > 0
+    ? (totalCost / imp.pricePerGallon).toFixed(3)
+    : "";
+  const [gallons, setGallons] = useState(imp.gallons?.toString() ?? calcGallons);
   const [price, setPrice] = useState(imp.pricePerGallon?.toString() ?? "");
   const [octane, setOctane] = useState(imp.octaneRating?.toString() ?? "");
   const [odometer, setOdometer] = useState(imp.odometerMiles?.toString() ?? "");
@@ -283,7 +286,7 @@ function ImportRow({ imp, vehicles }: { imp: YnabImport; vehicles: Vehicle[] }) 
           {imp.vehicleName && !vehicleId && <span className="text-xs text-warning-text">Parsed: {imp.vehicleName}</span>}
         </div>
         <div>
-          <label className="text-xs text-text-muted">Gallons</label>
+          <label className="text-xs text-text-muted">Gallons {!imp.gallons && calcGallons ? <span className="text-text-muted">(calc)</span> : null}</label>
           <input type="number" step="0.001" value={gallons} onChange={(e) => setGallons(e.target.value)} className="input text-sm" placeholder="0.000" />
         </div>
         <div>

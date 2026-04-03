@@ -169,4 +169,23 @@ public class MemoParserTests
         result!.VehicleName.Should().Be("Tacoma");
         result.PricePerGallon.Should().Be(3.50m);
     }
+
+    // --- All field orderings ---
+
+    [Theory]
+    [InlineData("Sienna, 87, $2.469, 77642")]    // name, octane, price, odo
+    [InlineData("Sienna, $2.469, 87, 77642")]    // name, price, octane, odo
+    [InlineData("Sienna, $2.469, 77642")]         // name, price, odo (no octane)
+    [InlineData("(Sienna, $2.469, 87, 77642)")]   // wrapped parens
+    [InlineData("Sienna, 87, 2.469, 77642")]      // no $ sign
+    [InlineData("Sienna, 2.469, 87, 77642")]      // no $ sign, price before octane
+    public void Parse_Flexible_AllOrderings(string memo)
+    {
+        var known = new HashSet<string> { "Sienna" };
+        var result = MemoParser.Parse(memo, known);
+        result.Should().NotBeNull();
+        result!.VehicleName.Should().Be("Sienna");
+        result.PricePerGallon.Should().Be(2.469m);
+        result.OdometerMiles.Should().Be(77642);
+    }
 }
