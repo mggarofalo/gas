@@ -6,33 +6,68 @@ namespace GasTracker.Tests;
 public class MemoParserTests
 {
     [Fact]
-    public void Parse_ValidMemo_ReturnsAllFields()
+    public void Parse_IngestFormat_ReturnsAllFields()
     {
         var result = MemoParser.Parse("Tacoma, 87, $3.299, 45200");
         result.Should().NotBeNull();
-        result!.Value.VehicleName.Should().Be("Tacoma");
-        result.Value.Octane.Should().Be(87);
-        result.Value.Price.Should().Be(3.299m);
-        result.Value.Mileage.Should().Be(45200);
+        result!.VehicleName.Should().Be("Tacoma");
+        result.OctaneRating.Should().Be(87);
+        result.PricePerGallon.Should().Be(3.299m);
+        result.OdometerMiles.Should().Be(45200);
+        result.Gallons.Should().BeNull();
     }
 
     [Fact]
-    public void Parse_NoSpaces_StillParses()
+    public void Parse_IngestFormat_NoSpaces_StillParses()
     {
         var result = MemoParser.Parse("Civic,93,$4.199,12000");
         result.Should().NotBeNull();
-        result!.Value.VehicleName.Should().Be("Civic");
-        result.Value.Octane.Should().Be(93);
-        result.Value.Price.Should().Be(4.199m);
-        result.Value.Mileage.Should().Be(12000);
+        result!.VehicleName.Should().Be("Civic");
+        result.OctaneRating.Should().Be(93);
+        result.PricePerGallon.Should().Be(4.199m);
+        result.OdometerMiles.Should().Be(12000);
     }
 
     [Fact]
-    public void Parse_ExtraFields_IgnoresTrailing()
+    public void Parse_IngestFormat_ExtraFields_IgnoresTrailing()
     {
         var result = MemoParser.Parse("Tacoma, 87, $3.299, 45200, extra");
         result.Should().NotBeNull();
-        result!.Value.Mileage.Should().Be(45200);
+        result!.OdometerMiles.Should().Be(45200);
+    }
+
+    [Fact]
+    public void Parse_PushFormat_FullMemo_ReturnsAllFields()
+    {
+        var result = MemoParser.Parse("14.500gal @ $3.500/gal, 87 oct, 45000mi");
+        result.Should().NotBeNull();
+        result!.Gallons.Should().Be(14.500m);
+        result.PricePerGallon.Should().Be(3.500m);
+        result.OctaneRating.Should().Be(87);
+        result.OdometerMiles.Should().Be(45000);
+        result.VehicleName.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_PushFormat_WithoutOctane_ReturnsPartial()
+    {
+        var result = MemoParser.Parse("10.000gal @ $4.000/gal, 30000mi");
+        result.Should().NotBeNull();
+        result!.Gallons.Should().Be(10.000m);
+        result.PricePerGallon.Should().Be(4.000m);
+        result.OctaneRating.Should().BeNull();
+        result.OdometerMiles.Should().Be(30000);
+    }
+
+    [Fact]
+    public void Parse_PushFormat_GallonsAndPriceOnly()
+    {
+        var result = MemoParser.Parse("12.500gal @ $3.299/gal");
+        result.Should().NotBeNull();
+        result!.Gallons.Should().Be(12.500m);
+        result.PricePerGallon.Should().Be(3.299m);
+        result.OctaneRating.Should().BeNull();
+        result.OdometerMiles.Should().BeNull();
     }
 
     [Theory]
@@ -43,6 +78,12 @@ public class MemoParserTests
     public void Parse_TooFewFields_ReturnsNull(string memo)
     {
         MemoParser.Parse(memo).Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_NullMemo_ReturnsNull()
+    {
+        MemoParser.Parse(null).Should().BeNull();
     }
 
     [Fact]
@@ -98,6 +139,6 @@ public class MemoParserTests
     {
         var result = MemoParser.Parse("Tacoma, 87, 3.299, 45200");
         result.Should().NotBeNull();
-        result!.Value.Price.Should().Be(3.299m);
+        result!.PricePerGallon.Should().Be(3.299m);
     }
 }

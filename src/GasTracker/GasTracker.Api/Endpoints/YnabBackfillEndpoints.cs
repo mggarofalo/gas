@@ -2,7 +2,7 @@ using GasTracker.Core;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
 using GasTracker.Infrastructure.Data;
-using Microsoft.AspNetCore.DataProtection;
+using GasTracker.Infrastructure.Ynab;
 using Microsoft.EntityFrameworkCore;
 
 namespace GasTracker.Api.Endpoints;
@@ -11,7 +11,7 @@ public static class YnabBackfillEndpoints
 {
     public static void MapYnabBackfillEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/admin/ynab-backfill", async (BackfillRequest req, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab, IVehicleRepository vehicleRepo) =>
+        app.MapPost("/api/admin/ynab-backfill", async (BackfillRequest req, AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, IVehicleRepository vehicleRepo) =>
         {
             // Require YNAB configured
             var settings = await db.YnabSettings.FirstOrDefaultAsync();
@@ -22,12 +22,11 @@ public static class YnabBackfillEndpoints
             string token;
             try
             {
-                var protector = dp.CreateProtector("YnabApiToken");
-                token = protector.Unprotect(settings.ApiToken);
+                token = await tokenService.GetDecryptedTokenAsync();
             }
-            catch
+            catch (InvalidOperationException ex)
             {
-                return Results.BadRequest(new { error = "Failed to decrypt YNAB API token" });
+                return Results.BadRequest(new { error = ex.Message });
             }
 
             // Validate vehicle mappings
@@ -46,7 +45,8 @@ public static class YnabBackfillEndpoints
             try
             {
                 var sinceDate = req.SinceDate is not null ? DateOnly.Parse(req.SinceDate) : (DateOnly?)null;
-                transactions = await ynab.GetTransactionsAsync(token, settings.PlanId, settings.AccountId, sinceDate);
+                var page = await ynab.GetTransactionsAsync(token, settings.PlanId, settings.AccountId, sinceDate);
+                transactions = page.Transactions;
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
@@ -64,6 +64,10 @@ public static class YnabBackfillEndpoints
 
             foreach (var tx in transactions)
             {
+                // Skip our own pushes
+                if (tx.ImportId is not null && tx.ImportId.StartsWith("GAS:", StringComparison.Ordinal))
+                    continue;
+
                 if (string.IsNullOrWhiteSpace(tx.Memo))
                     continue;
 
@@ -72,18 +76,35 @@ public static class YnabBackfillEndpoints
                     continue;
 
                 matched++;
-                var (vehicleName, octane, price, mileage) = parsed.Value;
+                var vehicleName = parsed.VehicleName;
+                var octane = parsed.OctaneRating;
+                var price = parsed.PricePerGallon ?? 0m;
+                var mileage = parsed.OdometerMiles ?? 0;
 
-                if (!req.VehicleMappings.TryGetValue(vehicleName, out var vehicleId))
+                Guid vehicleId;
+                if (vehicleName is not null)
                 {
-                    errors.Add($"Unmapped vehicle '{vehicleName}' in transaction {tx.Id}");
+                    if (!req.VehicleMappings.TryGetValue(vehicleName, out vehicleId))
+                    {
+                        errors.Add($"Unmapped vehicle '{vehicleName}' in transaction {tx.Id}");
+                        failed++;
+                        continue;
+                    }
+                }
+                else if (req.DefaultVehicleId.HasValue)
+                {
+                    vehicleId = req.DefaultVehicleId.Value;
+                }
+                else
+                {
+                    errors.Add($"Transaction {tx.Date} {tx.PayeeName}: no vehicle name in memo and no defaultVehicleId");
                     failed++;
                     continue;
                 }
 
                 var date = DateOnly.Parse(tx.Date);
                 var totalCost = Math.Abs(tx.Amount) / 1000m;
-                var gallons = price > 0 ? Math.Round(totalCost / price, 3) : 0m;
+                var gallons = parsed.Gallons ?? (price > 0 ? Math.Round(totalCost / price, 3) : 0m);
 
                 // Warnings
                 if (gallons > 50) warnings.Add($"Transaction {tx.Date} {tx.PayeeName}: gallons={gallons} (>50)");
@@ -153,5 +174,6 @@ public static class YnabBackfillEndpoints
     private record BackfillRequest(
         string? SinceDate,
         Dictionary<string, Guid> VehicleMappings,
+        Guid? DefaultVehicleId = null,
         bool DryRun = true);
 }

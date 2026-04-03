@@ -103,20 +103,27 @@ public class YnabClient(HttpClient http) : IYnabClient
         return new YnabTransactionResult(id, IsDuplicate: false);
     }
 
-    public async Task<List<YnabTransactionRead>> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null)
+    public async Task<YnabTransactionPage> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
     {
         var url = $"/v1/plans/{planId}/accounts/{accountId}/transactions";
+        var queryParams = new List<string>();
         if (sinceDate.HasValue)
-            url += $"?since_date={sinceDate.Value:yyyy-MM-dd}";
+            queryParams.Add($"since_date={sinceDate.Value:yyyy-MM-dd}");
+        if (lastServerKnowledge.HasValue)
+            queryParams.Add($"last_knowledge_of_server={lastServerKnowledge.Value}");
+        if (queryParams.Count > 0)
+            url += "?" + string.Join("&", queryParams);
 
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var res = await SendAsync(req);
         var doc = await JsonDocument.ParseAsync(await res.Content.ReadAsStreamAsync());
-        var transactions = doc.RootElement.GetProperty("data").GetProperty("transactions");
+        var data = doc.RootElement.GetProperty("data");
+        var transactions = data.GetProperty("transactions");
+        var serverKnowledge = data.GetProperty("server_knowledge").GetInt64();
 
-        return transactions.EnumerateArray()
+        var list = transactions.EnumerateArray()
             .Where(t => !t.GetProperty("deleted").GetBoolean())
             .Select(t => new YnabTransactionRead(
                 t.GetProperty("id").GetString()!,
@@ -125,8 +132,11 @@ public class YnabClient(HttpClient http) : IYnabClient
                 t.TryGetProperty("payee_name", out var pn) ? pn.GetString() : null,
                 t.TryGetProperty("memo", out var m) ? m.GetString() : null,
                 t.TryGetProperty("category_id", out var ci) ? ci.GetString() : null,
-                t.GetProperty("account_id").GetString()!
+                t.GetProperty("account_id").GetString()!,
+                t.TryGetProperty("import_id", out var ii) ? ii.GetString() : null
             )).ToList();
+
+        return new YnabTransactionPage(list, serverKnowledge);
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, bool allowConflict = false)

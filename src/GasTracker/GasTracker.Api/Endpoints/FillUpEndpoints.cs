@@ -3,7 +3,7 @@ using GasTracker.Core.DTOs;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
 using GasTracker.Infrastructure.Data;
-using Microsoft.AspNetCore.DataProtection;
+using GasTracker.Infrastructure.Ynab;
 using Microsoft.EntityFrameworkCore;
 
 namespace GasTracker.Api.Endpoints;
@@ -47,7 +47,7 @@ public static class FillUpEndpoints
             return Results.Ok(fillUp.ToDto(tripMiles));
         });
 
-        group.MapPost("/", async (HttpRequest request, IFillUpRepository repo, IVehicleRepository vehicleRepo, IReceiptStore receiptStore, IValidator<CreateFillUpRequest> validator, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapPost("/", async (HttpRequest request, IFillUpRepository repo, IVehicleRepository vehicleRepo, IReceiptStore receiptStore, IValidator<CreateFillUpRequest> validator, AppDbContext db, YnabTokenService tokenService, IYnabClient ynab) =>
         {
             var form = await request.ReadFormAsync();
 
@@ -109,18 +109,18 @@ public static class FillUpEndpoints
             }
 
             // YNAB sync — awaited inline but wrapped in try/catch so it never fails the fill-up
-            await TrySyncToYnab(fillUp, db, dp, ynab, repo);
+            await TrySyncToYnab(fillUp, db, tokenService, ynab, repo);
 
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
             return Results.Created($"/api/fill-ups/{fillUp.Id}", fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
 
-        group.MapPost("/{id:guid}/ynab-sync", async (Guid id, IFillUpRepository repo, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab) =>
+        group.MapPost("/{id:guid}/ynab-sync", async (Guid id, IFillUpRepository repo, AppDbContext db, YnabTokenService tokenService, IYnabClient ynab) =>
         {
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp is null) return Results.NotFound();
 
-            await TrySyncToYnab(fillUp, db, dp, ynab, repo);
+            await TrySyncToYnab(fillUp, db, tokenService, ynab, repo);
             return Results.Ok(new { fillUp.YnabSyncStatus, fillUp.YnabTransactionId, fillUp.YnabSyncError });
         });
 
@@ -209,7 +209,7 @@ public static class FillUpEndpoints
         return null;
     }
 
-    private static async Task TrySyncToYnab(FillUp fillUp, AppDbContext db, IDataProtectionProvider dp, IYnabClient ynab, IFillUpRepository repo)
+    private static async Task TrySyncToYnab(FillUp fillUp, AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, IFillUpRepository repo)
     {
         try
         {
@@ -225,8 +225,7 @@ public static class FillUpEndpoints
             string token;
             try
             {
-                var protector = dp.CreateProtector("YnabApiToken");
-                token = protector.Unprotect(settings.ApiToken);
+                token = await tokenService.GetDecryptedTokenAsync();
             }
             catch
             {
@@ -238,9 +237,8 @@ public static class FillUpEndpoints
 
             var amount = -(long)Math.Round(fillUp.TotalCost * 1000);
             var date = fillUp.Date.ToString("yyyy-MM-dd");
-            var memo = $"{fillUp.Gallons:F3}gal @ ${fillUp.PricePerGallon:F3}/gal";
-            if (fillUp.OctaneRating.HasValue) memo += $", {fillUp.OctaneRating} oct";
-            memo += $", {fillUp.OdometerMiles}mi";
+            var vehicleLabel = fillUp.Vehicle?.Label ?? "";
+            var memo = $"{vehicleLabel}, {fillUp.OctaneRating?.ToString() ?? "87"}, ${fillUp.PricePerGallon:F3}, {fillUp.OdometerMiles}";
 
             // Use fill-up GUID (32 hex chars) for unique import_id within 36-char limit
             var importId = $"GAS:{fillUp.Id:N}"[..36];

@@ -3,6 +3,7 @@ using System;
 using GasTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GasTracker.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260403013337_AddYnabImportsAndDeltaSync")]
+    partial class AddYnabImportsAndDeltaSync
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -267,11 +270,6 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.HasIndex("Date")
                         .IsDescending()
                         .HasDatabaseName("ix_fill_ups_date");
-
-                    b.HasIndex("YnabTransactionId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_fill_ups_ynab_transaction_id")
-                        .HasFilter("ynab_transaction_id IS NOT NULL");
 
                     b.HasIndex("VehicleId", "Date")
                         .IsDescending(false, true)

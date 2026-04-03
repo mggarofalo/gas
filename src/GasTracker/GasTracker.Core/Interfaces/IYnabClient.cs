@@ -6,7 +6,7 @@ public interface IYnabClient
     Task<List<YnabAccount>> GetAccountsAsync(string token, string planId);
     Task<List<YnabCategory>> GetCategoriesAsync(string token, string planId);
     Task<YnabTransactionResult> CreateTransactionAsync(string token, string planId, YnabTransaction tx);
-    Task<List<YnabTransactionRead>> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null);
+    Task<YnabTransactionPage> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null, long? lastServerKnowledge = null);
 }
 
 public record YnabPlan(string Id, string Name, string? LastModifiedOn);
@@ -35,4 +35,7 @@ public record YnabTransactionRead(
     string? PayeeName,
     string? Memo,
     string? CategoryId,
-    string AccountId);
+    string AccountId,
+    string? ImportId);
+
+public record YnabTransactionPage(List<YnabTransactionRead> Transactions, long ServerKnowledge);
