@@ -138,6 +138,23 @@ public static class YnabImportEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
+
+        // Reset pull sync state — clears server_knowledge and all pending/dismissed imports
+        // so the next pull re-fetches everything from YNAB with current filtering logic
+        group.MapPost("/reset", async (AppDbContext db) =>
+        {
+            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            if (settings is not null)
+                settings.LastServerKnowledge = null;
+
+            var staleImports = await db.YnabImports
+                .Where(i => i.Status == "pending" || i.Status == "dismissed")
+                .ToListAsync();
+            db.YnabImports.RemoveRange(staleImports);
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new { cleared = staleImports.Count });
+        });
     }
 
     private static string? ValidateForApproval(YnabImport import)

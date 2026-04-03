@@ -51,6 +51,14 @@ export function YnabImportsPage() {
     },
   });
 
+  const resetMut = useMutation({
+    mutationFn: () => apiFetch<{ cleared: number }>("/ynab/imports/reset", { method: "POST" }),
+    onSuccess: (r) => {
+      toast(`Reset sync state, cleared ${r?.cleared ?? 0} imports`);
+      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
+    },
+  });
+
   const totalPages = data ? Math.ceil(data.totalCount / 50) : 0;
   const completeCount = data?.items.filter(isComplete).length ?? 0;
 
@@ -70,6 +78,9 @@ export function YnabImportsPage() {
               {approveAllMut.isPending ? "Approving..." : `Approve All (${completeCount})`}
             </button>
           )}
+          <button onClick={() => resetMut.mutate()} disabled={resetMut.isPending} className="text-xs text-danger-text hover:underline">
+            {resetMut.isPending ? "Resetting..." : "Reset"}
+          </button>
         </div>
       </div>
 
