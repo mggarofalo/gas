@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.0](https://github.com/mggarofalo/gas/compare/v1.21.1...v1.22.0) (2026-04-03)
+
+
+### Features
+
+* add vehicle memo mappings UI to import queue page ([#82](https://github.com/mggarofalo/gas/issues/82)) ([c7788cd](https://github.com/mggarofalo/gas/commit/c7788cdad0fc6efb86884c5090737da14a388a61))
+
 ## [1.21.1](https://github.com/mggarofalo/gas/compare/v1.21.0...v1.21.1) (2026-04-03)
 
 
