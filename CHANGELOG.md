@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.2](https://github.com/mggarofalo/gas/compare/v1.23.1...v1.23.2) (2026-04-03)
+
+
+### Bug Fixes
+
+* calculate gallons in import list projection when DB value is null ([#90](https://github.com/mggarofalo/gas/issues/90)) ([490d097](https://github.com/mggarofalo/gas/commit/490d0976c28adc77cb79aa571f1e4af402aa046f))
+
 ## [1.23.1](https://github.com/mggarofalo/gas/compare/v1.23.0...v1.23.1) (2026-04-03)
 
 
