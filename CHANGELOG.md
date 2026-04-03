@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.1](https://github.com/mggarofalo/gas/compare/v1.22.0...v1.22.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* retroactively apply vehicle memo mappings to pending imports ([#84](https://github.com/mggarofalo/gas/issues/84)) ([90ff435](https://github.com/mggarofalo/gas/commit/90ff4351631ef8c0af7163b54a47439ec131ee40))
+
 ## [1.22.0](https://github.com/mggarofalo/gas/compare/v1.21.1...v1.22.0) (2026-04-03)
 
 
