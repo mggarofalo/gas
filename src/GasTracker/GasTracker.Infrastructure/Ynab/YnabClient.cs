@@ -103,9 +103,11 @@ public class YnabClient(HttpClient http) : IYnabClient
         return new YnabTransactionResult(id, IsDuplicate: false);
     }
 
-    public async Task<YnabTransactionPage> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
+    public async Task<YnabTransactionPage> GetTransactionsAsync(string token, string planId, string? accountId = null, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
     {
-        var url = $"/v1/plans/{planId}/accounts/{accountId}/transactions";
+        var url = string.IsNullOrWhiteSpace(accountId)
+            ? $"/v1/plans/{planId}/transactions"
+            : $"/v1/plans/{planId}/accounts/{accountId}/transactions";
         var queryParams = new List<string>();
         if (sinceDate.HasValue)
             queryParams.Add($"since_date={sinceDate.Value:yyyy-MM-dd}");

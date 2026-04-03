@@ -16,8 +16,8 @@ public static class YnabImportEndpoints
         group.MapPost("/pull", async (PullRequest? req, YnabPullSyncService pullSync, YnabTokenService tokenService, AppDbContext db) =>
         {
             var settings = await db.YnabSettings.FirstOrDefaultAsync();
-            if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId) || string.IsNullOrWhiteSpace(settings.AccountId))
-                return Results.BadRequest(new { error = "YNAB is not configured with a plan and account" });
+            if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
+                return Results.BadRequest(new { error = "YNAB is not configured with a plan" });
 
             try
             {
@@ -25,7 +25,7 @@ public static class YnabImportEndpoints
                 var sinceDate = req?.SinceDate is not null ? DateOnly.Parse(req.SinceDate) : (DateOnly?)null;
                 // When sinceDate is explicit, do a date-based query (skip delta sync)
                 var serverKnowledge = sinceDate.HasValue ? null : settings.LastServerKnowledge;
-                var result = await pullSync.PullAsync(token, settings.PlanId, settings.AccountId, sinceDate, serverKnowledge);
+                var result = await pullSync.PullAsync(token, settings.PlanId, settings.AccountId, settings.CategoryId, sinceDate, serverKnowledge);
                 return Results.Ok(new
                 {
                     newImports = result.NewImports,

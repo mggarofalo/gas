@@ -89,6 +89,8 @@ public static class FillUpEndpoints
                 Notes = req.Notes,
                 YnabAccountId = form.TryGetValue("ynabAccountId", out var yAccId) && !string.IsNullOrEmpty(yAccId.ToString()) ? yAccId.ToString() : null,
                 YnabAccountName = form.TryGetValue("ynabAccountName", out var yAccName) && !string.IsNullOrEmpty(yAccName.ToString()) ? yAccName.ToString() : null,
+                YnabCategoryId = form.TryGetValue("ynabCategoryId", out var yCatId) && !string.IsNullOrEmpty(yCatId.ToString()) ? yCatId.ToString() : null,
+                YnabCategoryName = form.TryGetValue("ynabCategoryName", out var yCatName) && !string.IsNullOrEmpty(yCatName.ToString()) ? yCatName.ToString() : null,
             };
 
             await repo.CreateAsync(fillUp);
@@ -248,7 +250,7 @@ public static class FillUpEndpoints
                 Date: date,
                 Amount: amount,
                 PayeeName: fillUp.StationName,
-                CategoryId: settings.CategoryId,
+                CategoryId: fillUp.YnabCategoryId ?? settings.CategoryId,
                 Memo: memo,
                 ImportId: importId);
 

@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<YnabSettings> YnabSettings => Set<YnabSettings>();
     public DbSet<YnabAccountCache> YnabAccountCache => Set<YnabAccountCache>();
     public DbSet<YnabImport> YnabImports => Set<YnabImport>();
+    public DbSet<YnabCategoryCache> YnabCategoryCache => Set<YnabCategoryCache>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

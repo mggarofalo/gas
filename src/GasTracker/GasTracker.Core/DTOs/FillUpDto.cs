@@ -24,6 +24,8 @@ public record FillUpDto(
     string YnabSyncStatus,
     string? YnabAccountId,
     string? YnabAccountName,
+    string? YnabCategoryId,
+    string? YnabCategoryName,
     string? Notes,
     string CreatedAt);
 

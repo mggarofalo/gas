@@ -12,9 +12,9 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
 {
     /// <summary>
     /// Pull transactions from YNAB into the import review queue.
-    /// Token must be decrypted by the caller.
+    /// Only imports transactions with a parseable gas memo or matching the configured category.
     /// </summary>
-    public async Task<PullSyncResult> PullAsync(string token, string planId, string accountId, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
+    public async Task<PullSyncResult> PullAsync(string token, string planId, string? accountId = null, string? categoryId = null, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
     {
         var page = await ynab.GetTransactionsAsync(token, planId, accountId, sinceDate, lastServerKnowledge);
 
@@ -55,9 +55,18 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
                 continue;
             }
 
+            // Only import if memo is parseable OR category matches the configured gas category
+            var parsed = MemoParser.Parse(tx.Memo);
+            var categoryMatch = categoryId is not null && tx.CategoryId == categoryId;
+
+            if (parsed is null && !categoryMatch)
+            {
+                skipped++;
+                continue;
+            }
+
             try
             {
-                var parsed = MemoParser.Parse(tx.Memo);
                 var totalCost = Math.Abs(tx.Amount) / 1000m;
 
                 var import = new YnabImport

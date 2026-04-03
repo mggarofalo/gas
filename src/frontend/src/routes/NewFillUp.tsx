@@ -17,6 +17,13 @@ interface CachedYnabAccount {
   fetchedAt: string;
 }
 
+interface CachedYnabCategory {
+  categoryId: string;
+  name: string;
+  categoryGroupName: string;
+  fetchedAt: string;
+}
+
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Required"),
   date: z.string().min(1, "Required"),
@@ -73,7 +80,12 @@ export function NewFillUpPage() {
   const [ynabAccountName, setYnabAccountName] = useState("");
   const [refreshingAccounts, setRefreshingAccounts] = useState(false);
 
-  interface YnabConfig { configured: boolean; enabled?: boolean; accountId?: string; accountName?: string }
+  // YNAB category selection
+  const [ynabCategoryId, setYnabCategoryId] = useState("");
+  const [ynabCategoryName, setYnabCategoryName] = useState("");
+  const [refreshingCategories, setRefreshingCategories] = useState(false);
+
+  interface YnabConfig { configured: boolean; enabled?: boolean; accountId?: string; accountName?: string; categoryId?: string; categoryName?: string }
   const { data: ynabConfig } = useQuery({
     queryKey: ["ynab-settings"],
     queryFn: () => apiFetch<YnabConfig>("/settings/ynab"),
@@ -84,15 +96,27 @@ export function NewFillUpPage() {
     queryKey: ["ynab-accounts-cached"],
     queryFn: () => apiFetch<CachedYnabAccount[]>("/ynab/accounts/cached"),
     enabled: ynabEnabled,
+    retry: false,
   });
 
-  // Default to the global account from settings
+  const { data: cachedCategories = [] } = useQuery({
+    queryKey: ["ynab-categories-cached"],
+    queryFn: () => apiFetch<CachedYnabCategory[]>("/ynab/categories/cached"),
+    enabled: ynabEnabled,
+    retry: false,
+  });
+
+  // Default to the global account/category from settings
   useEffect(() => {
     if (ynabConfig?.accountId && !ynabAccountId) {
       setYnabAccountId(ynabConfig.accountId);
       setYnabAccountName(ynabConfig.accountName ?? "");
     }
-  }, [ynabConfig, ynabAccountId]);
+    if (ynabConfig?.categoryId && !ynabCategoryId) {
+      setYnabCategoryId(ynabConfig.categoryId);
+      setYnabCategoryName(ynabConfig.categoryName ?? "");
+    }
+  }, [ynabConfig, ynabAccountId, ynabCategoryId]);
 
   const handleRefreshAccounts = useCallback(async () => {
     setRefreshingAccounts(true);
@@ -101,6 +125,15 @@ export function NewFillUpPage() {
       qc.invalidateQueries({ queryKey: ["ynab-accounts-cached"] });
     } catch { /* non-critical */ }
     finally { setRefreshingAccounts(false); }
+  }, [qc]);
+
+  const handleRefreshCategories = useCallback(async () => {
+    setRefreshingCategories(true);
+    try {
+      await apiFetch("/ynab/categories/refresh", { method: "POST" });
+      qc.invalidateQueries({ queryKey: ["ynab-categories-cached"] });
+    } catch { /* non-critical */ }
+    finally { setRefreshingCategories(false); }
   }, [qc]);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FillUpForm>({
@@ -129,6 +162,7 @@ export function NewFillUpPage() {
       if (data.longitude != null) fd.append("longitude", String(data.longitude));
       if (data.notes) fd.append("notes", data.notes);
       if (ynabAccountId) { fd.append("ynabAccountId", ynabAccountId); fd.append("ynabAccountName", ynabAccountName); }
+      if (ynabCategoryId) { fd.append("ynabCategoryId", ynabCategoryId); fd.append("ynabCategoryName", ynabCategoryName); }
       if (receiptFile) fd.append("receipt", receiptFile);
       return apiFetch<FillUp>("/fill-ups", { method: "POST", body: fd });
     },
@@ -403,6 +437,39 @@ export function NewFillUpPage() {
                 title="Refresh accounts from YNAB"
               >
                 {refreshingAccounts ? "..." : "\u21BB"}
+              </button>
+            </div>
+          </Field>
+        )}
+
+        {/* --- Section: YNAB Category --- */}
+        {ynabEnabled && (
+          <Field label="YNAB Category">
+            <div className="flex gap-2">
+              <select
+                value={ynabCategoryId}
+                onChange={(e) => {
+                  setYnabCategoryId(e.target.value);
+                  const cat = cachedCategories.find((c) => c.categoryId === e.target.value);
+                  setYnabCategoryName(cat?.name ?? "");
+                }}
+                className="input"
+              >
+                <option value="">Default ({ynabConfig?.categoryName || "none"})</option>
+                {cachedCategories.map((c) => (
+                  <option key={c.categoryId} value={c.categoryId}>
+                    {c.categoryGroupName}: {c.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleRefreshCategories}
+                disabled={refreshingCategories}
+                className="shrink-0 rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
+                title="Refresh categories from YNAB"
+              >
+                {refreshingCategories ? "..." : "\u21BB"}
               </button>
             </div>
           </Field>
