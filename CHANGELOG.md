@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.0](https://github.com/mggarofalo/gas/compare/v1.20.0...v1.21.0) (2026-04-03)
+
+
+### Features
+
+* add pull sync reset to clear server_knowledge and stale imports ([#78](https://github.com/mggarofalo/gas/issues/78)) ([739ff5f](https://github.com/mggarofalo/gas/commit/739ff5ff5fec2931a09a6db24cbbe55bb11f792b))
+
 ## [1.20.0](https://github.com/mggarofalo/gas/compare/v1.19.1...v1.20.0) (2026-04-03)
 
 
