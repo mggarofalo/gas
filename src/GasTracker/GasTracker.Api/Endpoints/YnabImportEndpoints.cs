@@ -79,7 +79,10 @@ public static class YnabImportEndpoints
                 .Select(i => new YnabImportDto(
                     i.Id, i.YnabTransactionId, i.Date.ToString("yyyy-MM-dd"),
                     i.PayeeName, i.AmountMilliunits, i.Memo,
-                    i.Gallons, i.PricePerGallon, i.OctaneRating, i.OdometerMiles,
+                    i.Gallons ?? (i.PricePerGallon != null && i.PricePerGallon > 0
+                        ? Math.Round(Math.Abs(i.AmountMilliunits) / 1000m / i.PricePerGallon.Value, 3)
+                        : (decimal?)null),
+                    i.PricePerGallon, i.OctaneRating, i.OdometerMiles,
                     i.VehicleName, i.VehicleId, i.Status))
                 .ToListAsync();
 
