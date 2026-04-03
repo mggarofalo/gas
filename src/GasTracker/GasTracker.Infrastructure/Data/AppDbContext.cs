@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<FillUp> FillUps => Set<FillUp>();
     public DbSet<YnabSettings> YnabSettings => Set<YnabSettings>();
+    public DbSet<YnabAccountCache> YnabAccountCache => Set<YnabAccountCache>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

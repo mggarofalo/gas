@@ -33,6 +33,8 @@ export interface FillUp {
   paperlessSyncedAt: string | null;
   paperlessSyncError: string | null;
   ynabSyncStatus: string;
+  ynabAccountId: string | null;
+  ynabAccountName: string | null;
   notes: string | null;
   createdAt: string;
 }

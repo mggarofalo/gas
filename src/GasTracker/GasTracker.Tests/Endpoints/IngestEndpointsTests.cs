@@ -1,38 +1,38 @@
 using FluentAssertions;
-using GasTracker.Api.Endpoints;
+using GasTracker.Core;
 
-namespace GasTracker.Tests.Endpoints;
+namespace GasTracker.Tests;
 
-public class IngestMemoParserTests
+public class MemoParserTests
 {
     [Fact]
-    public void ParseMemo_ValidMemo_ReturnsAllFields()
+    public void Parse_ValidMemo_ReturnsAllFields()
     {
-        var result = IngestEndpoints.ParseMemo("Tacoma, 87, $3.299, 45200");
+        var result = MemoParser.Parse("Tacoma, 87, $3.299, 45200");
         result.Should().NotBeNull();
-        result!.Value.vehicleName.Should().Be("Tacoma");
-        result.Value.octane.Should().Be(87);
-        result.Value.price.Should().Be(3.299m);
-        result.Value.mileage.Should().Be(45200);
+        result!.Value.VehicleName.Should().Be("Tacoma");
+        result.Value.Octane.Should().Be(87);
+        result.Value.Price.Should().Be(3.299m);
+        result.Value.Mileage.Should().Be(45200);
     }
 
     [Fact]
-    public void ParseMemo_NoSpaces_StillParses()
+    public void Parse_NoSpaces_StillParses()
     {
-        var result = IngestEndpoints.ParseMemo("Civic,93,$4.199,12000");
+        var result = MemoParser.Parse("Civic,93,$4.199,12000");
         result.Should().NotBeNull();
-        result!.Value.vehicleName.Should().Be("Civic");
-        result.Value.octane.Should().Be(93);
-        result.Value.price.Should().Be(4.199m);
-        result.Value.mileage.Should().Be(12000);
+        result!.Value.VehicleName.Should().Be("Civic");
+        result.Value.Octane.Should().Be(93);
+        result.Value.Price.Should().Be(4.199m);
+        result.Value.Mileage.Should().Be(12000);
     }
 
     [Fact]
-    public void ParseMemo_ExtraFields_IgnoresTrailing()
+    public void Parse_ExtraFields_IgnoresTrailing()
     {
-        var result = IngestEndpoints.ParseMemo("Tacoma, 87, $3.299, 45200, extra");
+        var result = MemoParser.Parse("Tacoma, 87, $3.299, 45200, extra");
         result.Should().NotBeNull();
-        result!.Value.mileage.Should().Be(45200);
+        result!.Value.Mileage.Should().Be(45200);
     }
 
     [Theory]
@@ -40,64 +40,64 @@ public class IngestMemoParserTests
     [InlineData("just one field")]
     [InlineData("a, b")]
     [InlineData("a, b, c")]
-    public void ParseMemo_TooFewFields_ReturnsNull(string memo)
+    public void Parse_TooFewFields_ReturnsNull(string memo)
     {
-        IngestEndpoints.ParseMemo(memo).Should().BeNull();
+        MemoParser.Parse(memo).Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_InvalidOctane_ReturnsNull()
+    public void Parse_InvalidOctane_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, abc, $3.299, 45200").Should().BeNull();
+        MemoParser.Parse("Tacoma, abc, $3.299, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_ZeroOctane_ReturnsNull()
+    public void Parse_ZeroOctane_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, 0, $3.299, 45200").Should().BeNull();
+        MemoParser.Parse("Tacoma, 0, $3.299, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_NegativeOctane_ReturnsNull()
+    public void Parse_NegativeOctane_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, -1, $3.299, 45200").Should().BeNull();
+        MemoParser.Parse("Tacoma, -1, $3.299, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_InvalidPrice_ReturnsNull()
+    public void Parse_InvalidPrice_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, 87, notaprice, 45200").Should().BeNull();
+        MemoParser.Parse("Tacoma, 87, notaprice, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_ZeroPrice_ReturnsNull()
+    public void Parse_ZeroPrice_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, 87, $0, 45200").Should().BeNull();
+        MemoParser.Parse("Tacoma, 87, $0, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_InvalidMileage_ReturnsNull()
+    public void Parse_InvalidMileage_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, 87, $3.299, abc").Should().BeNull();
+        MemoParser.Parse("Tacoma, 87, $3.299, abc").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_ZeroMileage_ReturnsNull()
+    public void Parse_ZeroMileage_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo("Tacoma, 87, $3.299, 0").Should().BeNull();
+        MemoParser.Parse("Tacoma, 87, $3.299, 0").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_EmptyVehicleName_ReturnsNull()
+    public void Parse_EmptyVehicleName_ReturnsNull()
     {
-        IngestEndpoints.ParseMemo(", 87, $3.299, 45200").Should().BeNull();
+        MemoParser.Parse(", 87, $3.299, 45200").Should().BeNull();
     }
 
     [Fact]
-    public void ParseMemo_PriceWithoutDollarSign_Parses()
+    public void Parse_PriceWithoutDollarSign_Parses()
     {
-        var result = IngestEndpoints.ParseMemo("Tacoma, 87, 3.299, 45200");
+        var result = MemoParser.Parse("Tacoma, 87, 3.299, 45200");
         result.Should().NotBeNull();
-        result!.Value.price.Should().Be(3.299m);
+        result!.Value.Price.Should().Be(3.299m);
     }
 }

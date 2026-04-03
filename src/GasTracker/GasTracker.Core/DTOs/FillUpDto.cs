@@ -22,6 +22,8 @@ public record FillUpDto(
     string? PaperlessSyncedAt,
     string? PaperlessSyncError,
     string YnabSyncStatus,
+    string? YnabAccountId,
+    string? YnabAccountName,
     string? Notes,
     string CreatedAt);
 

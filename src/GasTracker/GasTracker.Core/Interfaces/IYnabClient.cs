@@ -6,6 +6,7 @@ public interface IYnabClient
     Task<List<YnabAccount>> GetAccountsAsync(string token, string planId);
     Task<List<YnabCategory>> GetCategoriesAsync(string token, string planId);
     Task<YnabTransactionResult> CreateTransactionAsync(string token, string planId, YnabTransaction tx);
+    Task<List<YnabTransactionRead>> GetTransactionsAsync(string token, string planId, string accountId, DateOnly? sinceDate = null);
 }
 
 public record YnabPlan(string Id, string Name, string? LastModifiedOn);
@@ -26,3 +27,12 @@ public record YnabTransaction(
     string? ImportId = null);
 
 public record YnabTransactionResult(string? TransactionId, bool IsDuplicate);
+
+public record YnabTransactionRead(
+    string Id,
+    string Date,
+    long Amount,
+    string? PayeeName,
+    string? Memo,
+    string? CategoryId,
+    string AccountId);
