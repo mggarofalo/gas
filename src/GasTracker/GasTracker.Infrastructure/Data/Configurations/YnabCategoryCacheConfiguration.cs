@@ -12,6 +12,7 @@ public class YnabCategoryCacheConfiguration : IEntityTypeConfiguration<YnabCateg
         builder.Property(c => c.Id).HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(c => c.CategoryId).HasMaxLength(100).IsRequired();
+        builder.HasIndex(c => c.CategoryId).IsUnique();
         builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
         builder.Property(c => c.CategoryGroupName).HasMaxLength(200).IsRequired();
     }
