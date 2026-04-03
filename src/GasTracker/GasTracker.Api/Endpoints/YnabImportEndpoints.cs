@@ -184,8 +184,13 @@ public static class YnabImportEndpoints
                 db.VehicleMemoMappings.Add(new VehicleMemoMapping { MemoName = req.MemoName, VehicleId = req.VehicleId });
             }
 
+            // Retroactively update pending imports with matching vehicle name
+            var updated = await db.YnabImports
+                .Where(i => i.Status == "pending" && i.VehicleName == req.MemoName && i.VehicleId == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.VehicleId, req.VehicleId));
+
             await db.SaveChangesAsync();
-            return Results.Ok(new { mapped = true });
+            return Results.Ok(new { mapped = true, importsUpdated = updated });
         });
 
         mappings.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
