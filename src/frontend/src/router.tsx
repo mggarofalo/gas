@@ -24,6 +24,7 @@ const DashboardPage = lazy(() => import("./routes/Dashboard").then((m) => ({ def
 const FillUpsPage = lazy(() => import("./routes/FillUps").then((m) => ({ default: m.FillUpsPage })));
 const NewFillUpPage = lazy(() => import("./routes/NewFillUp").then((m) => ({ default: m.NewFillUpPage })));
 const FillUpDetailPage = lazy(() => import("./routes/FillUpDetail").then((m) => ({ default: m.FillUpDetailPage })));
+const EditFillUpPage = lazy(() => import("./routes/EditFillUp").then((m) => ({ default: m.EditFillUpPage })));
 const VehiclesPage = lazy(() => import("./routes/Vehicles").then((m) => ({ default: m.VehiclesPage })));
 const YnabSettingsPage = lazy(() => import("./routes/YnabSettings").then((m) => ({ default: m.YnabSettingsPage })));
 const YnabImportsPage = lazy(() => import("./routes/YnabImports").then((m) => ({ default: m.YnabImportsPage })));
@@ -87,6 +88,12 @@ const fillUpDetailRoute = createRoute({
   component: () => <SuspenseRoute><FillUpDetailPage /></SuspenseRoute>,
 });
 
+const editFillUpRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: "/fill-ups/$id/edit",
+  component: () => <SuspenseRoute><EditFillUpPage /></SuspenseRoute>,
+});
+
 const vehiclesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/vehicles",
@@ -113,6 +120,7 @@ const routeTree = rootRoute.addChildren([
     fillUpsRoute,
     newFillUpRoute,
     fillUpDetailRoute,
+    editFillUpRoute,
     vehiclesRoute,
     ynabSettingsRoute,
     ynabImportsRoute,
