@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.1](https://github.com/mggarofalo/gas/compare/v1.26.0...v1.26.1) (2026-04-04)
+
+
+### Bug Fixes
+
+* use PAT for release-please so tag pushes trigger docker publish ([#110](https://github.com/mggarofalo/gas/issues/110)) ([fba4358](https://github.com/mggarofalo/gas/commit/fba4358d04399ff8d9692fbe6191a9eb1c9c68ca))
+
 ## [1.26.0](https://github.com/mggarofalo/gas/compare/v1.25.0...v1.26.0) (2026-04-04)
 
 
