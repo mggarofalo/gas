@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.2](https://github.com/mggarofalo/gas/compare/v1.24.1...v1.24.2) (2026-04-04)
+
+
+### Bug Fixes
+
+* use correct release-type in release-please workflow ([542fef1](https://github.com/mggarofalo/gas/commit/542fef198762bf26717445b0f8cde62f75f2e554))
+* YNAB quality, dashboard charts, fill-up editing ([#97](https://github.com/mggarofalo/gas/issues/97)) ([496d6cd](https://github.com/mggarofalo/gas/commit/496d6cd04c969e49707a6fc20bc898deff846422))
+
 ## [1.24.1](https://github.com/mggarofalo/gas/compare/v1.24.0...v1.24.1) (2026-04-03)
 
 
