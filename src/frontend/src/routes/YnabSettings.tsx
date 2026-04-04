@@ -142,18 +142,18 @@ export default function YnabSettings() {
   if (isLoading) return <Spinner className="mt-20" />;
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">YNAB Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">YNAB Settings</h1>
 
       {/* Token section */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">API Token</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">API Token</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {config?.configured
                 ? `Token configured (${config.maskedToken})`
                 : "No token configured"}
@@ -163,15 +163,15 @@ export default function YnabSettings() {
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 config?.configured
-                  ? "bg-green-100 text-green-700"
-                  : "bg-yellow-100 text-yellow-700"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
               }`}
             >
               {config?.configured ? "Connected" : "Not Connected"}
             </span>
             <button
               onClick={() => setShowTokenForm(!showTokenForm)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               {config?.configured ? "Update Token" : "Add Token"}
             </button>
@@ -200,14 +200,14 @@ export default function YnabSettings() {
               <button
                 type="submit"
                 disabled={saveTokenMutation.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
               >
                 {saveTokenMutation.isPending ? "Saving..." : "Save Token"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowTokenForm(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -218,7 +218,7 @@ export default function YnabSettings() {
 
       {/* Config section */}
       {config?.configured && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
           <h2 className="mb-4 text-lg font-semibold text-gray-900">Sync Configuration</h2>
 
           <form
@@ -236,13 +236,13 @@ export default function YnabSettings() {
                 />
                 <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-blue-300" />
               </label>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Enable YNAB sync
               </span>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Budget
               </label>
               <select {...configForm.register("planId")} className={inputClass}>
@@ -256,7 +256,7 @@ export default function YnabSettings() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Default Account
               </label>
               <select {...configForm.register("accountId")} className={inputClass}>
@@ -270,7 +270,7 @@ export default function YnabSettings() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Default Category
               </label>
               <select {...configForm.register("categoryId")} className={inputClass}>
@@ -287,7 +287,7 @@ export default function YnabSettings() {
               <button
                 type="submit"
                 disabled={saveConfigMutation.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
               >
                 {saveConfigMutation.isPending ? "Saving..." : "Save Settings"}
               </button>
