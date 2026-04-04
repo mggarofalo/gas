@@ -248,20 +248,20 @@ export default function NewFillUp() {
   }, [vehicleId, vehicles, setValue]);
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">New Fill-Up</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">New Fill-Up</h1>
 
       <form
         onSubmit={handleSubmit((data) => createMutation.mutate(data))}
-        className="space-y-6 rounded-xl bg-white p-6 shadow-sm"
+        className="space-y-6 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30"
       >
         {/* Vehicle + Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Vehicle
             </label>
             <select {...register("vehicleId")} className={inputClass}>
@@ -281,7 +281,7 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Date
             </label>
             <input type="date" {...register("date")} className={inputClass} />
@@ -296,7 +296,7 @@ export default function NewFillUp() {
         {/* Odometer + Octane */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Odometer (miles)
             </label>
             <input
@@ -312,7 +312,7 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Octane Rating
             </label>
             <input
@@ -327,7 +327,7 @@ export default function NewFillUp() {
         {/* Price per Gallon + Total Price + Calculated Gallons */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Price/Gallon
             </label>
             <Controller
@@ -350,7 +350,7 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Total Price
             </label>
             <Controller
@@ -373,21 +373,21 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Gallons
             </label>
-            <div className="flex h-[38px] items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-600">
+            <div className="flex h-[38px] items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-600 dark:text-gray-400">
               {calculatedGallons != null
                 ? calculatedGallons.toFixed(3)
                 : "--"}
             </div>
-            <p className="mt-1 text-xs text-gray-400">Calculated</p>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Calculated</p>
           </div>
         </div>
 
         {/* Station */}
         <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Name
           </label>
           <input
@@ -411,17 +411,17 @@ export default function NewFillUp() {
           {/* Suggestions dropdown */}
           {showSuggestions &&
             (stationSuggestions?.length || nearbyStations?.length) && (
-              <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+              <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
                 {nearbyStations && nearbyStations.length > 0 && (
                   <>
-                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400">
+                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
                       Nearby
                     </p>
                     {nearbyStations.map((s) => (
                       <button
                         key={`nearby-${s.stationName}`}
                         type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                         onMouseDown={() => {
                           setValue("stationName", s.stationName);
                           if (s.stationAddress)
@@ -430,7 +430,7 @@ export default function NewFillUp() {
                         }}
                       >
                         <span className="font-medium">{s.stationName}</span>
-                        <span className="ml-2 text-gray-400">
+                        <span className="ml-2 text-gray-400 dark:text-gray-500">
                           {s.distanceMiles.toFixed(1)} mi
                         </span>
                       </button>
@@ -439,21 +439,21 @@ export default function NewFillUp() {
                 )}
                 {stationSuggestions && stationSuggestions.length > 0 && (
                   <>
-                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400">
+                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
                       Recent
                     </p>
                     {stationSuggestions.map((s) => (
                       <button
                         key={`suggest-${s.stationName}`}
                         type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                         onMouseDown={() => {
                           setValue("stationName", s.stationName);
                           setShowSuggestions(false);
                         }}
                       >
                         <span className="font-medium">{s.stationName}</span>
-                        <span className="ml-2 text-gray-400">
+                        <span className="ml-2 text-gray-400 dark:text-gray-500">
                           {s.visitCount} visits
                         </span>
                       </button>
@@ -466,7 +466,7 @@ export default function NewFillUp() {
 
         {/* Station address */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Address (optional)
           </label>
           <input {...register("stationAddress")} className={inputClass} />
@@ -474,7 +474,7 @@ export default function NewFillUp() {
 
         {/* GPS */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             GPS Location
           </label>
           <div className="flex items-center gap-3">
@@ -482,12 +482,12 @@ export default function NewFillUp() {
               type="button"
               onClick={getGps}
               disabled={gpsLoading}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
             >
               {gpsLoading ? "Getting location..." : "Use Current Location"}
             </button>
             {latitude != null && longitude != null && (
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {latitude.toFixed(5)}, {longitude.toFixed(5)}
               </span>
             )}
@@ -498,7 +498,7 @@ export default function NewFillUp() {
         {ynabConfig?.configured && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 YNAB Account
               </label>
               <select
@@ -514,7 +514,7 @@ export default function NewFillUp() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 YNAB Category
               </label>
               <select
@@ -534,23 +534,23 @@ export default function NewFillUp() {
 
         {/* Receipt */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Receipt (optional)
           </label>
           <input
             type="file"
             accept="image/*,.pdf"
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+            className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
           />
           {receiptFile && (
-            <p className="mt-1 text-xs text-gray-500">{receiptFile.name}</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{receiptFile.name}</p>
           )}
         </div>
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Notes (optional)
           </label>
           <textarea {...register("notes")} rows={3} className={inputClass} />
@@ -561,14 +561,14 @@ export default function NewFillUp() {
           <button
             type="button"
             onClick={() => navigate({ to: "/fill-ups" })}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || createMutation.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
           >
             {createMutation.isPending ? "Saving..." : "Save Fill-Up"}
           </button>

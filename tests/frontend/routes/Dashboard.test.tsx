@@ -5,6 +5,21 @@ import type { ReactNode } from "react";
 
 const mockApiFetch = vi.fn();
 
+// Mock matchMedia for ThemeProvider
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string; [k: string]: unknown }) => (
     <a href={to} {...props}>{children}</a>
@@ -27,6 +42,7 @@ vi.mock("recharts", () => ({
 }));
 
 const { default: Dashboard } = await import("@/routes/Dashboard");
+const { ThemeProvider } = await import("@/components/ThemeProvider");
 
 function renderDashboard() {
   const queryClient = new QueryClient({
@@ -34,7 +50,9 @@ function renderDashboard() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <Dashboard />
+      <ThemeProvider>
+        <Dashboard />
+      </ThemeProvider>
     </QueryClientProvider>,
   );
 }

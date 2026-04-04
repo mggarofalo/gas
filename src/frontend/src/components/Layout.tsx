@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { clearTokens } from "@/lib/api";
+import { useTheme } from "@/components/ThemeProvider";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: HomeIcon },
@@ -14,6 +15,7 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
 
   function handleLogout() {
     clearTokens();
@@ -25,8 +27,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return location.pathname.startsWith(to);
   }
 
+  function cycleTheme() {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -37,12 +45,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-lg transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-lg dark:bg-gray-800 dark:shadow-gray-900/30 transition-transform lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center gap-2 border-b px-6">
-          <span className="text-xl font-bold text-blue-600">Gas Tracker</span>
+        <div className="flex h-16 items-center gap-2 border-b border-gray-200 dark:border-gray-700 px-6">
+          <span className="text-xl font-bold text-blue-600 dark:text-blue-400">Gas Tracker</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
@@ -54,8 +62,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item.to)
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -66,18 +74,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
 
-        <div className="border-t p-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          {/* Theme toggle */}
+          <button
+            onClick={cycleTheme}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            title={`Theme: ${theme}`}
+          >
+            {theme === "light" && <SunIcon className="h-5 w-5" />}
+            {theme === "dark" && <MoonIcon className="h-5 w-5" />}
+            {theme === "system" && <MonitorIcon className="h-5 w-5" />}
+            {theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System"}
+          </button>
+
           <Link
             to="/change-password"
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <LockIcon className="h-5 w-5" />
             Change Password
           </Link>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
           >
             <LogoutIcon className="h-5 w-5" />
             Logout
@@ -88,16 +108,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="flex h-16 items-center gap-4 border-b bg-white px-4 lg:hidden">
+        <header className="flex h-16 items-center gap-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+            className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-lg font-bold text-blue-600">Gas Tracker</span>
+          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">Gas Tracker</span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -171,6 +191,30 @@ function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  );
+}
+
+function SunIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  );
+}
+
+function MoonIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  );
+}
+
+function MonitorIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     </svg>
   );
 }

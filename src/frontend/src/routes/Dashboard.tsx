@@ -13,6 +13,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import type { Stats, FillUp, Vehicle } from "@/lib/types";
 import Spinner from "@/components/Spinner";
+import { useTheme } from "@/components/ThemeProvider";
 
 function fmt$(n: number | null | undefined): string {
   if (n == null) return "--";
@@ -26,10 +27,16 @@ function fmtNum(n: number | null | undefined, decimals = 1): string {
 
 export default function Dashboard() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const { resolvedTheme } = useTheme();
 
   const vehicleParam = selectedVehicleId
     ? `&vehicleId=${selectedVehicleId}`
     : "";
+
+  const chartGridColor = resolvedTheme === "dark" ? "#374151" : "#e5e7eb";
+  const chartTickColor = resolvedTheme === "dark" ? "#9ca3af" : "#6b7280";
+  const chartTooltipBg = resolvedTheme === "dark" ? "#1f2937" : "#ffffff";
+  const chartTooltipBorder = resolvedTheme === "dark" ? "#374151" : "#e5e7eb";
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["stats", selectedVehicleId],
@@ -52,7 +59,6 @@ export default function Dashboard() {
       ).then((r) => r.items),
   });
 
-  // Fetch more fill-ups for charts (last 20)
   const { data: chartFillUps } = useQuery({
     queryKey: ["fill-ups", "chart", selectedVehicleId],
     queryFn: () =>
@@ -87,11 +93,11 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <select
             value={selectedVehicleId}
             onChange={(e) => setSelectedVehicleId(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           >
             <option value="">All Vehicles</option>
             {vehicles
@@ -105,7 +111,7 @@ export default function Dashboard() {
         </div>
         <Link
           to="/fill-ups/new"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600"
         >
           New Fill-Up
         </Link>
@@ -132,16 +138,16 @@ export default function Dashboard() {
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         {mpgData.length > 1 && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
               MPG Trend
             </h2>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={mpgData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chartTickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chartTickColor }} />
+                <Tooltip contentStyle={{ backgroundColor: chartTooltipBg, borderColor: chartTooltipBorder, color: chartTickColor }} />
                 <Line
                   type="monotone"
                   dataKey="mpg"
@@ -155,19 +161,20 @@ export default function Dashboard() {
         )}
 
         {priceData.length > 1 && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
               Price per Gallon
             </h2>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={priceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chartTickColor }} />
                 <YAxis
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: chartTickColor }}
                   tickFormatter={(v) => `$${v}`}
                 />
                 <Tooltip
+                  contentStyle={{ backgroundColor: chartTooltipBg, borderColor: chartTooltipBorder, color: chartTickColor }}
                   formatter={(value) => [
                     `$${Number(value).toFixed(3)}`,
                     "Price",
@@ -187,14 +194,14 @@ export default function Dashboard() {
       </div>
 
       {/* Recent fill-ups */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Recent Fill-Ups
           </h2>
           <Link
             to="/fill-ups"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
           >
             View all
           </Link>
@@ -204,7 +211,7 @@ export default function Dashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr className="border-b dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
                   <th className="pb-2 pr-4 font-medium">Date</th>
                   <th className="pb-2 pr-4 font-medium">Vehicle</th>
                   <th className="pb-2 pr-4 font-medium">Station</th>
@@ -213,14 +220,14 @@ export default function Dashboard() {
                   <th className="pb-2 text-right font-medium">MPG</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-gray-900 dark:text-gray-100">
                 {recentFillUps.map((f) => (
-                  <tr key={f.id} className="border-b last:border-0">
+                  <tr key={f.id} className="border-b dark:border-gray-700 last:border-0">
                     <td className="py-2 pr-4">
                       <Link
                         to="/fill-ups/$fillUpId"
                         params={{ fillUpId: f.id }}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         {new Date(f.date).toLocaleDateString()}
                       </Link>
@@ -242,24 +249,24 @@ export default function Dashboard() {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No fill-ups yet.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">No fill-ups yet.</p>
         )}
       </div>
 
       {/* Vehicles summary */}
       {!selectedVehicleId && vehicles && vehicles.length > 0 && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
             Vehicles
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles
               .filter((v) => v.isActive)
               .map((v) => (
-                <div key={v.id} className="rounded-lg border p-4">
-                  <p className="font-medium text-gray-900">{v.label}</p>
+                <div key={v.id} className="rounded-lg border dark:border-gray-700 p-4">
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{v.label}</p>
                   {v.octaneRating && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {v.octaneRating} octane
                     </p>
                   )}
@@ -274,9 +281,9 @@ export default function Dashboard() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+    <div className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm dark:shadow-gray-900/30">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
     </div>
   );
 }

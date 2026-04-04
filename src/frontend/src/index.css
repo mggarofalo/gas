@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --color-chart-blue: #2563eb;
+    --color-chart-green: #16a34a;
+    --color-chart-grid: #e5e7eb;
+    --color-chart-text: #6b7280;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-chart-blue: #60a5fa;
+    --color-chart-green: #4ade80;
+    --color-chart-grid: #374151;
+    --color-chart-text: #9ca3af;
+  }
+}
