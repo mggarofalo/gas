@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Moq" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -22,9 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GasTracker.Api\GasTracker.Api.csproj" />
-    <ProjectReference Include="..\GasTracker.Core\GasTracker.Core.csproj" />
-    <ProjectReference Include="..\GasTracker.Infrastructure\GasTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\GasTracker\GasTracker.Api\GasTracker.Api.csproj" />
+    <ProjectReference Include="..\..\src\GasTracker\GasTracker.Core\GasTracker.Core.csproj" />
+    <ProjectReference Include="..\..\src\GasTracker\GasTracker.Infrastructure\GasTracker.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
