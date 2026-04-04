@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -10,7 +10,13 @@ import type { Vehicle, FillUpPage, Stats } from "../lib/types";
 
 const COLORS = ["#60a5fa", "#4ade80", "#f87171", "#a78bfa", "#fb923c"];
 
+function formatDate(v: string) {
+  const d = new Date(v + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [vehicleId, setVehicleId] = useState("");
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
 
@@ -21,14 +27,14 @@ export function DashboardPage() {
   const { data: recentPage } = useQuery({ queryKey: ["fill-ups-recent", vehicleId], queryFn: () => apiFetch<FillUpPage>(`/fill-ups?pageSize=5&sortBy=date&sortDir=desc${vehicleId ? `&vehicleId=${vehicleId}` : ""}`) });
   const { data: chartPage } = useQuery({ queryKey: ["fill-ups-chart", vehicleId], queryFn: () => apiFetch<FillUpPage>(`/fill-ups?pageSize=100&sortBy=date&sortDir=asc${vehicleId ? `&vehicleId=${vehicleId}` : ""}`) });
 
-  const chartData = (chartPage?.items ?? []).map((f) => ({ date: f.date, mpg: f.mpg, price: f.pricePerGallon, vehicle: f.vehicleLabel }));
+  const chartData = (chartPage?.items ?? []).map((f) => ({ id: f.id, date: f.date, mpg: f.mpg, price: f.pricePerGallon, vehicle: f.vehicleLabel }));
   const vehicleNames = [...new Set(chartData.map((d) => d.vehicle))];
   const mpgData = chartData.filter((d) => d.mpg != null).map((d) => {
-    const point: Record<string, string | number | null> = { date: d.date };
+    const point: Record<string, string | number | null> = { date: d.date, id: d.id };
     vehicleNames.forEach((v) => { point[v] = d.vehicle === v ? d.mpg : null; });
     return point;
   });
-  const priceData = chartData.map((d) => ({ date: d.date, price: d.price }));
+  const priceData = chartData.map((d) => ({ id: d.id, date: d.date, price: d.price }));
 
   return (
     <div>
@@ -53,13 +59,17 @@ export function DashboardPage() {
         <div className="card mb-6 p-4">
           <h3 className="mb-2 text-sm font-medium text-text-secondary">MPG Over Time</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={mpgData}>
+            <LineChart data={mpgData} onClick={(state) => {
+              const idx = state?.activeTooltipIndex;
+              const id = typeof idx === "number" ? mpgData[idx]?.id : undefined;
+              if (id) navigate({ to: "/fill-ups/$id", params: { id: String(id) } });
+            }} style={{ cursor: "pointer" }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
+              <XAxis dataKey="date" type="category" tickFormatter={formatDate} tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
               <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
               <Tooltip contentStyle={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }} />
               <Legend />
-              {vehicleNames.map((name, i) => <Line key={name} type="monotone" dataKey={name} stroke={COLORS[i % COLORS.length]} connectNulls dot={{ r: 3 }} />)}
+              {vehicleNames.map((name, i) => <Line key={name} type="monotone" dataKey={name} stroke={COLORS[i % COLORS.length]} connectNulls dot={{ r: 3 }} activeDot={{ r: 5 }} />)}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -69,12 +79,16 @@ export function DashboardPage() {
         <div className="card mb-6 p-4">
           <h3 className="mb-2 text-sm font-medium text-text-secondary">Price per Gallon</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={priceData}>
+            <LineChart data={priceData} onClick={(state) => {
+              const idx = state?.activeTooltipIndex;
+              const id = typeof idx === "number" ? priceData[idx]?.id : undefined;
+              if (id) navigate({ to: "/fill-ups/$id", params: { id } });
+            }} style={{ cursor: "pointer" }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
+              <XAxis dataKey="date" type="category" tickFormatter={formatDate} tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
               <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} domain={["auto", "auto"]} />
               <Tooltip contentStyle={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }} />
-              <Line type="monotone" dataKey="price" stroke="#60a5fa" dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="price" stroke="#60a5fa" dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

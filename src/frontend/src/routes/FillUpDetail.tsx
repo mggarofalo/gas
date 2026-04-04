@@ -27,6 +27,7 @@ export function FillUpDetailPage() {
         <h2 className="text-2xl font-semibold">Fill-Up Detail</h2>
         <div className="flex gap-2">
           <button onClick={() => navigate({ to: "/fill-ups" })} className="btn-outline">Back</button>
+          <button onClick={() => navigate({ to: "/fill-ups/$id/edit", params: { id } })} className="btn-primary">Edit</button>
           {!confirmDelete ? (
             <button onClick={() => setConfirmDelete(true)} className="btn-danger">Delete</button>
           ) : (

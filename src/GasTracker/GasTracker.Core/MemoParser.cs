@@ -74,8 +74,8 @@ public static partial class MemoParser
             }
         }
 
-        // Must have extracted at least a price or odometer to be useful
-        if (parsedPrice is null && parsedOdometer is null) return null;
+        // Must have extracted a price to be useful — real gas memos always include $/gal
+        if (parsedPrice is null) return null;
 
         return new ParsedMemo(vehicleName, parsedOctane, parsedPrice, parsedOdometer, null);
     }
