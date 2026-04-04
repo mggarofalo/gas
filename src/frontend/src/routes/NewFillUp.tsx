@@ -1,11 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { apiFetch } from "@/lib/api";
-import type { Vehicle, StationSuggestion, NearbyStation } from "@/lib/types";
+import type {
+  Vehicle,
+  StationSuggestion,
+  NearbyStation,
+  YnabConfig,
+  YnabAccount,
+  YnabCategory,
+} from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import CurrencyInput from "@/components/CurrencyInput";
 
@@ -13,17 +20,33 @@ const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle is required"),
   date: z.string().min(1, "Date is required"),
   odometerMiles: z.number().positive("Must be positive"),
-  gallons: z.string().min(1, "Gallons is required"),
-  pricePerGallon: z.string().min(1, "Price is required"),
+  pricePerGallon: z.string().min(1, "Price per gallon is required"),
+  totalPrice: z.string().min(1, "Total price is required"),
   octaneRating: z.number().nullable().optional(),
   stationName: z.string().min(1, "Station name is required"),
   stationAddress: z.string().nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   notes: z.string().nullable().optional(),
+  ynabAccountId: z.string().nullable().optional(),
+  ynabCategoryId: z.string().nullable().optional(),
 });
 
 type FillUpFormData = z.infer<typeof fillUpSchema>;
+
+// Cached endpoints return accountId/categoryId instead of id
+interface CachedAccount {
+  accountId: string;
+  name: string;
+  type?: string;
+  balance?: number;
+}
+
+interface CachedCategory {
+  categoryId: string;
+  name: string;
+  categoryGroupName: string;
+}
 
 export default function NewFillUp() {
   const navigate = useNavigate();
@@ -50,6 +73,8 @@ export default function NewFillUp() {
       stationAddress: null,
       notes: null,
       octaneRating: null,
+      ynabAccountId: null,
+      ynabCategoryId: null,
     },
   });
 
@@ -57,6 +82,49 @@ export default function NewFillUp() {
     queryKey: ["vehicles"],
     queryFn: () => apiFetch<Vehicle[]>("/api/vehicles"),
   });
+
+  // YNAB config + cached accounts/categories for the picker
+  const { data: ynabConfig } = useQuery({
+    queryKey: ["ynab-config"],
+    queryFn: () => apiFetch<YnabConfig>("/api/settings/ynab"),
+  });
+
+  const { data: ynabAccounts } = useQuery({
+    queryKey: ["ynab-accounts-cached"],
+    queryFn: async () => {
+      const cached = await apiFetch<CachedAccount[]>("/api/ynab/accounts/cached");
+      return cached.map((a): YnabAccount => ({
+        id: a.accountId,
+        name: a.name,
+        type: a.type,
+        balance: a.balance,
+      }));
+    },
+    enabled: ynabConfig?.configured === true,
+  });
+
+  const { data: ynabCategories } = useQuery({
+    queryKey: ["ynab-categories-cached"],
+    queryFn: async () => {
+      const cached = await apiFetch<CachedCategory[]>("/api/ynab/categories/cached");
+      return cached.map((c): YnabCategory => ({
+        id: c.categoryId,
+        name: c.name,
+        categoryGroupName: c.categoryGroupName,
+      }));
+    },
+    enabled: ynabConfig?.configured === true,
+  });
+
+  // Set YNAB defaults from config once loaded
+  const [ynabDefaultsApplied, setYnabDefaultsApplied] = useState(false);
+  useEffect(() => {
+    if (ynabConfig && !ynabDefaultsApplied) {
+      if (ynabConfig.accountId) setValue("ynabAccountId", ynabConfig.accountId);
+      if (ynabConfig.categoryId) setValue("ynabCategoryId", ynabConfig.categoryId);
+      setYnabDefaultsApplied(true);
+    }
+  }, [ynabConfig, ynabDefaultsApplied, setValue]);
 
   const latitude = watch("latitude");
   const longitude = watch("longitude");
@@ -81,30 +149,60 @@ export default function NewFillUp() {
     enabled: latitude != null && longitude != null,
   });
 
+  // Calculate gallons from totalPrice / pricePerGallon
+  const watchedTotalPrice = watch("totalPrice");
+  const watchedPricePerGallon = watch("pricePerGallon");
+  const calculatedGallons = useMemo(() => {
+    const total = parseFloat(watchedTotalPrice);
+    const ppg = parseFloat(watchedPricePerGallon);
+    if (!total || !ppg || ppg === 0) return null;
+    return Math.round((total / ppg) * 1000) / 1000;
+  }, [watchedTotalPrice, watchedPricePerGallon]);
+
   const createMutation = useMutation({
     mutationFn: async (data: FillUpFormData) => {
-      const body: Record<string, unknown> = {
-        ...data,
-        gallons: parseFloat(data.gallons),
-        pricePerGallon: parseFloat(data.pricePerGallon),
-      };
+      const ppg = parseFloat(data.pricePerGallon);
+      const totalCost = parseFloat(data.totalPrice);
+      const gallons = ppg > 0 ? Math.round((totalCost / ppg) * 1000) / 1000 : 0;
 
-      const fillUp = await apiFetch<{ id: string }>("/api/fill-ups", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
+      // Build FormData to match backend's ReadFormAsync()
+      const formData = new FormData();
+      formData.append("vehicleId", data.vehicleId);
+      formData.append("date", data.date);
+      formData.append("odometerMiles", data.odometerMiles.toString());
+      formData.append("gallons", gallons.toString());
+      formData.append("pricePerGallon", ppg.toString());
+      formData.append("totalCost", totalCost.toString());
+      formData.append("stationName", data.stationName);
+      if (data.octaneRating != null)
+        formData.append("octaneRating", data.octaneRating.toString());
+      if (data.stationAddress)
+        formData.append("stationAddress", data.stationAddress);
+      if (data.latitude != null)
+        formData.append("latitude", data.latitude.toString());
+      if (data.longitude != null)
+        formData.append("longitude", data.longitude.toString());
+      if (data.notes) formData.append("notes", data.notes);
 
-      // Upload receipt if present
-      if (receiptFile) {
-        const formData = new FormData();
-        formData.append("file", receiptFile);
-        await apiFetch(`/api/fill-ups/${fillUp.id}/receipt`, {
-          method: "POST",
-          body: formData,
-        });
+      // YNAB fields
+      if (data.ynabAccountId) {
+        formData.append("ynabAccountId", data.ynabAccountId);
+        const account = ynabAccounts?.find((a) => a.id === data.ynabAccountId);
+        if (account) formData.append("ynabAccountName", account.name);
+      }
+      if (data.ynabCategoryId) {
+        formData.append("ynabCategoryId", data.ynabCategoryId);
+        const category = ynabCategories?.find((c) => c.id === data.ynabCategoryId);
+        if (category) formData.append("ynabCategoryName", category.name);
       }
 
-      return fillUp;
+      // Receipt in same request
+      if (receiptFile) formData.append("receipt", receiptFile);
+
+      return apiFetch<{ id: string }>("/api/fill-ups", {
+        method: "POST",
+        body: formData,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
@@ -113,7 +211,10 @@ export default function NewFillUp() {
       navigate({ to: "/fill-ups" });
     },
     onError: (err) => {
-      toast(err instanceof Error ? err.message : "Failed to create fill-up", "error");
+      toast(
+        err instanceof Error ? err.message : "Failed to create fill-up",
+        "error"
+      );
     },
   });
 
@@ -160,7 +261,9 @@ export default function NewFillUp() {
         {/* Vehicle + Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Vehicle
+            </label>
             <select {...register("vehicleId")} className={inputClass}>
               <option value="">Select vehicle...</option>
               {vehicles
@@ -172,14 +275,20 @@ export default function NewFillUp() {
                 ))}
             </select>
             {errors.vehicleId && (
-              <p className="mt-1 text-xs text-red-600">{errors.vehicleId.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.vehicleId.message}
+              </p>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <input type="date" {...register("date")} className={inputClass} />
             {errors.date && (
-              <p className="mt-1 text-xs text-red-600">{errors.date.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.date.message}
+              </p>
             )}
           </div>
         </div>
@@ -187,7 +296,9 @@ export default function NewFillUp() {
         {/* Odometer + Octane */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Odometer (miles)</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Odometer (miles)
+            </label>
             <input
               type="number"
               step="1"
@@ -195,11 +306,15 @@ export default function NewFillUp() {
               className={inputClass}
             />
             {errors.odometerMiles && (
-              <p className="mt-1 text-xs text-red-600">{errors.odometerMiles.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.odometerMiles.message}
+              </p>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Octane Rating</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Octane Rating
+            </label>
             <input
               type="number"
               step="1"
@@ -209,29 +324,12 @@ export default function NewFillUp() {
           </div>
         </div>
 
-        {/* Gallons + Price */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Price per Gallon + Total Price + Calculated Gallons */}
+        <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Gallons</label>
-            <Controller
-              name="gallons"
-              control={control}
-              render={({ field }) => (
-                <CurrencyInput
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                  decimals={3}
-                  placeholder="0.000"
-                  className={inputClass}
-                />
-              )}
-            />
-            {errors.gallons && (
-              <p className="mt-1 text-xs text-red-600">{errors.gallons.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Price per Gallon</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Price/Gallon
+            </label>
             <Controller
               name="pricePerGallon"
               control={control}
@@ -246,14 +344,52 @@ export default function NewFillUp() {
               )}
             />
             {errors.pricePerGallon && (
-              <p className="mt-1 text-xs text-red-600">{errors.pricePerGallon.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.pricePerGallon.message}
+              </p>
             )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Total Price
+            </label>
+            <Controller
+              name="totalPrice"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  decimals={2}
+                  placeholder="0.00"
+                  className={inputClass}
+                />
+              )}
+            />
+            {errors.totalPrice && (
+              <p className="mt-1 text-xs text-red-600">
+                {errors.totalPrice.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Gallons
+            </label>
+            <div className="flex h-[38px] items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-600">
+              {calculatedGallons != null
+                ? calculatedGallons.toFixed(3)
+                : "--"}
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Calculated</p>
           </div>
         </div>
 
         {/* Station */}
         <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Station Name</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Station Name
+          </label>
           <input
             {...register("stationName")}
             autoComplete="off"
@@ -267,55 +403,65 @@ export default function NewFillUp() {
             className={inputClass}
           />
           {errors.stationName && (
-            <p className="mt-1 text-xs text-red-600">{errors.stationName.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.stationName.message}
+            </p>
           )}
 
           {/* Suggestions dropdown */}
-          {showSuggestions && (stationSuggestions?.length || nearbyStations?.length) && (
-            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
-              {nearbyStations && nearbyStations.length > 0 && (
-                <>
-                  <p className="px-3 pt-2 text-xs font-semibold text-gray-400">Nearby</p>
-                  {nearbyStations.map((s) => (
-                    <button
-                      key={`nearby-${s.stationName}`}
-                      type="button"
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                      onMouseDown={() => {
-                        setValue("stationName", s.stationName);
-                        if (s.stationAddress) setValue("stationAddress", s.stationAddress);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      <span className="font-medium">{s.stationName}</span>
-                      <span className="ml-2 text-gray-400">
-                        {s.distanceMiles.toFixed(1)} mi
-                      </span>
-                    </button>
-                  ))}
-                </>
-              )}
-              {stationSuggestions && stationSuggestions.length > 0 && (
-                <>
-                  <p className="px-3 pt-2 text-xs font-semibold text-gray-400">Recent</p>
-                  {stationSuggestions.map((s) => (
-                    <button
-                      key={`suggest-${s.stationName}`}
-                      type="button"
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                      onMouseDown={() => {
-                        setValue("stationName", s.stationName);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      <span className="font-medium">{s.stationName}</span>
-                      <span className="ml-2 text-gray-400">{s.visitCount} visits</span>
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
+          {showSuggestions &&
+            (stationSuggestions?.length || nearbyStations?.length) && (
+              <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+                {nearbyStations && nearbyStations.length > 0 && (
+                  <>
+                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400">
+                      Nearby
+                    </p>
+                    {nearbyStations.map((s) => (
+                      <button
+                        key={`nearby-${s.stationName}`}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        onMouseDown={() => {
+                          setValue("stationName", s.stationName);
+                          if (s.stationAddress)
+                            setValue("stationAddress", s.stationAddress);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <span className="font-medium">{s.stationName}</span>
+                        <span className="ml-2 text-gray-400">
+                          {s.distanceMiles.toFixed(1)} mi
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {stationSuggestions && stationSuggestions.length > 0 && (
+                  <>
+                    <p className="px-3 pt-2 text-xs font-semibold text-gray-400">
+                      Recent
+                    </p>
+                    {stationSuggestions.map((s) => (
+                      <button
+                        key={`suggest-${s.stationName}`}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        onMouseDown={() => {
+                          setValue("stationName", s.stationName);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <span className="font-medium">{s.stationName}</span>
+                        <span className="ml-2 text-gray-400">
+                          {s.visitCount} visits
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
         </div>
 
         {/* Station address */}
@@ -328,7 +474,9 @@ export default function NewFillUp() {
 
         {/* GPS */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">GPS Location</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            GPS Location
+          </label>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -345,6 +493,44 @@ export default function NewFillUp() {
             )}
           </div>
         </div>
+
+        {/* YNAB Account & Category */}
+        {ynabConfig?.configured && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                YNAB Account
+              </label>
+              <select
+                {...register("ynabAccountId")}
+                className={inputClass}
+              >
+                <option value="">None</option>
+                {ynabAccounts?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                YNAB Category
+              </label>
+              <select
+                {...register("ynabCategoryId")}
+                className={inputClass}
+              >
+                <option value="">None</option>
+                {ynabCategories?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.categoryGroupName}: {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Receipt */}
         <div>
@@ -364,7 +550,9 @@ export default function NewFillUp() {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Notes (optional)</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Notes (optional)
+          </label>
           <textarea {...register("notes")} rows={3} className={inputClass} />
         </div>
 
