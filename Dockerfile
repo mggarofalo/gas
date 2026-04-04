@@ -14,7 +14,8 @@ WORKDIR /src
 
 ARG TARGETARCH
 
-COPY src/GasTracker/Directory.Packages.props ./
+COPY Directory.Packages.props ./
+COPY Directory.Build.props ./
 COPY src/GasTracker/GasTracker.Core/GasTracker.Core.csproj src/GasTracker/GasTracker.Core/
 COPY src/GasTracker/GasTracker.Infrastructure/GasTracker.Infrastructure.csproj src/GasTracker/GasTracker.Infrastructure/
 COPY src/GasTracker/GasTracker.Api/GasTracker.Api.csproj src/GasTracker/GasTracker.Api/
