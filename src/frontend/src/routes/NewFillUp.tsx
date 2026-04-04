@@ -1,500 +1,391 @@
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { apiFetch } from "../lib/api";
-import { useToast } from "../components/Toast";
-import type { Vehicle, FillUp, NearbyStation, StationSuggestion } from "../lib/types";
-import { useState, useCallback, useRef, useEffect } from "react";
-import { CurrencyInput } from "../components/CurrencyInput";
-
-interface CachedYnabAccount {
-  accountId: string;
-  name: string;
-  type: string;
-  balance: number;
-  fetchedAt: string;
-}
-
-interface CachedYnabCategory {
-  categoryId: string;
-  name: string;
-  categoryGroupName: string;
-  fetchedAt: string;
-}
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { apiFetch } from "@/lib/api";
+import type { Vehicle, StationSuggestion, NearbyStation } from "@/lib/types";
+import { useToast } from "@/components/Toast";
+import CurrencyInput from "@/components/CurrencyInput";
 
 const fillUpSchema = z.object({
-  vehicleId: z.string().min(1, "Required"),
-  date: z.string().min(1, "Required"),
-  stationName: z.string().min(1, "Required").max(200),
-  odometerMiles: z.coerce.number().int().positive("Must be > 0"),
-  gallons: z.coerce.number().positive("Must be > 0"),
-  pricePerGallon: z.coerce.number().positive("Must be > 0"),
-  totalCostOverride: z.coerce.number().optional(),
-  octaneRating: z.coerce.number().optional(),
-  latitude: z.coerce.number().min(-90).max(90).optional(),
-  longitude: z.coerce.number().min(-180).max(180).optional(),
-  notes: z.string().optional(),
+  vehicleId: z.string().min(1, "Vehicle is required"),
+  date: z.string().min(1, "Date is required"),
+  odometerMiles: z.number().positive("Must be positive"),
+  gallons: z.string().min(1, "Gallons is required"),
+  pricePerGallon: z.string().min(1, "Price is required"),
+  octaneRating: z.number().nullable().optional(),
+  stationName: z.string().min(1, "Station name is required"),
+  stationAddress: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
-interface FillUpForm {
-  vehicleId: string;
-  date: string;
-  stationName: string;
-  odometerMiles: number;
-  gallons: number;
-  pricePerGallon: number;
-  totalCostOverride?: number;
-  octaneRating?: number;
-  latitude?: number;
-  longitude?: number;
-  notes?: string;
-}
 
-export function NewFillUpPage() {
+type FillUpFormData = z.infer<typeof fillUpSchema>;
+
+export default function NewFillUp() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
-  const [loadingNearby, setLoadingNearby] = useState(false);
-  const [gpsAcquired, setGpsAcquired] = useState(false);
-  const [gpsFailed, setGpsFailed] = useState(false);
-
-  // Controlled numeric inputs (string state for formatting)
-  const [gallonsStr, setGallonsStr] = useState("");
-  const [priceStr, setPriceStr] = useState("");
-  const [totalStr, setTotalStr] = useState("");
-
-  // Station autocomplete state
-  const [suggestions, setSuggestions] = useState<StationSuggestion[]>([]);
+  const [stationQuery, setStationQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
-  const qc = useQueryClient();
-  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles") });
-
-  // YNAB account selection
-  const [ynabAccountId, setYnabAccountId] = useState("");
-  const [ynabAccountName, setYnabAccountName] = useState("");
-  const [refreshingAccounts, setRefreshingAccounts] = useState(false);
-
-  // YNAB category selection
-  const [ynabCategoryId, setYnabCategoryId] = useState("");
-  const [ynabCategoryName, setYnabCategoryName] = useState("");
-  const [refreshingCategories, setRefreshingCategories] = useState(false);
-
-  interface YnabConfig { configured: boolean; enabled?: boolean; accountId?: string; accountName?: string; categoryId?: string; categoryName?: string }
-  const { data: ynabConfig } = useQuery({
-    queryKey: ["ynab-settings"],
-    queryFn: () => apiFetch<YnabConfig>("/settings/ynab"),
-  });
-  const ynabEnabled = !!ynabConfig?.configured && !!ynabConfig?.enabled;
-
-  const { data: cachedAccounts = [] } = useQuery({
-    queryKey: ["ynab-accounts-cached"],
-    queryFn: () => apiFetch<CachedYnabAccount[]>("/ynab/accounts/cached"),
-    enabled: ynabEnabled,
-    retry: false,
-  });
-
-  const { data: cachedCategories = [] } = useQuery({
-    queryKey: ["ynab-categories-cached"],
-    queryFn: () => apiFetch<CachedYnabCategory[]>("/ynab/categories/cached"),
-    enabled: ynabEnabled,
-    retry: false,
-  });
-
-  // Default to the global account/category from settings
-  useEffect(() => {
-    if (ynabConfig?.accountId && !ynabAccountId) {
-      setYnabAccountId(ynabConfig.accountId);
-      setYnabAccountName(ynabConfig.accountName ?? "");
-    }
-    if (ynabConfig?.categoryId && !ynabCategoryId) {
-      setYnabCategoryId(ynabConfig.categoryId);
-      setYnabCategoryName(ynabConfig.categoryName ?? "");
-    }
-  }, [ynabConfig, ynabAccountId, ynabCategoryId]);
-
-  const handleRefreshAccounts = useCallback(async () => {
-    setRefreshingAccounts(true);
-    try {
-      await apiFetch("/ynab/accounts/refresh", { method: "POST" });
-      qc.invalidateQueries({ queryKey: ["ynab-accounts-cached"] });
-    } catch { /* non-critical */ }
-    finally { setRefreshingAccounts(false); }
-  }, [qc]);
-
-  const handleRefreshCategories = useCallback(async () => {
-    setRefreshingCategories(true);
-    try {
-      await apiFetch("/ynab/categories/refresh", { method: "POST" });
-      qc.invalidateQueries({ queryKey: ["ynab-categories-cached"] });
-    } catch { /* non-critical */ }
-    finally { setRefreshingCategories(false); }
-  }, [qc]);
-
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FillUpForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: standardSchemaResolver(fillUpSchema) as any,
-    defaultValues: { date: new Date().toISOString().slice(0, 10), vehicleId: "" },
-  });
-
-  const gallonsNum = parseFloat(gallonsStr) || 0;
-  const priceNum = parseFloat(priceStr) || 0;
-  const totalNum = parseFloat(totalStr) || 0;
-  const computedTotal = gallonsNum && priceNum ? Math.round(gallonsNum * priceNum * 100) / 100 : 0;
-
-  const createMut = useMutation({
-    mutationFn: async (data: FillUpForm) => {
-      const fd = new FormData();
-      fd.append("vehicleId", data.vehicleId);
-      fd.append("date", data.date);
-      fd.append("stationName", data.stationName);
-      fd.append("odometerMiles", String(data.odometerMiles));
-      fd.append("gallons", gallonsStr);
-      fd.append("pricePerGallon", priceStr);
-      fd.append("totalCost", totalNum > 0 ? totalStr : String(computedTotal));
-      if (data.octaneRating) fd.append("octaneRating", String(data.octaneRating));
-      if (data.latitude != null) fd.append("latitude", String(data.latitude));
-      if (data.longitude != null) fd.append("longitude", String(data.longitude));
-      if (data.notes) fd.append("notes", data.notes);
-      if (ynabAccountId) { fd.append("ynabAccountId", ynabAccountId); fd.append("ynabAccountName", ynabAccountName); }
-      if (ynabCategoryId) { fd.append("ynabCategoryId", ynabCategoryId); fd.append("ynabCategoryName", ynabCategoryName); }
-      if (receiptFile) fd.append("receipt", receiptFile);
-      return apiFetch<FillUp>("/fill-ups", { method: "POST", body: fd });
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<FillUpFormData>({
+    resolver: standardSchemaResolver(fillUpSchema),
+    defaultValues: {
+      date: new Date().toISOString().split("T")[0],
+      latitude: null,
+      longitude: null,
+      stationAddress: null,
+      notes: null,
+      octaneRating: null,
     },
-    onSuccess: (fillUp) => { toast("Fill-up saved"); navigate({ to: "/fill-ups/$id", params: { id: fillUp.id } }); },
   });
 
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
+  const { data: vehicles } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: () => apiFetch<Vehicle[]>("/api/vehicles"),
+  });
+
+  const latitude = watch("latitude");
+  const longitude = watch("longitude");
+
+  // Station suggestions
+  const { data: stationSuggestions } = useQuery({
+    queryKey: ["station-suggestions", stationQuery],
+    queryFn: () =>
+      apiFetch<StationSuggestion[]>(
+        `/api/stations/suggestions?q=${encodeURIComponent(stationQuery)}`
+      ),
+    enabled: stationQuery.length >= 2,
+  });
+
+  // Nearby stations
+  const { data: nearbyStations } = useQuery({
+    queryKey: ["nearby-stations", latitude, longitude],
+    queryFn: () =>
+      apiFetch<NearbyStation[]>(
+        `/api/stations/nearby?latitude=${latitude}&longitude=${longitude}`
+      ),
+    enabled: latitude != null && longitude != null,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: FillUpFormData) => {
+      const body: Record<string, unknown> = {
+        ...data,
+        gallons: parseFloat(data.gallons),
+        pricePerGallon: parseFloat(data.pricePerGallon),
+      };
+
+      const fillUp = await apiFetch<{ id: string }>("/api/fill-ups", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      // Upload receipt if present
+      if (receiptFile) {
+        const formData = new FormData();
+        formData.append("file", receiptFile);
+        await apiFetch(`/api/fill-ups/${fillUp.id}/receipt`, {
+          method: "POST",
+          body: formData,
+        });
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
-  // Station name autocomplete
-  const handleStationInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setValue("stationName", val);
+      return fillUp;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      toast("Fill-up created", "success");
+      navigate({ to: "/fill-ups" });
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to create fill-up", "error");
+    },
+  });
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
-
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const results = await apiFetch<StationSuggestion[]>(`/stations/search?q=${encodeURIComponent(val)}`);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-      } catch { /* non-critical */ }
-    }, 200);
-  }, [setValue]);
-
-  const selectSuggestion = useCallback((name: string) => {
-    setValue("stationName", name);
-    setShowSuggestions(false);
-    setSuggestions([]);
-  }, [setValue]);
-
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
-  const handleReceipt = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (file && !allowedTypes.some((t) => file.type === t || file.type === "")) {
-      // type="" happens with HEIC on some browsers — allow it through
-      alert("Please select an image or PDF file.");
+  const getGps = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast("Geolocation not supported", "error");
       return;
     }
-    setReceiptFile(file);
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = () => setReceiptPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    } else { setReceiptPreview(null); }
-  }, []);
-
-  const handleGeolocation = useCallback(() => {
-    if (!navigator.geolocation) { setGpsFailed(true); return; }
-    setLoadingNearby(true);
-    setGpsFailed(false);
-    setGpsAcquired(false);
+    setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = Math.round(pos.coords.latitude * 1e7) / 1e7;
-        const lng = Math.round(pos.coords.longitude * 1e7) / 1e7;
-        setValue("latitude", lat);
-        setValue("longitude", lng);
-        setGpsAcquired(true);
-        try {
-          const stations = await apiFetch<NearbyStation[]>(`/locations/nearby?lat=${lat}&lng=${lng}`);
-          setNearbyStations(stations);
-          if (stations.length > 0) setValue("stationName", stations[0].stationName);
-        } catch { /* non-critical */ }
-        finally { setLoadingNearby(false); }
+      (pos) => {
+        setValue("latitude", pos.coords.latitude);
+        setValue("longitude", pos.coords.longitude);
+        setGpsLoading(false);
       },
       (err) => {
-        setLoadingNearby(false);
-        setGpsFailed(true);
-        console.warn("Geolocation error:", err.code, err.message);
+        toast(`GPS error: ${err.message}`, "error");
+        setGpsLoading(false);
       },
-      // Explicit options required for iOS Safari — omitting timeout
-      // or using Infinity causes immediate TIMEOUT error on iOS
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [setValue]);
+  }, [setValue, toast]);
 
-  // No auto-fire — iOS Safari requires a user gesture for geolocation
+  // Auto-fill octane from selected vehicle
+  const vehicleId = watch("vehicleId");
+  useEffect(() => {
+    const vehicle = vehicles?.find((v) => v.id === vehicleId);
+    if (vehicle?.octaneRating) {
+      setValue("octaneRating", vehicle.octaneRating);
+    }
+  }, [vehicleId, vehicles, setValue]);
 
-  const stationNameReg = register("stationName");
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h2 className="mb-6 text-2xl font-semibold">New Fill-Up</h2>
-      <form onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">New Fill-Up</h1>
 
-        {/* --- Section: Vehicle + Date --- */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Vehicle" error={errors.vehicleId?.message}>
-            <select {...register("vehicleId", {
-              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
-                const v = vehicles.find((v) => v.id === e.target.value);
-                setValue("octaneRating", v?.octaneRating ?? undefined);
-              },
-            })} className="input">
-              <option value="">Select...</option>
-              {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+      <form
+        onSubmit={handleSubmit((data) => createMutation.mutate(data))}
+        className="space-y-6 rounded-xl bg-white p-6 shadow-sm"
+      >
+        {/* Vehicle + Date */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle</label>
+            <select {...register("vehicleId")} className={inputClass}>
+              <option value="">Select vehicle...</option>
+              {vehicles
+                ?.filter((v) => v.isActive)
+                .map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
             </select>
-          </Field>
-          <Field label="Date" error={errors.date?.message}>
-            <input type="date" {...register("date")} className="input" />
-          </Field>
+            {errors.vehicleId && (
+              <p className="mt-1 text-xs text-red-600">{errors.vehicleId.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <input type="date" {...register("date")} className={inputClass} />
+            {errors.date && (
+              <p className="mt-1 text-xs text-red-600">{errors.date.message}</p>
+            )}
+          </div>
         </div>
 
-        {/* --- Section: Station / Location --- */}
-        <div>
-          <Field label="Gas Station" error={errors.stationName?.message}>
-            <div className="relative" ref={suggestionsRef}>
-              <div className="flex gap-2">
-                <input
-                  {...stationNameReg}
-                  onChange={(e) => { stationNameReg.onChange(e); handleStationInput(e); }}
-                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                  className="input"
-                  placeholder={loadingNearby ? "Locating..." : "Start typing..."}
-                  autoComplete="off"
+        {/* Odometer + Octane */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Odometer (miles)</label>
+            <input
+              type="number"
+              step="1"
+              {...register("odometerMiles", { valueAsNumber: true })}
+              className={inputClass}
+            />
+            {errors.odometerMiles && (
+              <p className="mt-1 text-xs text-red-600">{errors.odometerMiles.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Octane Rating</label>
+            <input
+              type="number"
+              step="1"
+              {...register("octaneRating", { valueAsNumber: true })}
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Gallons + Price */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Gallons</label>
+            <Controller
+              name="gallons"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  decimals={3}
+                  placeholder="0.000"
+                  className={inputClass}
                 />
-                <button type="button" onClick={() => { setGpsFailed(false); handleGeolocation(); }}
-                  className={`shrink-0 rounded border px-3 py-1.5 text-xs transition-colors ${
-                    loadingNearby ? "border-warning-bg text-warning-text animate-pulse" :
-                    gpsAcquired ? "border-success-text/30 bg-success-bg text-success-text" :
-                    gpsFailed ? "border-danger-text/30 text-danger-text" :
-                    "border-border text-text-secondary hover:bg-surface-hover"
-                  }`}>
-                  {loadingNearby ? "..." : gpsAcquired ? "\u2713 GPS" : gpsFailed ? "\u2717 GPS" : "GPS"}
-                </button>
-              </div>
-              {showSuggestions && (
-                <div className="absolute z-10 mt-1 w-full rounded border border-border bg-surface-raised shadow-lg">
-                  {suggestions.map((s) => (
+              )}
+            />
+            {errors.gallons && (
+              <p className="mt-1 text-xs text-red-600">{errors.gallons.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Price per Gallon</label>
+            <Controller
+              name="pricePerGallon"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  decimals={3}
+                  placeholder="0.000"
+                  className={inputClass}
+                />
+              )}
+            />
+            {errors.pricePerGallon && (
+              <p className="mt-1 text-xs text-red-600">{errors.pricePerGallon.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Station */}
+        <div className="relative">
+          <label className="mb-1 block text-sm font-medium text-gray-700">Station Name</label>
+          <input
+            {...register("stationName")}
+            autoComplete="off"
+            onChange={(e) => {
+              register("stationName").onChange(e);
+              setStationQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            className={inputClass}
+          />
+          {errors.stationName && (
+            <p className="mt-1 text-xs text-red-600">{errors.stationName.message}</p>
+          )}
+
+          {/* Suggestions dropdown */}
+          {showSuggestions && (stationSuggestions?.length || nearbyStations?.length) && (
+            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+              {nearbyStations && nearbyStations.length > 0 && (
+                <>
+                  <p className="px-3 pt-2 text-xs font-semibold text-gray-400">Nearby</p>
+                  {nearbyStations.map((s) => (
                     <button
-                      key={s.stationName}
+                      key={`nearby-${s.stationName}`}
                       type="button"
-                      onClick={() => selectSuggestion(s.stationName)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-sm text-text-primary hover:bg-surface-hover"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                      onMouseDown={() => {
+                        setValue("stationName", s.stationName);
+                        if (s.stationAddress) setValue("stationAddress", s.stationAddress);
+                        setShowSuggestions(false);
+                      }}
                     >
-                      <span>{s.stationName}</span>
-                      <span className="text-xs text-text-muted">{s.visitCount}x</span>
+                      <span className="font-medium">{s.stationName}</span>
+                      <span className="ml-2 text-gray-400">
+                        {s.distanceMiles.toFixed(1)} mi
+                      </span>
                     </button>
                   ))}
-                </div>
+                </>
+              )}
+              {stationSuggestions && stationSuggestions.length > 0 && (
+                <>
+                  <p className="px-3 pt-2 text-xs font-semibold text-gray-400">Recent</p>
+                  {stationSuggestions.map((s) => (
+                    <button
+                      key={`suggest-${s.stationName}`}
+                      type="button"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                      onMouseDown={() => {
+                        setValue("stationName", s.stationName);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      <span className="font-medium">{s.stationName}</span>
+                      <span className="ml-2 text-gray-400">{s.visitCount} visits</span>
+                    </button>
+                  ))}
+                </>
               )}
             </div>
-          </Field>
-          {nearbyStations.length > 1 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {nearbyStations.map((s, i) => (
-                <button key={`${s.stationName}-${i}`} type="button"
-                  onClick={() => { setValue("stationName", s.stationName); setShowSuggestions(false); }}
-                  className={`rounded border px-2 py-0.5 text-xs transition-colors ${i === 0 ? "border-accent bg-accent-subtle text-accent-text" : "border-border text-text-secondary hover:bg-surface-hover"}`}>
-                  {s.stationName} ({s.distanceMiles.toFixed(2)} mi)
-                </button>
-              ))}
-            </div>
           )}
         </div>
 
-        {/* --- Section: Gallons + Price + Octane --- */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Field label="Gallons" error={gallonsStr && gallonsNum <= 0 ? "Must be > 0" : undefined}>
-            <CurrencyInput
-              value={gallonsStr}
-              onChange={(v) => { setGallonsStr(v); setValue("gallons", parseFloat(v) || 0); }}
-              decimals={3}
-              maxWhole={3}
-              placeholder="0.000"
-            />
-          </Field>
-          <Field label="Price / gal" error={priceStr && priceNum <= 0 ? "Must be > 0" : undefined}>
-            <CurrencyInput
-              value={priceStr}
-              onChange={(v) => { setPriceStr(v); setValue("pricePerGallon", parseFloat(v) || 0); }}
-              decimals={3}
-              maxWhole={3}
-              prefix="$"
-              placeholder="0.000"
-            />
-          </Field>
-          <Field label="Total">
-            <CurrencyInput
-              value={totalStr}
-              onChange={(v) => { setTotalStr(v); setValue("totalCostOverride", parseFloat(v) || undefined); }}
-              decimals={2}
-              prefix="$"
-              placeholder={computedTotal > 0 ? computedTotal.toFixed(2) : "0.00"}
-            />
-          </Field>
-          <Field label="Octane">
-            <select {...register("octaneRating")} className="input">
-              <option value="">—</option>
-              <option value="87">87</option>
-              <option value="89">89</option>
-              <option value="91">91</option>
-              <option value="93">93</option>
-            </select>
-          </Field>
+        {/* Station address */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Station Address (optional)
+          </label>
+          <input {...register("stationAddress")} className={inputClass} />
         </div>
-        {computedTotal > 0 && !totalNum && (
-          <p className="-mt-4 text-xs text-text-muted">Calculated: ${computedTotal.toFixed(2)}</p>
-        )}
 
-        {/* --- Section: Mileage --- */}
-        <Field label="Odometer" error={errors.odometerMiles?.message}>
-          <div className="relative">
-            <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" data-bwignore="" data-1p-ignore="" data-lpignore="true" data-form-type="other" {...register("odometerMiles")} className="input pr-10" placeholder="45000" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">mi</span>
+        {/* GPS */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">GPS Location</label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={getGps}
+              disabled={gpsLoading}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {gpsLoading ? "Getting location..." : "Use Current Location"}
+            </button>
+            {latitude != null && longitude != null && (
+              <span className="text-sm text-gray-500">
+                {latitude.toFixed(5)}, {longitude.toFixed(5)}
+              </span>
+            )}
           </div>
-        </Field>
+        </div>
 
-        {/* --- Section: Receipt --- */}
-        <Field label="Receipt">
-          {receiptPreview ? (
-            <div className="relative inline-block">
-              <img src={receiptPreview} alt="Receipt" className="max-h-48 rounded border border-border object-contain" />
-              <button type="button" onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
-                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:bg-danger hover:text-white transition-colors">
-                &times;
-              </button>
-            </div>
-          ) : receiptFile ? (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <span>{receiptFile.name}</span>
-              <button type="button" onClick={() => { setReceiptFile(null); setReceiptPreview(null); }} className="link text-xs">Remove</button>
-            </div>
-          ) : (
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded border-2 border-dashed border-border p-6 transition-colors hover:border-accent hover:bg-accent-subtle/30">
-              {/* No accept attr — iOS Safari only shows "Scan Documents" when unrestricted */}
-              <input type="file" onChange={handleReceipt} className="hidden" />
-              <svg className="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-              </svg>
-              <span className="text-sm text-text-muted">Scan or attach receipt</span>
-            </label>
+        {/* Receipt */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Receipt (optional)
+          </label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+            className="w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+          />
+          {receiptFile && (
+            <p className="mt-1 text-xs text-gray-500">{receiptFile.name}</p>
           )}
-        </Field>
-
-        {/* --- Section: YNAB Account --- */}
-        {ynabEnabled && (
-          <Field label="YNAB Account">
-            <div className="flex gap-2">
-              <select
-                value={ynabAccountId}
-                onChange={(e) => {
-                  setYnabAccountId(e.target.value);
-                  const acct = cachedAccounts.find((a) => a.accountId === e.target.value);
-                  setYnabAccountName(acct?.name ?? "");
-                }}
-                className="input"
-              >
-                <option value="">Default ({ynabConfig?.accountName || "none"})</option>
-                {cachedAccounts.map((a) => (
-                  <option key={a.accountId} value={a.accountId}>
-                    {a.name} ({a.type})
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleRefreshAccounts}
-                disabled={refreshingAccounts}
-                className="shrink-0 rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
-                title="Refresh accounts from YNAB"
-              >
-                {refreshingAccounts ? "..." : "\u21BB"}
-              </button>
-            </div>
-          </Field>
-        )}
-
-        {/* --- Section: YNAB Category --- */}
-        {ynabEnabled && (
-          <Field label="YNAB Category">
-            <div className="flex gap-2">
-              <select
-                value={ynabCategoryId}
-                onChange={(e) => {
-                  setYnabCategoryId(e.target.value);
-                  const cat = cachedCategories.find((c) => c.categoryId === e.target.value);
-                  setYnabCategoryName(cat?.name ?? "");
-                }}
-                className="input"
-              >
-                <option value="">Default ({ynabConfig?.categoryName || "none"})</option>
-                {cachedCategories.map((c) => (
-                  <option key={c.categoryId} value={c.categoryId}>
-                    {c.categoryGroupName}: {c.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleRefreshCategories}
-                disabled={refreshingCategories}
-                className="shrink-0 rounded border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover"
-                title="Refresh categories from YNAB"
-              >
-                {refreshingCategories ? "..." : "\u21BB"}
-              </button>
-            </div>
-          </Field>
-        )}
+        </div>
 
         {/* Notes */}
-        <Field label="Notes">
-          <textarea {...register("notes")} className="input" rows={2} placeholder="Optional" />
-        </Field>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Notes (optional)</label>
+          <textarea {...register("notes")} rows={3} className={inputClass} />
+        </div>
 
-        {createMut.isError && <p className="text-sm text-danger-text">Error: {createMut.error.message}</p>}
-        <button type="submit" disabled={createMut.isPending} className="btn-primary w-full py-3 text-base">
-          {createMut.isPending ? "Saving..." : "Save Fill-Up"}
-        </button>
+        {/* Submit */}
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/fill-ups" })}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || createMutation.isPending}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {createMutation.isPending ? "Saving..." : "Save Fill-Up"}
+          </button>
+        </div>
       </form>
-    </div>
-  );
-}
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="label">{label}</label>
-      {children}
-      {error && <p className="mt-0.5 text-xs text-danger-text">{error}</p>}
     </div>
   );
 }

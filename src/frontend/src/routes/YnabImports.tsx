@@ -1,114 +1,209 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { apiFetch } from "../lib/api";
-import { Spinner } from "../components/Spinner";
-import { EmptyState } from "../components/EmptyState";
-import { useToast } from "../components/Toast";
-import type { Vehicle, YnabImportPage, YnabImport } from "../lib/types";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { apiFetch } from "@/lib/api";
+import type { YnabImportPage, YnabImport, Vehicle } from "@/lib/types";
+import { useToast } from "@/components/Toast";
+import Spinner from "@/components/Spinner";
+import EmptyState from "@/components/EmptyState";
+import CurrencyInput from "@/components/CurrencyInput";
 
-interface PullResult {
-  newImports: number;
-  skipped: number;
-  errors: number;
-  errorMessages: string[];
-}
+const editImportSchema = z.object({
+  gallons: z.string().nullable().optional(),
+  pricePerGallon: z.string().nullable().optional(),
+  octaneRating: z.number().nullable().optional(),
+  odometerMiles: z.number().nullable().optional(),
+  vehicleId: z.string().nullable().optional(),
+});
 
-export function YnabImportsPage() {
-  const qc = useQueryClient();
+type EditImportFormData = z.infer<typeof editImportSchema>;
+
+export default function YnabImports() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const pageSize = 20;
 
-  const { data: vehicles = [] } = useQuery({
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    status: statusFilter,
+  });
+
+  const { data: vehicles } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => apiFetch<Vehicle[]>("/vehicles"),
+    queryFn: () => apiFetch<Vehicle[]>("/api/vehicles"),
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ynab-imports", page],
-    queryFn: () => apiFetch<YnabImportPage>(`/ynab/imports?page=${page}&pageSize=50`),
+    queryKey: ["ynab-imports", page, statusFilter],
+    queryFn: () => apiFetch<YnabImportPage>(`/api/ynab/imports?${params}`),
   });
 
-  const pullMut = useMutation({
-    mutationFn: () => apiFetch<PullResult>("/ynab/imports/pull", { method: "POST", body: JSON.stringify({}) }),
-    onSuccess: (r) => {
-      if (r) {
-        toast(`Pulled ${r.newImports} new imports (${r.skipped} skipped)`);
-        if (r.errorMessages.length > 0)
-          toast(`Errors: ${r.errorMessages.slice(0, 3).join("; ")}`);
-      }
-      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
+  const approveMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/ynab/imports/${id}/approve`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
+      queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      toast("Import approved and fill-up created", "success");
     },
-    onError: (e) => toast(`Pull failed: ${e.message}`),
-  });
-
-  const approveAllMut = useMutation({
-    mutationFn: () => apiFetch<{ approved: number }>("/ynab/imports/approve-all", { method: "POST" }),
-    onSuccess: (r) => {
-      toast(`Approved ${r?.approved ?? 0} imports`);
-      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
-      qc.invalidateQueries({ queryKey: ["fill-ups"] });
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to approve", "error");
     },
   });
 
-  const resetMut = useMutation({
-    mutationFn: () => apiFetch<{ cleared: number }>("/ynab/imports/reset", { method: "POST" }),
-    onSuccess: (r) => {
-      toast(`Reset sync state, cleared ${r?.cleared ?? 0} imports`);
-      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
+  const dismissMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/ynab/imports/${id}/dismiss`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
+      toast("Import dismissed", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to dismiss", "error");
     },
   });
 
-  const totalPages = data ? Math.ceil(data.totalCount / 50) : 0;
-  const completeCount = data?.items.filter(isComplete).length ?? 0;
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: EditImportFormData }) => {
+      const body: Record<string, unknown> = {
+        ...data,
+        gallons: data.gallons ? parseFloat(data.gallons) : null,
+        pricePerGallon: data.pricePerGallon ? parseFloat(data.pricePerGallon) : null,
+      };
+      return apiFetch(`/api/ynab/imports/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
+      toast("Import updated", "success");
+      setEditingId(null);
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to update", "error");
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => apiFetch("/api/ynab/sync", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
+      toast("Sync started", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Sync failed", "error");
+    },
+  });
+
+  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold">YNAB Import Queue</h2>
-          <Link to="/settings/ynab" className="link text-sm">Back to YNAB Settings</Link>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => pullMut.mutate()} disabled={pullMut.isPending} className="btn-primary">
-            {pullMut.isPending ? "Pulling..." : "Pull from YNAB"}
-          </button>
-          {completeCount > 0 && (
-            <button onClick={() => approveAllMut.mutate()} disabled={approveAllMut.isPending} className="btn-outline">
-              {approveAllMut.isPending ? "Approving..." : `Approve All (${completeCount})`}
-            </button>
-          )}
-          <button onClick={() => resetMut.mutate()} disabled={resetMut.isPending} className="text-xs text-danger-text hover:underline">
-            {resetMut.isPending ? "Resetting..." : "Reset"}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">YNAB Imports</h1>
+        <button
+          onClick={() => syncMutation.mutate()}
+          disabled={syncMutation.isPending}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+        >
+          {syncMutation.isPending ? "Syncing..." : "Sync Now"}
+        </button>
       </div>
 
-      {data && (
-        <div className="mb-3 flex gap-4 text-sm text-text-secondary">
-          <span>{data.totalCount} pending</span>
-          <span className="text-success-text">{completeCount} complete</span>
-          <span className="text-warning-text">{data.totalCount - completeCount} incomplete</span>
-        </div>
-      )}
+      {/* Status filter */}
+      <div className="flex gap-2">
+        {["pending", "approved", "dismissed", "all"].map((status) => (
+          <button
+            key={status}
+            onClick={() => {
+              setStatusFilter(status);
+              setPage(1);
+            }}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize ${
+              statusFilter === status
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
 
-      <VehicleMemoMappingsSection vehicles={vehicles} />
-
-      {isLoading ? <Spinner /> : !data || data.items.length === 0 ? (
-        <EmptyState message="No pending imports. Click 'Pull from YNAB' to scan for transactions." />
+      {isLoading ? (
+        <Spinner className="mt-10" />
+      ) : !data || data.items.length === 0 ? (
+        <EmptyState
+          title="No imports found"
+          message={
+            statusFilter === "pending"
+              ? "No pending imports to review."
+              : "No imports match this filter."
+          }
+        />
       ) : (
         <>
-          <div className="space-y-3">
-            {data.items.map((imp) => (
-              <ImportRow key={imp.id} imp={imp} vehicles={vehicles} />
-            ))}
+          <div className="space-y-4">
+            {data.items.map((imp) =>
+              editingId === imp.id ? (
+                <ImportEditForm
+                  key={imp.id}
+                  import_={imp}
+                  vehicles={vehicles ?? []}
+                  onSubmit={(formData) =>
+                    updateMutation.mutate({ id: imp.id, data: formData })
+                  }
+                  onCancel={() => setEditingId(null)}
+                  isPending={updateMutation.isPending}
+                />
+              ) : (
+                <ImportCard
+                  key={imp.id}
+                  import_={imp}
+                  onEdit={() => setEditingId(imp.id)}
+                  onApprove={() => approveMutation.mutate(imp.id)}
+                  onDismiss={() => dismissMutation.mutate(imp.id)}
+                  isPending={
+                    approveMutation.isPending || dismissMutation.isPending
+                  }
+                />
+              )
+            )}
           </div>
 
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="btn-outline disabled:opacity-40">Prev</button>
-              <span>{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="btn-outline disabled:opacity-40">Next</button>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                {data.totalCount} import{data.totalCount !== 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="flex items-center px-3 text-sm text-gray-500">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -117,204 +212,229 @@ export function YnabImportsPage() {
   );
 }
 
-interface MemoMapping {
-  id: string;
-  memoName: string;
-  vehicleId: string;
-  vehicleLabel: string;
-}
+function ImportCard({
+  import_,
+  onEdit,
+  onApprove,
+  onDismiss,
+  isPending,
+}: {
+  import_: YnabImport;
+  onEdit: () => void;
+  onApprove: () => void;
+  onDismiss: () => void;
+  isPending: boolean;
+}) {
+  const amount = Math.abs(import_.amountMilliunits / 1000);
 
-function VehicleMemoMappingsSection({ vehicles }: { vehicles: Vehicle[] }) {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const [newName, setNewName] = useState("");
-  const [newVehicleId, setNewVehicleId] = useState("");
-
-  const { data: mappings = [] } = useQuery({
-    queryKey: ["vehicle-memo-mappings"],
-    queryFn: () => apiFetch<MemoMapping[]>("/vehicle-memo-mappings"),
-  });
-
-  const upsertMut = useMutation({
-    mutationFn: (body: { memoName: string; vehicleId: string }) =>
-      apiFetch("/vehicle-memo-mappings", { method: "PUT", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["vehicle-memo-mappings"] });
-      setNewName("");
-      setNewVehicleId("");
-      toast("Mapping saved");
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/vehicle-memo-mappings/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicle-memo-mappings"] }),
-  });
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-700",
+    approved: "bg-green-100 text-green-700",
+    dismissed: "bg-gray-100 text-gray-500",
+  };
 
   return (
-    <div className="card mb-4 space-y-3 p-4">
-      <h3 className="text-sm font-semibold">Vehicle Memo Mappings</h3>
-      <p className="text-xs text-text-muted">
-        Map vehicle names from YNAB memos to your vehicles. Pull sync uses these to auto-assign vehicles on import.
-      </p>
-
-      {mappings.length > 0 && (
+    <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          {mappings.map((m) => (
-            <div key={m.id} className="flex items-center gap-2 text-sm">
-              <span className="w-32 truncate font-medium">{m.memoName}</span>
-              <span className="text-text-muted">{m.vehicleLabel}</span>
-              <button onClick={() => deleteMut.mutate(m.id)} disabled={deleteMut.isPending} className="ml-auto text-xs text-danger-text hover:underline">Remove</button>
-            </div>
-          ))}
-        </div>
-      )}
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-gray-900">{import_.payeeName}</h3>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                statusColors[import_.status] ?? "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {import_.status}
+            </span>
+          </div>
+          <p className="text-sm text-gray-500">
+            {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
+          </p>
+          {import_.memo && (
+            <p className="text-sm text-gray-500">Memo: {import_.memo}</p>
+          )}
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          className="input text-sm"
-          placeholder="Memo name (e.g., Tacoma)"
-        />
-        <select value={newVehicleId} onChange={(e) => setNewVehicleId(e.target.value)} className="input text-sm">
-          <option value="">Vehicle...</option>
-          {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-        </select>
-        <button
-          onClick={() => upsertMut.mutate({ memoName: newName.trim(), vehicleId: newVehicleId })}
-          disabled={!newName.trim() || !newVehicleId || upsertMut.isPending}
-          className="btn-primary text-xs whitespace-nowrap"
-        >
-          Add
-        </button>
+          {/* Parsed details */}
+          <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+            {import_.gallons != null && (
+              <span>Gallons: {import_.gallons.toFixed(3)}</span>
+            )}
+            {import_.pricePerGallon != null && (
+              <span>$/Gal: ${import_.pricePerGallon.toFixed(3)}</span>
+            )}
+            {import_.octaneRating != null && (
+              <span>Octane: {import_.octaneRating}</span>
+            )}
+            {import_.odometerMiles != null && (
+              <span>Odometer: {import_.odometerMiles.toLocaleString()}</span>
+            )}
+            {import_.vehicleName && (
+              <span>Vehicle: {import_.vehicleName}</span>
+            )}
+          </div>
+        </div>
+
+        {import_.status === "pending" && (
+          <div className="flex gap-2">
+            <button
+              onClick={onEdit}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Edit
+            </button>
+            <button
+              onClick={onApprove}
+              disabled={isPending}
+              className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              onClick={onDismiss}
+              disabled={isPending}
+              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function isComplete(imp: YnabImport): boolean {
-  return !!(imp.vehicleId && imp.gallons && imp.gallons > 0 && imp.pricePerGallon && imp.pricePerGallon > 0 && imp.odometerMiles && imp.odometerMiles > 0);
-}
-
-function ImportRow({ imp, vehicles }: { imp: YnabImport; vehicles: Vehicle[] }) {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const totalCost = Math.abs(imp.amountMilliunits) / 1000;
-
-  const calcGallons = imp.pricePerGallon && imp.pricePerGallon > 0
-    ? (totalCost / imp.pricePerGallon).toFixed(3)
-    : "";
-  const [gallons, setGallons] = useState(imp.gallons?.toString() ?? calcGallons);
-  const [price, setPrice] = useState(imp.pricePerGallon?.toString() ?? "");
-  const [octane, setOctane] = useState(imp.octaneRating?.toString() ?? "");
-  const [odometer, setOdometer] = useState(imp.odometerMiles?.toString() ?? "");
-  const [vehicleId, setVehicleId] = useState(imp.vehicleId ?? "");
-
-  const localComplete = !!(vehicleId && gallons && parseFloat(gallons) > 0 && price && parseFloat(price) > 0 && odometer && parseInt(odometer) > 0);
-
-  const saveMut = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      apiFetch(`/ynab/imports/${imp.id}`, { method: "PUT", body: JSON.stringify(body) }),
-  });
-
-  const approveMut = useMutation({
-    mutationFn: () => apiFetch(`/ynab/imports/${imp.id}/approve`, { method: "POST" }),
-    onSuccess: () => {
-      toast("Import approved");
-      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
-      qc.invalidateQueries({ queryKey: ["fill-ups"] });
-    },
-    onError: (e) => toast(`Approve failed: ${e.message}`),
-  });
-
-  const dismissMut = useMutation({
-    mutationFn: () => apiFetch<void>(`/ynab/imports/${imp.id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ynab-imports"] });
+function ImportEditForm({
+  import_,
+  vehicles,
+  onSubmit,
+  onCancel,
+  isPending,
+}: {
+  import_: YnabImport;
+  vehicles: Vehicle[];
+  onSubmit: (data: EditImportFormData) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const {
+    register,
+    handleSubmit,
+    control,
+  } = useForm<EditImportFormData>({
+    resolver: standardSchemaResolver(editImportSchema),
+    defaultValues: {
+      gallons: import_.gallons?.toString() ?? "",
+      pricePerGallon: import_.pricePerGallon?.toString() ?? "",
+      octaneRating: import_.octaneRating,
+      odometerMiles: import_.odometerMiles,
+      vehicleId: import_.vehicleId,
     },
   });
 
-  const handleSave = useCallback(() => {
-    saveMut.mutate({
-      gallons: gallons ? parseFloat(gallons) : null,
-      pricePerGallon: price ? parseFloat(price) : null,
-      octaneRating: octane ? parseInt(octane) : null,
-      odometerMiles: odometer ? parseInt(odometer) : null,
-      vehicleId: vehicleId || null,
-    });
-  }, [gallons, price, octane, odometer, vehicleId, saveMut]);
+  const amount = Math.abs(import_.amountMilliunits / 1000);
 
-  const handleApprove = useCallback(() => {
-    // Save first, then approve
-    saveMut.mutate(
-      {
-        gallons: gallons ? parseFloat(gallons) : null,
-        pricePerGallon: price ? parseFloat(price) : null,
-        octaneRating: octane ? parseInt(octane) : null,
-        odometerMiles: odometer ? parseInt(odometer) : null,
-        vehicleId: vehicleId || null,
-      },
-      { onSuccess: () => approveMut.mutate() },
-    );
-  }, [gallons, price, octane, odometer, vehicleId, saveMut, approveMut]);
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
-    <div className={`card p-3 ${localComplete ? "border-l-2 border-l-success-text" : "border-l-2 border-l-warning-text"}`}>
-      {/* Header: date, payee, amount, status */}
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          {localComplete
-            ? <svg className="h-4 w-4 text-green-500 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-label="Ready to approve" role="img"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            : <span className="h-2.5 w-2.5 rounded-full bg-yellow-400 shrink-0" title="Missing required fields" />}
-          <span className="font-medium">{imp.date}</span>
-          <span className="text-text-muted">{imp.payeeName}</span>
-          {imp.memo && <span className="text-xs text-text-muted italic truncate max-w-48">({imp.memo})</span>}
-        </div>
-        <span className="font-semibold">${totalCost.toFixed(2)}</span>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="rounded-xl bg-white p-6 shadow-sm"
+    >
+      <div className="mb-4">
+        <h3 className="font-semibold text-gray-900">{import_.payeeName}</h3>
+        <p className="text-sm text-gray-500">
+          {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
+        </p>
+        {import_.memo && (
+          <p className="text-sm text-gray-500">Memo: {import_.memo}</p>
+        )}
       </div>
 
-      {/* Editable fields */}
-      <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className="text-xs text-text-muted">Vehicle</label>
-          <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="input text-sm">
+          <label className="mb-1 block text-sm font-medium text-gray-700">Gallons</label>
+          <Controller
+            name="gallons"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                decimals={3}
+                placeholder="0.000"
+                className={inputClass}
+              />
+            )}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Price/Gallon</label>
+          <Controller
+            name="pricePerGallon"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                decimals={3}
+                placeholder="0.000"
+                className={inputClass}
+              />
+            )}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Octane</label>
+          <input
+            type="number"
+            {...register("octaneRating", { valueAsNumber: true })}
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Odometer</label>
+          <input
+            type="number"
+            {...register("odometerMiles", { valueAsNumber: true })}
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle</label>
+          <select {...register("vehicleId")} className={inputClass}>
             <option value="">Select...</option>
-            {vehicles.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+            {vehicles
+              .filter((v) => v.isActive)
+              .map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))}
           </select>
-          {imp.vehicleName && !vehicleId && <span className="text-xs text-warning-text">Parsed: {imp.vehicleName}</span>}
-        </div>
-        <div>
-          <label className="text-xs text-text-muted">Gallons {!imp.gallons && calcGallons ? <span className="text-text-muted">(calc)</span> : null}</label>
-          <input type="number" step="0.001" value={gallons} onChange={(e) => setGallons(e.target.value)} className="input text-sm" placeholder="0.000" />
-        </div>
-        <div>
-          <label className="text-xs text-text-muted">$/Gallon</label>
-          <input type="number" step="0.001" value={price} onChange={(e) => setPrice(e.target.value)} className="input text-sm" placeholder="0.000" />
-        </div>
-        <div>
-          <label className="text-xs text-text-muted">Octane</label>
-          <input type="number" value={octane} onChange={(e) => setOctane(e.target.value)} className="input text-sm" placeholder="87" />
-        </div>
-        <div>
-          <label className="text-xs text-text-muted">Odometer</label>
-          <input type="number" value={odometer} onChange={(e) => setOdometer(e.target.value)} className="input text-sm" placeholder="0" />
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="mt-2 flex gap-2">
-        <button onClick={handleApprove} disabled={approveMut.isPending || saveMut.isPending} className="btn-primary text-xs">
-          {approveMut.isPending ? "..." : "Approve"}
+      <div className="mt-4 flex gap-2">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isPending ? "Saving..." : "Save"}
         </button>
-        <button onClick={handleSave} disabled={saveMut.isPending} className="btn-outline text-xs">
-          {saveMut.isPending ? "..." : "Save"}
-        </button>
-        <button onClick={() => dismissMut.mutate()} disabled={dismissMut.isPending} className="text-xs text-danger-text hover:underline">
-          Dismiss
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
         </button>
       </div>
-    </div>
+    </form>
   );
 }

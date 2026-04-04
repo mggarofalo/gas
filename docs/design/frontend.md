@@ -3,105 +3,92 @@
 ## Stack
 
 - React 19 + TypeScript
-- Vite
-- TanStack Router (file-based routing)
-- TanStack Query (server state)
-- Tailwind CSS 4
-- React Hook Form + Zod (form validation)
-- Recharts (charts)
+- Vite 8 (build tool)
+- TailwindCSS 4
+- TanStack Router (file-based, type-safe routing)
+- TanStack Query 5 (server state, staleTime 30s, retry 1)
+- React Hook Form + Zod 4 (via `standardSchemaResolver`)
+- Recharts (dashboard charts)
 
 ## Routes
 
-| Path               | View                  |
-| ------------------ | --------------------- |
-| `/`                | Dashboard (stats + recent fill-ups) |
-| `/fill-ups`        | Fill-up history table  |
-| `/fill-ups/new`    | New fill-up form       |
-| `/fill-ups/:id`    | Fill-up detail / edit  |
-| `/vehicles`        | Vehicle list + management |
+| Route                  | Component          | Purpose                                    |
+| ---------------------- | ------------------ | ------------------------------------------ |
+| `/login`               | LoginPage          | Email/password login                       |
+| `/change-password`     | ChangePasswordPage | Forced password change on first login      |
+| `/`                    | DashboardPage      | Stats cards + MPG chart + price chart + recent fill-ups |
+| `/fill-ups`            | FillUpsPage        | Paginated, sortable, filterable list       |
+| `/fill-ups/new`        | NewFillUpPage      | Create fill-up form                        |
+| `/fill-ups/:id`        | FillUpDetailPage   | Read-only detail with sync badges          |
+| `/fill-ups/:id/edit`   | EditFillUpPage     | Edit fill-up form                          |
+| `/vehicles`            | VehiclesPage       | Inline edit/add/deactivate                 |
+| `/settings/ynab`       | YnabSettingsPage   | Connect YNAB, select plan/account/category |
+| `/settings/ynab/imports` | YnabImportsPage  | Pull queue, per-import editing, approve/dismiss |
 
-## Pages
+## Auth Flow
 
-### Dashboard (`/`)
+- Tokens stored in `localStorage` under `gas_access_token` / `gas_refresh_token`
+- `apiFetch` wrapper proactively refreshes on expiry and retries on 401
+- Concurrent refresh calls deduplicated via a module-level promise
+- `requireAuth()` guard on TanStack Router redirects to `/login` on missing token
+- Also enforces `MustResetPassword` redirect to `/change-password`
 
-- Summary cards: total spend (month/year), average MPG, last fill-up
-- MPG over time line chart (per vehicle)
-- Cost per gallon trend line chart
-- Recent fill-ups table (last 5)
+## Shared Components
 
-### Fill-Up History (`/fill-ups`)
+- **Layout**: Sidebar nav + mobile hamburger drawer
+- **Spinner**: Loading indicator
+- **EmptyState**: No-data placeholder
+- **Toast**: Context + hook for notifications
+- **CurrencyInput**: Controlled decimal input that avoids `type=number` quirks on mobile
 
-- Sortable, paginated table
-- Columns: Date, Vehicle, Station, Gallons, Price/Gal, Total, Odometer, MPG
-- Filter bar: vehicle dropdown, date range picker
-- "Add Fill-Up" button
+## Dashboard
 
-### New Fill-Up (`/fill-ups/new`)
+- 4 stat cards: total fill-ups, total miles, average MPG, average price per gallon
+- MPG over time line chart (Recharts)
+- Price per gallon over time line chart
+- Recent 5 fill-ups table
 
-Form fields:
+## Fill-Up Form
 
-1. **Vehicle** - dropdown (required), pre-selects if only one active vehicle
-2. **Date** - date picker (required), defaults to today
-3. **Gas Station** - text input (required)
-4. **Station Address** - text input (optional)
-5. **Odometer** - number input (required), label: "Current Mileage"
-6. **Gallons** - number input (required), step 0.001
-7. **Price per Gallon** - currency input (required), step 0.001
-8. **Total Cost** - auto-computed, displayed read-only, editable to override
-9. **GPS Coordinates** - two number inputs OR "Use My Location" button (browser geolocation API)
-10. **Receipt** - file upload with image preview, drag-and-drop zone
-11. **Notes** - textarea (optional)
+- Vehicle selector dropdown
+- Date picker
+- Odometer miles input
+- Gallons input
+- Price per gallon input (CurrencyInput)
+- Total cost input (auto-computed, manually overridable)
+- Octane grade selector (87/89/91/93, defaults from vehicle)
+- Station name with autocomplete (searches `/api/stations/search`)
+- Station address
+- GPS location (browser geolocation prompt + nearby station suggestions)
+- Receipt file upload (image/PDF)
+- Notes textarea
+- YNAB account/category selectors (when YNAB enabled)
 
-Behavior:
-- Total auto-computes as `gallons * pricePerGallon`, rounded to 2 decimals
-- "Use My Location" calls `navigator.geolocation.getCurrentPosition()` and fills lat/lng
-- Receipt preview shows thumbnail after file selection
-- On submit, POSTs multipart form data, redirects to fill-up detail on success
+## Fill-Up List
 
-### Fill-Up Detail (`/fill-ups/:id`)
+- Desktop: table with sortable column headers
+- Mobile: card layout
+- Filters: vehicle dropdown, date range
+- Pagination controls
+- Each row shows: date, vehicle, station, gallons, price, total, MPG, trip miles
 
-- Read view of all fields
-- Receipt image displayed (loaded via presigned URL)
-- Edit button toggles to form mode (same as new, pre-populated)
-- Delete with confirmation dialog
+## YNAB Imports Page
 
-### Vehicles (`/vehicles`)
+- Pull button to trigger sync from YNAB
+- Per-import inline editing (gallons, price, octane, odometer, vehicle)
+- Approve single / approve all / dismiss buttons
+- Vehicle memo mappings management section
+- Status tabs: pending, approved, dismissed
 
-- Card or table list of vehicles
-- Inline edit for year/make/model/notes
-- Deactivate toggle (soft delete)
-- Add vehicle modal/inline form
+## API Client
 
-## Component Hierarchy
+Single `apiFetch` function that:
+1. Adds `Authorization: Bearer {token}` header
+2. Checks if token is expiring soon (< 60s) and proactively refreshes
+3. On 401 response: refreshes and retries once
+4. On refresh failure: clears tokens and redirects to `/login`
+5. Returns typed JSON response
 
-```
-App
-├── Layout (nav sidebar or top bar)
-│   ├── DashboardPage
-│   │   ├── StatCard (x4)
-│   │   ├── MpgChart
-│   │   ├── PriceChart
-│   │   └── RecentFillUpsTable
-│   ├── FillUpListPage
-│   │   ├── FilterBar
-│   │   └── FillUpTable (paginated)
-│   ├── FillUpFormPage
-│   │   ├── VehicleSelect
-│   │   ├── DatePicker
-│   │   ├── GpsInput
-│   │   ├── ReceiptUpload
-│   │   └── FormActions
-│   ├── FillUpDetailPage
-│   │   └── ReceiptViewer
-│   └── VehiclesPage
-│       ├── VehicleCard
-│       └── VehicleForm
-```
+## Zod 4 Integration
 
-## Responsive Behavior
-
-Mobile-first layout. The fill-up form is the primary mobile use case (logging at the pump).
-
-- Dashboard: cards stack vertically, charts full-width
-- Fill-up table: horizontal scroll on narrow screens, or collapses to card view
-- Form: single-column, large touch targets
+Uses `standardSchemaResolver` from `@hookform/resolvers` (not the Zod-specific resolver). This works because Zod 4 implements the Standard Schema interface.

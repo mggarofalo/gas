@@ -68,7 +68,6 @@ public static class YnabProxyEndpoints
             if (cached.Count > 0)
                 return Results.Ok(cached.Select(a => new { a.AccountId, a.Name, a.Type, a.Balance, a.FetchedAt }));
 
-            // Cache is empty — fetch from YNAB if configured
             var settings = await db.YnabSettings.FirstOrDefaultAsync();
             if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
                 return Results.Ok(Array.Empty<object>());

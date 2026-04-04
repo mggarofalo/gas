@@ -64,7 +64,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
             var parsed = MemoParser.Parse(tx.Memo, knownVehicleNames);
             var categoryMatch = categoryId is not null && tx.CategoryId == categoryId;
 
-            // For category-only matches, require a plausible gas fill-up amount ($5–$250)
+            // For category-only matches, require a plausible gas fill-up amount ($5-$250)
             if (parsed is null && categoryMatch)
             {
                 var totalCostCheck = Math.Abs(tx.Amount) / 1000m;

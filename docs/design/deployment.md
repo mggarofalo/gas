@@ -2,93 +2,107 @@
 
 ## Architecture
 
-Single `docker-compose.yml` runs the full stack. The API and React SPA are combined into one container — .NET serves the SPA from `wwwroot` alongside the API endpoints. No nginx reverse proxy is needed.
+Single `docker-compose.yml` runs the full stack. The API and React SPA are combined into one container -- .NET serves the SPA from `wwwroot` alongside the API endpoints. No nginx reverse proxy needed.
 
-### Services
+## Docker Compose Services
 
-| Service | Image | Purpose |
-| ------- | ----- | ------- |
-| init | alpine:3.21 | One-shot: generates secrets on first run |
-| db | postgres:17 | PostgreSQL database |
-| minio | minio/minio:RELEASE.2025-03-12T18-04-18Z | S3-compatible receipt storage |
-| app | ghcr.io/mggarofalo/gas:latest | .NET API + React SPA (port 8080) |
+### init
 
-### Startup Order
+- Alpine container, runs once
+- Generates random secrets (48 chars each) into a shared Docker volume: `pg_password`, `minio_access_key`, `minio_secret_key`, `jwt_key`
+- Admin password: 44 alphanum + `@A1!` suffix (meets Identity password policy)
+- Files created with `chmod 644`, idempotent (skips existing)
 
-```
-init (generates secrets) → db + minio (wait for healthy) → app
-```
+### db
 
-## Dockerfile
+- PostgreSQL 17
+- Uses `POSTGRES_PASSWORD_FILE` pointing to shared secret
+- Health check: `pg_isready`
+- Persistent volume for data
 
-Three-stage multi-arch build (amd64 + arm64):
+### minio
 
-1. **client-build** (`node:22-alpine`) — `npm ci && npm run build` produces the React SPA in `/app/client/dist`
-2. **api-build** (`dotnet/sdk:10.0`) — `dotnet publish` produces the .NET API in `/app/publish`
-3. **runtime** (`dotnet/aspnet:10.0`) — copies API output + SPA into `wwwroot`, runs via `docker-entrypoint.sh`
+- MinIO (S3-compatible object storage)
+- Reads credentials from shared secrets at startup via entrypoint script
+- Console on port 9001 (not exposed by default)
+- Persistent volume for data
 
-The runtime image installs `curl` for the health check probe and listens on port 8080.
+### app
 
-## Secrets
+- Built from multi-stage Dockerfile
+- `docker-entrypoint.sh` reads secret files and exports as environment variables
+- Port 8080
+- Depends on healthy db + minio
+- Resource limits: 512MB RAM, 1 CPU
+- tmpfs on /tmp
 
-Secrets are **auto-generated** on first run by the `init` service and stored in a Docker named volume (`secrets`). The entrypoint script (`docker-entrypoint.sh`) reads these files and bridges them to environment variables:
+### backup (profile: backup)
 
-| Secret file | Environment variable |
-| ----------- | -------------------- |
-| `/secrets/pg_password` | `ConnectionStrings__Default` (full connection string) |
-| `/secrets/minio_access_key` | `MinIO__AccessKey` |
-| `/secrets/minio_secret_key` | `MinIO__SecretKey` |
-| `/secrets/jwt_key` | `Jwt__Key` |
-| `/secrets/admin_password` | `AdminSeed__Password` |
+- PostgreSQL 17 image running backup script
+- Only runs when explicitly activated via `--profile backup`
 
-To override a secret, write to its file in the volume before starting the stack.
+## Dockerfile (Multi-Stage)
 
-## Environment Variables
+### Stage 1: client-build
 
-Non-secret configuration is set directly in `docker-compose.yml` environment blocks. See `.env.example` for all configurable variables with defaults.
+- `node:22-alpine`
+- `npm ci` + `npm run build` for the React SPA
+- Output: `dist/` directory
 
-## Health Checks
+### Stage 2: api-build
 
-All services have Docker health checks:
+- `mcr.microsoft.com/dotnet/sdk:10.0`
+- Restore + publish for the target architecture (amd64/arm64)
+- Output: `/app/publish/` directory
 
-- **db**: `pg_isready -U gas -d gastracker`
-- **minio**: `mc ready local`
-- **app**: `curl -sf http://localhost:8080/health` — returns JSON with per-dependency status (PostgreSQL, MinIO)
+### Stage 3: runtime
 
-The `app` service waits for `db` and `minio` to be healthy before starting.
+- `mcr.microsoft.com/dotnet/aspnet:10.0`
+- Copies published API + built SPA into `/app/wwwroot/`
+- Installs `curl` for health check
+- HEALTHCHECK: `curl -sf http://localhost:8080/health`
+- ENTRYPOINT: `./docker-entrypoint.sh`
+
+## docker-entrypoint.sh
+
+1. Sets timezone from `$TZ` if configured
+2. Reads `/secrets/pg_password` -> constructs `ConnectionStrings__Default`
+3. Reads `/secrets/minio_access_key` -> `MinIO__AccessKey`
+4. Reads `/secrets/minio_secret_key` -> `MinIO__SecretKey`
+5. Reads `/secrets/jwt_key` -> `Jwt__Key` (strips whitespace)
+6. Reads `/secrets/admin_password` -> `AdminSeed__Password` (strips newlines)
+7. Exec `dotnet GasTracker.Api.dll`
+
+## CI/CD
+
+### ci.yml (on push/PR to main)
+
+- **backend**: Setup .NET 10, restore, build, test
+- **frontend**: Setup Node 22, npm ci, tsc --noEmit, npm run build
+
+### docker-publish.yml (on tag v*.*.*)
+
+- Build per-architecture images (amd64, arm64) with QEMU emulation
+- Push to GHCR as `ghcr.io/mggarofalo/gas`
+- Merge manifests into multi-arch tags (latest, semver, sha)
+- Trivy security scan on the merged image
+
+### release-please.yml
+
+- Automated versioning and changelog generation
 
 ## Security Hardening
 
-- All containers drop all Linux capabilities and add back only what's required
-- `no-new-privileges:true` on all containers
-- App container runs with `tmpfs` on `/tmp` and 512MB memory limit
-- Secrets volume is mounted read-only everywhere except the `init` service
+- All containers: `cap_drop: ALL` with minimal capabilities added back
+- `security_opt: no-new-privileges:true`
+- Secrets in a named Docker volume (never in environment variables in compose file)
+- YNAB API token encrypted at rest via Data Protection API (keys persisted to `/dp-keys` volume)
+- Structured logging with size limits (50MB, 3 files)
+- Resource limits on app container
+- tmpfs for temporary files
 
-## Backup
+## Published Image
 
-### PostgreSQL
-
-A `backup` service in Docker Compose runs `pg_dump -Fc` and stores compressed dumps in the `backups` volume. It uses the `backup` profile so it doesn't start with `docker compose up`.
-
-```bash
-# Run a one-off backup
-docker compose --profile backup run --rm backup
-
-# Schedule daily backups via host cron (2 AM)
-# crontab -e
-0 2 * * * cd /path/to/gas && docker compose --profile backup run --rm backup >> /var/log/gas-backup.log 2>&1
-```
-
-Backups are named `gastracker_YYYY-MM-DD.dump` and rotated after 7 days.
-
-### Restore
-
-```bash
-docker compose --profile backup run --rm backup \
-  pg_restore -h db -U gas -d gastracker --clean --if-exists \
-    /backups/gastracker_2026-03-30.dump
-```
-
-### MinIO
-
-Data persisted in Docker volume (`minio-data`). No automated backup — volume-level snapshots or MinIO replication can be added if needed.
+- Registry: `ghcr.io/mggarofalo/gas`
+- Architectures: `linux/amd64`, `linux/arm64`
+- Tags: `latest`, `{major}.{minor}`, `{major}.{minor}.{patch}`, `sha-{commit}`

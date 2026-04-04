@@ -255,7 +255,7 @@ public class FillUpRepositoryTests
 
         stats.TotalFillUps.Should().Be(1);
         stats.TotalGallons.Should().Be(14.5m);
-        stats.TotalMiles.Should().Be(0); // Only one fill-up → no range
+        stats.TotalMiles.Should().Be(0); // Only one fill-up -> no range
         stats.AvgMpg.Should().BeNull();
         stats.CostPerMile.Should().BeNull();
     }

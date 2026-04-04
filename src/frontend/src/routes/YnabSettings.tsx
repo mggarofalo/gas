@@ -1,301 +1,260 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "../lib/api";
-import { Spinner } from "../components/Spinner";
-import { useToast } from "../components/Toast";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { apiFetch } from "@/lib/api";
+import type { YnabConfig, YnabAccount, YnabCategory } from "@/lib/types";
+import { useToast } from "@/components/Toast";
+import Spinner from "@/components/Spinner";
 
-interface YnabConfig {
-  configured: boolean;
-  maskedToken?: string;
-  planId?: string;
-  planName?: string;
-  accountId?: string;
-  accountName?: string;
-  categoryId?: string;
-  categoryName?: string;
-  enabled?: boolean;
-}
+const tokenSchema = z.object({
+  token: z.string().min(1, "YNAB personal access token is required"),
+});
 
-interface YnabPlan {
-  id: string;
-  name: string;
-  lastModifiedOn: string | null;
-}
+const configSchema = z.object({
+  syncPlan: z.string().min(1, "Sync plan is required"),
+  accountId: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+});
 
-interface YnabAccount {
-  id: string;
-  name: string;
-  type: string;
-  balance: number;
-}
+type TokenFormData = z.infer<typeof tokenSchema>;
+type ConfigFormData = z.infer<typeof configSchema>;
 
-interface YnabCategory {
-  id: string;
-  name: string;
-  categoryGroupName: string;
-}
-
-export function YnabSettingsPage() {
-  const qc = useQueryClient();
+export default function YnabSettings() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [showTokenForm, setShowTokenForm] = useState(false);
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ["ynab-settings"],
-    queryFn: () => apiFetch<YnabConfig>("/settings/ynab"),
+    queryKey: ["ynab-config"],
+    queryFn: () => apiFetch<YnabConfig>("/api/ynab/config"),
   });
 
-  const [token, setToken] = useState("");
-  const [planId, setPlanId] = useState("");
-  const [planName, setPlanName] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [categoryName, setCategoryName] = useState("");
-  const [enabled, setEnabled] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-  const initialized = useRef(false);
+  const { data: accounts } = useQuery({
+    queryKey: ["ynab-accounts"],
+    queryFn: () => apiFetch<YnabAccount[]>("/api/ynab/accounts"),
+    enabled: config?.hasToken === true,
+  });
 
-  // Sync local state from server config on initial load only
+  const { data: categories } = useQuery({
+    queryKey: ["ynab-categories"],
+    queryFn: () => apiFetch<YnabCategory[]>("/api/ynab/categories"),
+    enabled: config?.hasToken === true,
+  });
+
+  // Token form
+  const tokenForm = useForm<TokenFormData>({
+    resolver: standardSchemaResolver(tokenSchema),
+  });
+
+  const saveTokenMutation = useMutation({
+    mutationFn: (data: TokenFormData) =>
+      apiFetch("/api/ynab/token", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-config"] });
+      queryClient.invalidateQueries({ queryKey: ["ynab-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["ynab-categories"] });
+      toast("YNAB token saved", "success");
+      setShowTokenForm(false);
+      tokenForm.reset();
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to save token", "error");
+    },
+  });
+
+  // Config form
+  const configForm = useForm<ConfigFormData>({
+    resolver: standardSchemaResolver(configSchema),
+  });
+
   useEffect(() => {
-    if (config?.configured && !initialized.current) {
-      initialized.current = true;
-      setPlanId(config.planId ?? "");
-      setPlanName(config.planName ?? "");
-      setAccountId(config.accountId ?? "");
-      setAccountName(config.accountName ?? "");
-      setCategoryId(config.categoryId ?? "");
-      setCategoryName(config.categoryName ?? "");
-      setEnabled(config.enabled ?? false);
-    }
-  }, [config]);
-
-  // Fetch plans when configured
-  const { data: plans = [], isFetching: loadingPlans } = useQuery({
-    queryKey: ["ynab-plans"],
-    queryFn: () => apiFetch<YnabPlan[]>("/ynab/plans"),
-    enabled: !!config?.configured,
-    retry: false,
-  });
-
-  // Fetch accounts when plan is selected
-  const { data: accounts = [], isFetching: loadingAccounts } = useQuery({
-    queryKey: ["ynab-accounts", planId],
-    queryFn: () => apiFetch<YnabAccount[]>(`/ynab/plans/${planId}/accounts`),
-    enabled: !!planId && !!config?.configured,
-    retry: false,
-  });
-
-  // Fetch categories when plan is selected
-  const { data: categories = [], isFetching: loadingCategories } = useQuery({
-    queryKey: ["ynab-categories", planId],
-    queryFn: () => apiFetch<YnabCategory[]>(`/ynab/plans/${planId}/categories`),
-    enabled: !!planId && !!config?.configured,
-    retry: false,
-  });
-
-  const tokenMut = useMutation({
-    mutationFn: (apiToken: string) =>
-      apiFetch("/settings/ynab/token", { method: "PUT", body: JSON.stringify({ apiToken }) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ynab-settings"] });
-      toast("YNAB token saved");
-      setToken("");
-      setShowToken(false);
-    },
-  });
-
-  const saveMut = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      apiFetch("/settings/ynab", { method: "PUT", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ynab-settings"] });
-      toast("YNAB settings saved");
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: () => apiFetch<void>("/settings/ynab", { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ynab-settings"] });
-      qc.removeQueries({ queryKey: ["ynab-plans"] });
-      setPlanId("");
-      setPlanName("");
-      setAccountId("");
-      setAccountName("");
-      setCategoryId("");
-      setCategoryName("");
-      setToken("");
-      setEnabled(false);
-      initialized.current = false;
-      toast("YNAB disconnected");
-    },
-  });
-
-  const handleConnect = () => {
-    if (!token.trim()) return;
-    tokenMut.mutate(token.trim());
-  };
-
-  const handleSave = () => {
-    // Save token first if provided, then save settings
-    if (token.trim()) {
-      tokenMut.mutate(token.trim(), {
-        onSuccess: () => {
-          saveMut.mutate({
-            planId: planId || null,
-            planName: planName || null,
-            accountId: accountId || null,
-            accountName: accountName || null,
-            categoryId: categoryId || null,
-            categoryName: categoryName || null,
-            enabled,
-          });
-        },
-      });
-    } else {
-      saveMut.mutate({
-        planId: planId || null,
-        planName: planName || null,
-        accountId: accountId || null,
-        accountName: accountName || null,
-        categoryId: categoryId || null,
-        categoryName: categoryName || null,
-        enabled,
+    if (config) {
+      configForm.reset({
+        syncPlan: config.syncPlan,
+        accountId: config.accountId,
+        categoryId: config.categoryId,
       });
     }
-  };
+  }, [config, configForm]);
 
-  const handlePlanChange = (id: string) => {
-    setPlanId(id);
-    const plan = plans.find((p) => p.id === id);
-    setPlanName(plan?.name ?? "");
-    setAccountId("");
-    setAccountName("");
-    setCategoryId("");
-    setCategoryName("");
-  };
+  const saveConfigMutation = useMutation({
+    mutationFn: (data: ConfigFormData) =>
+      apiFetch("/api/ynab/config", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-config"] });
+      toast("YNAB settings saved", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to save settings", "error");
+    },
+  });
 
-  const handleAccountChange = (id: string) => {
-    setAccountId(id);
-    const account = accounts.find((a) => a.id === id);
-    setAccountName(account?.name ?? "");
-  };
+  const syncMutation = useMutation({
+    mutationFn: () => apiFetch("/api/ynab/sync", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ynab-config"] });
+      toast("YNAB sync started", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Sync failed", "error");
+    },
+  });
 
-  const handleCategoryChange = (id: string) => {
-    setCategoryId(id);
-    const cat = categories.find((c) => c.id === id);
-    setCategoryName(cat?.name ?? "");
-  };
+  if (isLoading) return <Spinner className="mt-20" />;
 
-  if (isLoading) return <Spinner />;
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h2 className="mb-6 text-2xl font-semibold">YNAB Settings</h2>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">YNAB Settings</h1>
 
-      <div className="card space-y-5 p-4 sm:p-6">
-        {/* Connection status */}
+      {/* Token section */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${config?.configured ? "bg-success-text" : "bg-text-muted"}`} />
-            <span className="text-sm font-medium">{config?.configured ? "Connected" : "Not connected"}</span>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">API Token</h2>
+            <p className="text-sm text-gray-500">
+              {config?.hasToken
+                ? "Token is configured"
+                : "No token configured"}
+            </p>
           </div>
-          {config?.configured && (
-            <button onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending} className="text-sm text-danger-text hover:underline">
-              Disconnect
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                config?.hasToken
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
+              }`}
+            >
+              {config?.hasToken ? "Connected" : "Not Connected"}
+            </span>
+            <button
+              onClick={() => setShowTokenForm(!showTokenForm)}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {config?.hasToken ? "Update Token" : "Add Token"}
             </button>
-          )}
+          </div>
         </div>
 
-        {/* API Token */}
-        <div>
-          <label className="label">API Token</label>
-          {config?.configured && !showToken ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary">{config.maskedToken}</span>
-              <button onClick={() => setShowToken(true)} className="link text-xs">Change</button>
-            </div>
-          ) : (
+        {showTokenForm && (
+          <form
+            onSubmit={tokenForm.handleSubmit((data) =>
+              saveTokenMutation.mutate(data)
+            )}
+            className="mt-4 space-y-3"
+          >
             <input
               type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              className="input"
-              placeholder="Paste your YNAB personal access token"
+              placeholder="YNAB Personal Access Token"
+              {...tokenForm.register("token")}
+              className={inputClass}
             />
-          )}
-        </div>
-
-        {/* Initial connect button */}
-        {!config?.configured && (
-          <button onClick={handleConnect} disabled={!token.trim() || tokenMut.isPending} className="btn-primary w-full">
-            {tokenMut.isPending ? "Connecting..." : "Connect to YNAB"}
-          </button>
+            {tokenForm.formState.errors.token && (
+              <p className="text-xs text-red-600">
+                {tokenForm.formState.errors.token.message}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={saveTokenMutation.isPending}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saveTokenMutation.isPending ? "Saving..." : "Save Token"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowTokenForm(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         )}
+      </div>
 
-        {/* Configured: show plan/account/category dropdowns */}
-        {config?.configured && (
-          <>
-            {/* Plan (Budget) */}
+      {/* Config section */}
+      {config?.hasToken && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Sync Configuration</h2>
+
+          <form
+            onSubmit={configForm.handleSubmit((data) =>
+              saveConfigMutation.mutate(data)
+            )}
+            className="space-y-4"
+          >
             <div>
-              <label className="label">Budget</label>
-              <select value={planId} onChange={(e) => handlePlanChange(e.target.value)} className="input" disabled={loadingPlans}>
-                <option value="">{loadingPlans ? "Loading..." : "Select a budget"}</option>
-                {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Sync Plan
+              </label>
+              <select {...configForm.register("syncPlan")} className={inputClass}>
+                <option value="disabled">Disabled</option>
+                <option value="import-only">Import Only</option>
+                <option value="full-sync">Full Sync</option>
               </select>
             </div>
 
-            {/* Account */}
-            {planId && (
-              <div>
-                <label className="label">Account</label>
-                <select value={accountId} onChange={(e) => handleAccountChange(e.target.value)} className="input" disabled={loadingAccounts}>
-                  <option value="">{loadingAccounts ? "Loading..." : "Select an account"}</option>
-                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.type})</option>)}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Default Account
+              </label>
+              <select {...configForm.register("accountId")} className={inputClass}>
+                <option value="">None</option>
+                {accounts?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {/* Category (optional) */}
-            {planId && (
-              <div>
-                <label className="label">Category <span className="text-text-muted">(optional)</span></label>
-                <select value={categoryId} onChange={(e) => handleCategoryChange(e.target.value)} className="input" disabled={loadingCategories}>
-                  <option value="">{loadingCategories ? "Loading..." : "Auto-categorize"}</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.categoryGroupName}: {c.name}</option>)}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Default Category
+              </label>
+              <select {...configForm.register("categoryId")} className={inputClass}>
+                <option value="">None</option>
+                {categories?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.groupName}: {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {/* Enable toggle */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-4 w-4 accent-accent" />
-              <span className="text-sm">Auto-sync fill-ups to YNAB</span>
-            </label>
-
-            {/* Save button */}
-            <button onClick={handleSave} disabled={saveMut.isPending || (showToken && !token.trim())} className="btn-primary w-full">
-              {saveMut.isPending ? "Saving..." : "Save Settings"}
-            </button>
-          </>
-        )}
-
-        {tokenMut.isError && <p className="text-sm text-danger-text">Token error: {tokenMut.error.message}</p>}
-        {saveMut.isError && <p className="text-sm text-danger-text">Error: {saveMut.error.message}</p>}
-        {deleteMut.isError && <p className="text-sm text-danger-text">Error: {deleteMut.error.message}</p>}
-      </div>
-
-      {/* Import queue link — only when connected */}
-      {config?.configured && config?.enabled && (
-        <div className="card mt-6 space-y-3 p-4 sm:p-6">
-          <h3 className="text-lg font-semibold">Pull from YNAB</h3>
-          <p className="text-sm text-text-secondary">
-            Import gas transactions from YNAB into Gas Tracker. Transactions are queued for review before creating fill-ups.
-          </p>
-          <a href="/settings/ynab/imports" className="btn-primary inline-block">Open Import Queue</a>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={saveConfigMutation.isPending}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saveConfigMutation.isPending ? "Saving..." : "Save Settings"}
+              </button>
+              <button
+                type="button"
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {syncMutation.isPending ? "Syncing..." : "Sync Now"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
   );
 }
-
