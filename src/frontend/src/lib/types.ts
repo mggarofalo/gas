@@ -102,22 +102,31 @@ export interface AuthTokens {
 }
 
 export interface YnabConfig {
-  hasToken: boolean;
-  syncPlan: string;
+  configured: boolean;
+  maskedToken?: string;
+  planId: string | null;
+  planName: string | null;
   accountId: string | null;
   accountName: string | null;
   categoryId: string | null;
   categoryName: string | null;
+  enabled: boolean;
+}
+
+export interface YnabPlan {
+  id: string;
+  name: string;
 }
 
 export interface YnabAccount {
   id: string;
   name: string;
-  balance: number;
+  type?: string;
+  balance?: number;
 }
 
 export interface YnabCategory {
   id: string;
   name: string;
-  groupName: string;
+  categoryGroupName: string;
 }

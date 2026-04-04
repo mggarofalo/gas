@@ -49,7 +49,7 @@ export default function EditFillUp() {
     queryKey: ["station-suggestions", stationQuery],
     queryFn: () =>
       apiFetch<StationSuggestion[]>(
-        `/api/stations/suggestions?q=${encodeURIComponent(stationQuery)}`
+        `/api/stations/search?q=${encodeURIComponent(stationQuery)}`
       ),
     enabled: stationQuery.length >= 2,
   });

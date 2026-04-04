@@ -66,7 +66,7 @@ export default function NewFillUp() {
     queryKey: ["station-suggestions", stationQuery],
     queryFn: () =>
       apiFetch<StationSuggestion[]>(
-        `/api/stations/suggestions?q=${encodeURIComponent(stationQuery)}`
+        `/api/stations/search?q=${encodeURIComponent(stationQuery)}`
       ),
     enabled: stationQuery.length >= 2,
   });
@@ -76,7 +76,7 @@ export default function NewFillUp() {
     queryKey: ["nearby-stations", latitude, longitude],
     queryFn: () =>
       apiFetch<NearbyStation[]>(
-        `/api/stations/nearby?latitude=${latitude}&longitude=${longitude}`
+        `/api/locations/nearby?lat=${latitude}&lng=${longitude}`
       ),
     enabled: latitude != null && longitude != null,
   });
