@@ -24,7 +24,8 @@ builder.Services.AddOpenApi();
 
 // Data Protection (encrypts YNAB API tokens at rest)
 var dpBuilder = builder.Services.AddDataProtection();
-var dpKeysDir = new DirectoryInfo("/dp-keys");
+var dpKeysPath = builder.Configuration["DataProtection:KeysPath"] ?? "/dp-keys";
+var dpKeysDir = new DirectoryInfo(dpKeysPath);
 dpKeysDir.Create();
 dpBuilder.PersistKeysToFileSystem(dpKeysDir);
 
@@ -125,7 +126,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    if (db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        db.Database.EnsureCreated();
+    else
+        db.Database.Migrate();
 
     await AdminSeeder.SeedAsync(scope.ServiceProvider);
 }
@@ -184,3 +188,6 @@ app.MapYnabImportEndpoints();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// Make Program accessible from test projects (WebApplicationFactory<Program>)
+public partial class Program { }

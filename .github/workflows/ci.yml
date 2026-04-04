@@ -28,7 +28,18 @@ jobs:
         run: dotnet build src/GasTracker/GasTracker.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test tests/GasTracker.Tests/GasTracker.Tests.csproj -c Release --no-build
+        run: dotnet test tests/GasTracker.Tests/GasTracker.Tests.csproj -c Release --no-build --collect:"XPlat Code Coverage"
+
+      - name: Generate coverage report
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:coverage/backend -reporttypes:HtmlSummary
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/backend
 
   frontend:
     name: Build & Check (React)
@@ -51,10 +62,16 @@ jobs:
         run: npx tsc --noEmit
         working-directory: src/frontend
 
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: npm run test:coverage
         working-directory: src/frontend
 
       - name: Build
         run: npm run build
         working-directory: src/frontend
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: coverage/frontend
