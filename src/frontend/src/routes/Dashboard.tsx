@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -24,9 +25,18 @@ function fmtNum(n: number | null | undefined, decimals = 1): string {
 }
 
 export default function Dashboard() {
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+
+  const vehicleParam = selectedVehicleId
+    ? `&vehicleId=${selectedVehicleId}`
+    : "";
+
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => apiFetch<Stats>("/api/stats"),
+    queryKey: ["stats", selectedVehicleId],
+    queryFn: () =>
+      apiFetch<Stats>(
+        `/api/stats${selectedVehicleId ? `?vehicleId=${selectedVehicleId}` : ""}`
+      ),
   });
 
   const { data: vehicles } = useQuery({
@@ -35,31 +45,37 @@ export default function Dashboard() {
   });
 
   const { data: recentFillUps, isLoading: fillUpsLoading } = useQuery({
-    queryKey: ["fill-ups", "recent"],
+    queryKey: ["fill-ups", "recent", selectedVehicleId],
     queryFn: () =>
       apiFetch<{ items: FillUp[] }>(
-        "/api/fill-ups?page=1&pageSize=5&sortBy=date&sortDir=desc"
+        `/api/fill-ups?page=1&pageSize=5&sortBy=date&sortDir=desc${vehicleParam}`
       ).then((r) => r.items),
   });
 
   // Fetch more fill-ups for charts (last 20)
   const { data: chartFillUps } = useQuery({
-    queryKey: ["fill-ups", "chart"],
+    queryKey: ["fill-ups", "chart", selectedVehicleId],
     queryFn: () =>
       apiFetch<{ items: FillUp[] }>(
-        "/api/fill-ups?page=1&pageSize=20&sortBy=date&sortDir=asc"
+        `/api/fill-ups?page=1&pageSize=20&sortBy=date&sortDir=asc${vehicleParam}`
       ).then((r) => r.items),
   });
 
   const mpgData = (chartFillUps ?? [])
     .filter((f) => f.mpg != null)
     .map((f) => ({
-      date: new Date(f.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: new Date(f.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
       mpg: f.mpg!,
     }));
 
   const priceData = (chartFillUps ?? []).map((f) => ({
-    date: new Date(f.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    date: new Date(f.date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
     price: f.pricePerGallon,
   }));
 
@@ -70,7 +86,23 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <select
+            value={selectedVehicleId}
+            onChange={(e) => setSelectedVehicleId(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="">All Vehicles</option>
+            {vehicles
+              ?.filter((v) => v.isActive)
+              .map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))}
+          </select>
+        </div>
         <Link
           to="/fill-ups/new"
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
@@ -81,13 +113,19 @@ export default function Dashboard() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total Fill-Ups" value={stats?.totalFillUps?.toString() ?? "--"} />
+        <StatCard
+          label="Total Fill-Ups"
+          value={stats?.totalFillUps?.toString() ?? "--"}
+        />
         <StatCard label="Total Gallons" value={fmtNum(stats?.totalGallons, 1)} />
         <StatCard label="Total Cost" value={fmt$(stats?.totalCost)} />
         <StatCard label="Total Miles" value={fmtNum(stats?.totalMiles, 0)} />
         <StatCard label="Avg MPG" value={fmtNum(stats?.avgMpg)} />
         <StatCard label="Avg Price/Gal" value={fmt$(stats?.avgPricePerGallon)} />
-        <StatCard label="Avg Cost/Fill-Up" value={fmt$(stats?.avgCostPerFillUp)} />
+        <StatCard
+          label="Avg Cost/Fill-Up"
+          value={fmt$(stats?.avgCostPerFillUp)}
+        />
         <StatCard label="Cost/Mile" value={fmt$(stats?.costPerMile)} />
       </div>
 
@@ -95,7 +133,9 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         {mpgData.length > 1 && (
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">MPG Trend</h2>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              MPG Trend
+            </h2>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={mpgData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -116,13 +156,23 @@ export default function Dashboard() {
 
         {priceData.length > 1 && (
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Price per Gallon</h2>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              Price per Gallon
+            </h2>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={priceData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-                <Tooltip formatter={(value) => [`$${Number(value).toFixed(3)}`, "Price"]} />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(v) => `$${v}`}
+                />
+                <Tooltip
+                  formatter={(value) => [
+                    `$${Number(value).toFixed(3)}`,
+                    "Price",
+                  ]}
+                />
                 <Line
                   type="monotone"
                   dataKey="price"
@@ -139,8 +189,13 @@ export default function Dashboard() {
       {/* Recent fill-ups */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Fill-Ups</h2>
-          <Link to="/fill-ups" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Recent Fill-Ups
+          </h2>
+          <Link
+            to="/fill-ups"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
             View all
           </Link>
         </div>
@@ -171,9 +226,15 @@ export default function Dashboard() {
                       </Link>
                     </td>
                     <td className="py-2 pr-4">{f.vehicleLabel}</td>
-                    <td className="py-2 pr-4 max-w-[150px] truncate">{f.stationName}</td>
-                    <td className="py-2 pr-4 text-right">{f.gallons.toFixed(3)}</td>
-                    <td className="py-2 pr-4 text-right">{fmt$(f.totalCost)}</td>
+                    <td className="py-2 pr-4 max-w-[150px] truncate">
+                      {f.stationName}
+                    </td>
+                    <td className="py-2 pr-4 text-right">
+                      {f.gallons.toFixed(3)}
+                    </td>
+                    <td className="py-2 pr-4 text-right">
+                      {fmt$(f.totalCost)}
+                    </td>
                     <td className="py-2 text-right">{fmtNum(f.mpg)}</td>
                   </tr>
                 ))}
@@ -186,9 +247,11 @@ export default function Dashboard() {
       </div>
 
       {/* Vehicles summary */}
-      {vehicles && vehicles.length > 0 && (
+      {!selectedVehicleId && vehicles && vehicles.length > 0 && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Vehicles</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            Vehicles
+          </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles
               .filter((v) => v.isActive)
@@ -196,7 +259,9 @@ export default function Dashboard() {
                 <div key={v.id} className="rounded-lg border p-4">
                   <p className="font-medium text-gray-900">{v.label}</p>
                   {v.octaneRating && (
-                    <p className="text-sm text-gray-500">{v.octaneRating} octane</p>
+                    <p className="text-sm text-gray-500">
+                      {v.octaneRating} octane
+                    </p>
                   )}
                 </div>
               ))}
