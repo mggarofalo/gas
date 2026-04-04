@@ -15,13 +15,13 @@ public static class Mappings
             receiptUrl = $"/api/fill-ups/{f.Id}/receipt";
 
         // Plausibility guard: null out fuel economy fields when data looks bad.
-        // tripMiles > 2000 between fill-ups or mpg > 200 indicates bad odometer data.
+        // tripMiles > 600 between fill-ups or mpg > 50 indicates bad odometer data.
         // The fill-up is preserved for price/expense history — only computed fields are nulled.
-        var plausibleTrip = tripMiles.HasValue && tripMiles > 0 && tripMiles <= 2000;
+        var plausibleTrip = tripMiles.HasValue && tripMiles > 0 && tripMiles <= 600;
         decimal? rawMpg = plausibleTrip && f.Gallons > 0
             ? Math.Round((decimal)tripMiles!.Value / f.Gallons, 2)
             : null;
-        decimal? mpg = rawMpg is > 0 and <= 200 ? rawMpg : null;
+        decimal? mpg = rawMpg is > 0 and <= 50 ? rawMpg : null;
         decimal? costPerMile = plausibleTrip && mpg.HasValue
             ? Math.Round(f.TotalCost / tripMiles!.Value, 2)
             : null;
