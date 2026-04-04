@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.25.0](https://github.com/mggarofalo/gas/compare/v1.24.3...v1.25.0) (2026-04-04)
+
+
+### Features
+
+* add dark/light/system theme switcher ([#105](https://github.com/mggarofalo/gas/issues/105)) ([a72d0d0](https://github.com/mggarofalo/gas/commit/a72d0d0d1c4b73355884be0d7761ace111ac0400))
+* add vehicle filter dropdown to dashboard ([#104](https://github.com/mggarofalo/gas/issues/104)) ([ff1c4f6](https://github.com/mggarofalo/gas/commit/ff1c4f6a036eccbddb94d94c893a80e5df1ace51))
+* update fill-up form with total price, calculated gallons, and YNAB picker ([#103](https://github.com/mggarofalo/gas/issues/103)) ([d87ded6](https://github.com/mggarofalo/gas/commit/d87ded6420f792c7675433b9f410a74e2e4b5ec2))
+
+
+### Bug Fixes
+
+* align frontend API calls with backend endpoint paths ([#102](https://github.com/mggarofalo/gas/issues/102)) ([eaff408](https://github.com/mggarofalo/gas/commit/eaff40869a3ee739523db3219de07f2898a7a4b4))
+
 ## [1.24.2](https://github.com/mggarofalo/gas/compare/v1.24.1...v1.24.2) (2026-04-04)
 
 
