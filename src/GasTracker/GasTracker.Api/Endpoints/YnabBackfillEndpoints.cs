@@ -31,7 +31,7 @@ public static class YnabBackfillEndpoints
 
             // Validate vehicle mappings
             if (req.VehicleMappings is null || req.VehicleMappings.Count == 0)
-                return Results.BadRequest(new { error = "vehicleMappings is required (vehicle name → UUID)" });
+                return Results.BadRequest(new { error = "vehicleMappings is required (vehicle name -> UUID)" });
 
             foreach (var (name, id) in req.VehicleMappings)
             {

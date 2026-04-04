@@ -1,109 +1,295 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
-import { apiFetch } from "../lib/api";
-import { Spinner } from "../components/Spinner";
-import { EmptyState } from "../components/EmptyState";
-import { useToast } from "../components/Toast";
-import type { Vehicle } from "../lib/types";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { apiFetch } from "@/lib/api";
+import type { Vehicle } from "@/lib/types";
+import { useToast } from "@/components/Toast";
+import Spinner from "@/components/Spinner";
+import EmptyState from "@/components/EmptyState";
 
 const vehicleSchema = z.object({
-  year: z.coerce.number().int().min(1900).max(2100),
-  make: z.string().min(1, "Required").max(100),
-  model: z.string().min(1, "Required").max(100),
-  notes: z.string().max(500).optional(),
-  octaneRating: z.coerce.number().optional(),
+  year: z.number().int().min(1900).max(2100),
+  make: z.string().min(1, "Make is required"),
+  model: z.string().min(1, "Model is required"),
+  notes: z.string().nullable().optional(),
+  octaneRating: z.number().nullable().optional(),
 });
-interface VehicleForm { year: number; make: string; model: string; notes?: string; octaneRating?: number; }
 
-export function VehiclesPage() {
-  const qc = useQueryClient();
+type VehicleFormData = z.infer<typeof vehicleSchema>;
+
+export default function Vehicles() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  const { data: vehicles = [], isLoading } = useQuery({ queryKey: ["vehicles"], queryFn: () => apiFetch<Vehicle[]>("/vehicles?active=false") });
-
-  const createMut = useMutation({
-    mutationFn: (data: VehicleForm) => apiFetch<Vehicle>("/vehicles", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: (v) => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setShowAdd(false); toast(`${v.label} added`); },
-  });
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<VehicleForm> }) => apiFetch<Vehicle>(`/vehicles/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); setEditingId(null); toast("Vehicle updated"); },
-  });
-  const toggleMut = useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/vehicles/${id}`, { method: "DELETE" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehicles"] }); toast("Vehicle deactivated"); },
+  const { data: vehicles, isLoading } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: () => apiFetch<Vehicle[]>("/api/vehicles"),
   });
 
-  if (isLoading) return <Spinner />;
+  const createMutation = useMutation({
+    mutationFn: (data: VehicleFormData) =>
+      apiFetch<Vehicle>("/api/vehicles", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast("Vehicle added", "success");
+      setShowAddForm(false);
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to add vehicle", "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: VehicleFormData }) =>
+      apiFetch<Vehicle>(`/api/vehicles/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast("Vehicle updated", "success");
+      setEditingId(null);
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to update vehicle", "error");
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/vehicles/${id}/deactivate`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast("Vehicle deactivated", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to deactivate vehicle", "error");
+    },
+  });
+
+  if (isLoading) return <Spinner className="mt-20" />;
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Vehicles</h2>
-        <button onClick={() => setShowAdd(true)} className="btn-primary">Add Vehicle</button>
-      </div>
-
-      {showAdd && <VehicleFormCard onSubmit={(data) => createMut.mutate(data)} onCancel={() => setShowAdd(false)} isPending={createMut.isPending} />}
-
-      <div className="space-y-3">
-        {vehicles.map((v) =>
-          editingId === v.id ? (
-            <VehicleFormCard key={v.id} defaults={v} onSubmit={(data) => updateMut.mutate({ id: v.id, data })} onCancel={() => setEditingId(null)} isPending={updateMut.isPending} />
-          ) : (
-            <div key={v.id} className={`flex flex-col gap-3 rounded border border-border p-4 sm:flex-row sm:items-center sm:justify-between ${v.isActive ? "bg-surface-raised" : "bg-surface-hover/50 opacity-60"}`}>
-              <div className="min-w-0">
-                <span className="font-medium">{v.label}</span>
-                {v.octaneRating && <span className="ml-2 text-xs text-text-muted">{v.octaneRating} octane</span>}
-                {v.notes && <span className="ml-2 text-sm text-text-secondary">{v.notes}</span>}
-                {!v.isActive && <span className="badge-muted ml-2">Inactive</span>}
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button onClick={() => setEditingId(v.id)} className="link text-sm">Edit</button>
-                {v.isActive && <button onClick={() => toggleMut.mutate(v.id)} className="text-sm text-danger-text hover:underline">Deactivate</button>}
-              </div>
-            </div>
-          ),
-        )}
-        {vehicles.length === 0 && (
-          <EmptyState
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25m-2.25 0h-2.25m4.5 0V6.75a.75.75 0 0 0-.75-.75H6a.75.75 0 0 0-.75.75v11.25" /></svg>}
-            message="No vehicles yet. Add one to get started."
-          />
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Vehicles</h1>
+        {!showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          >
+            Add Vehicle
+          </button>
         )}
       </div>
+
+      {/* Add form */}
+      {showAddForm && (
+        <VehicleForm
+          onSubmit={(data) => createMutation.mutate(data)}
+          onCancel={() => setShowAddForm(false)}
+          isPending={createMutation.isPending}
+        />
+      )}
+
+      {/* Vehicle list */}
+      {!vehicles || vehicles.length === 0 ? (
+        <EmptyState
+          title="No vehicles"
+          message="Add your first vehicle to get started."
+          action={
+            !showAddForm ? (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Add Vehicle
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="space-y-4">
+          {vehicles.map((vehicle) =>
+            editingId === vehicle.id ? (
+              <VehicleForm
+                key={vehicle.id}
+                initialValues={vehicle}
+                onSubmit={(data) =>
+                  updateMutation.mutate({ id: vehicle.id, data })
+                }
+                onCancel={() => setEditingId(null)}
+                isPending={updateMutation.isPending}
+              />
+            ) : (
+              <div
+                key={vehicle.id}
+                className={`rounded-xl bg-white p-6 shadow-sm ${
+                  !vehicle.isActive ? "opacity-60" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {vehicle.label}
+                    </h3>
+                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-500">
+                      {vehicle.octaneRating && (
+                        <span>{vehicle.octaneRating} octane</span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          vehicle.isActive
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {vehicle.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    {vehicle.notes && (
+                      <p className="mt-2 text-sm text-gray-500">{vehicle.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingId(vehicle.id)}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Edit
+                    </button>
+                    {vehicle.isActive && (
+                      <button
+                        onClick={() => {
+                          if (confirm("Deactivate this vehicle?")) {
+                            deactivateMutation.mutate(vehicle.id);
+                          }
+                        }}
+                        className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function VehicleFormCard({ defaults, onSubmit, onCancel, isPending }: {
-  defaults?: { year: number; make: string; model: string; notes?: string | null; octaneRating?: number | null };
-  onSubmit: (data: VehicleForm) => void;
+function VehicleForm({
+  initialValues,
+  onSubmit,
+  onCancel,
+  isPending,
+}: {
+  initialValues?: Vehicle;
+  onSubmit: (data: VehicleFormData) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<VehicleForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: standardSchemaResolver(vehicleSchema) as any,
-    defaultValues: defaults ? { year: defaults.year, make: defaults.make, model: defaults.model, notes: defaults.notes ?? "", octaneRating: defaults.octaneRating ?? undefined } : { year: new Date().getFullYear(), make: "", model: "", notes: "" },
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<VehicleFormData>({
+    resolver: standardSchemaResolver(vehicleSchema),
+    defaultValues: initialValues
+      ? {
+          year: initialValues.year,
+          make: initialValues.make,
+          model: initialValues.model,
+          notes: initialValues.notes,
+          octaneRating: initialValues.octaneRating,
+        }
+      : {
+          year: new Date().getFullYear(),
+          notes: null,
+          octaneRating: null,
+        },
   });
 
+  const inputClass =
+    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="card mb-3 p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div><label className="label">Year</label><input type="number" inputMode="numeric" {...register("year")} className="input" />{errors.year && <p className="mt-0.5 text-xs text-danger-text">{errors.year.message}</p>}</div>
-        <div><label className="label">Make</label><input {...register("make")} className="input" />{errors.make && <p className="mt-0.5 text-xs text-danger-text">{errors.make.message}</p>}</div>
-        <div><label className="label">Model</label><input {...register("model")} className="input" />{errors.model && <p className="mt-0.5 text-xs text-danger-text">{errors.model.message}</p>}</div>
-        <div><label className="label">Octane</label><select {...register("octaneRating")} className="input"><option value="">—</option><option value="87">87</option><option value="89">89</option><option value="91">91</option><option value="93">93</option></select></div>
-        <div><label className="label">Notes</label><input {...register("notes")} className="input" /></div>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-4 rounded-xl bg-white p-6 shadow-sm"
+    >
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Year</label>
+          <input
+            type="number"
+            {...register("year", { valueAsNumber: true })}
+            className={inputClass}
+          />
+          {errors.year && (
+            <p className="mt-1 text-xs text-red-600">{errors.year.message}</p>
+          )}
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Make</label>
+          <input {...register("make")} className={inputClass} />
+          {errors.make && (
+            <p className="mt-1 text-xs text-red-600">{errors.make.message}</p>
+          )}
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Model</label>
+          <input {...register("model")} className={inputClass} />
+          {errors.model && (
+            <p className="mt-1 text-xs text-red-600">{errors.model.message}</p>
+          )}
+        </div>
       </div>
-      <div className="mt-3 flex gap-2">
-        <button type="submit" disabled={isPending} className="btn-primary">{isPending ? "Saving..." : "Save"}</button>
-        <button type="button" onClick={onCancel} className="btn-outline">Cancel</button>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Octane Rating (optional)
+          </label>
+          <input
+            type="number"
+            {...register("octaneRating", { valueAsNumber: true })}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Notes (optional)
+          </label>
+          <input {...register("notes")} className={inputClass} />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isPending ? "Saving..." : initialValues ? "Update" : "Add Vehicle"}
+        </button>
       </div>
     </form>
   );

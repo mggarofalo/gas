@@ -1,62 +1,60 @@
-import { lazy, Suspense } from "react";
 import {
   createRouter,
   createRootRoute,
   createRoute,
-  Outlet,
   redirect,
+  Outlet,
 } from "@tanstack/react-router";
-import { Layout } from "./components/Layout";
-import { Spinner } from "./components/Spinner";
-import { getAccessToken, parseJwt } from "./lib/auth";
-
-function SuspenseRoute({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={<Spinner />}>
-      <div className="page-enter">{children}</div>
-    </Suspense>
-  );
-}
-
-const LoginPage = lazy(() => import("./routes/Login").then((m) => ({ default: m.LoginPage })));
-const ChangePasswordPage = lazy(() => import("./routes/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
-const DashboardPage = lazy(() => import("./routes/Dashboard").then((m) => ({ default: m.DashboardPage })));
-const FillUpsPage = lazy(() => import("./routes/FillUps").then((m) => ({ default: m.FillUpsPage })));
-const NewFillUpPage = lazy(() => import("./routes/NewFillUp").then((m) => ({ default: m.NewFillUpPage })));
-const FillUpDetailPage = lazy(() => import("./routes/FillUpDetail").then((m) => ({ default: m.FillUpDetailPage })));
-const EditFillUpPage = lazy(() => import("./routes/EditFillUp").then((m) => ({ default: m.EditFillUpPage })));
-const VehiclesPage = lazy(() => import("./routes/Vehicles").then((m) => ({ default: m.VehiclesPage })));
-const YnabSettingsPage = lazy(() => import("./routes/YnabSettings").then((m) => ({ default: m.YnabSettingsPage })));
-const YnabImportsPage = lazy(() => import("./routes/YnabImports").then((m) => ({ default: m.YnabImportsPage })));
+import { isAuthenticated, mustResetPassword } from "@/lib/api";
+import Layout from "@/components/Layout";
+import Login from "@/routes/Login";
+import ChangePassword from "@/routes/ChangePassword";
+import Dashboard from "@/routes/Dashboard";
+import FillUps from "@/routes/FillUps";
+import NewFillUp from "@/routes/NewFillUp";
+import FillUpDetail from "@/routes/FillUpDetail";
+import EditFillUp from "@/routes/EditFillUp";
+import Vehicles from "@/routes/Vehicles";
+import YnabSettings from "@/routes/YnabSettings";
+import YnabImports from "@/routes/YnabImports";
 
 function requireAuth() {
-  const token = getAccessToken();
-  if (!token) throw redirect({ to: "/login" });
-  const payload = parseJwt(token);
-  if (!payload || payload.exp * 1000 < Date.now()) throw redirect({ to: "/login" });
-  if (payload.mustResetPassword) throw redirect({ to: "/change-password" });
+  if (!isAuthenticated()) {
+    throw redirect({ to: "/login" });
+  }
+  if (mustResetPassword()) {
+    throw redirect({ to: "/change-password" });
+  }
 }
 
+// Root route
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: Outlet,
 });
 
+// Public routes
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  component: () => <SuspenseRoute><LoginPage /></SuspenseRoute>,
+  component: Login,
 });
 
 const changePasswordRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/change-password",
-  component: () => <SuspenseRoute><ChangePasswordPage /></SuspenseRoute>,
+  beforeLoad: () => {
+    if (!isAuthenticated()) {
+      throw redirect({ to: "/login" });
+    }
+  },
+  component: ChangePassword,
 });
 
+// Authenticated layout wrapper
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "authenticated",
-  beforeLoad: () => requireAuth(),
+  beforeLoad: requireAuth,
   component: () => (
     <Layout>
       <Outlet />
@@ -64,59 +62,64 @@ const authenticatedRoute = createRoute({
   ),
 });
 
-const indexRoute = createRoute({
+// Dashboard
+const dashboardRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/",
-  component: () => <SuspenseRoute><DashboardPage /></SuspenseRoute>,
+  component: Dashboard,
 });
 
+// Fill-ups
 const fillUpsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/fill-ups",
-  component: () => <SuspenseRoute><FillUpsPage /></SuspenseRoute>,
+  component: FillUps,
 });
 
 const newFillUpRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/fill-ups/new",
-  component: () => <SuspenseRoute><NewFillUpPage /></SuspenseRoute>,
+  component: NewFillUp,
 });
 
 const fillUpDetailRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: "/fill-ups/$id",
-  component: () => <SuspenseRoute><FillUpDetailPage /></SuspenseRoute>,
+  path: "/fill-ups/$fillUpId",
+  component: FillUpDetail,
 });
 
 const editFillUpRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: "/fill-ups/$id/edit",
-  component: () => <SuspenseRoute><EditFillUpPage /></SuspenseRoute>,
+  path: "/fill-ups/$fillUpId/edit",
+  component: EditFillUp,
 });
 
+// Vehicles
 const vehiclesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: "/vehicles",
-  component: () => <SuspenseRoute><VehiclesPage /></SuspenseRoute>,
+  component: Vehicles,
 });
 
+// YNAB
 const ynabSettingsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: "/settings/ynab",
-  component: () => <SuspenseRoute><YnabSettingsPage /></SuspenseRoute>,
+  path: "/ynab/settings",
+  component: YnabSettings,
 });
 
 const ynabImportsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: "/settings/ynab/imports",
-  component: () => <SuspenseRoute><YnabImportsPage /></SuspenseRoute>,
+  path: "/ynab/imports",
+  component: YnabImports,
 });
 
+// Route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
   changePasswordRoute,
   authenticatedRoute.addChildren([
-    indexRoute,
+    dashboardRoute,
     fillUpsRoute,
     newFillUpRoute,
     fillUpDetailRoute,
@@ -127,8 +130,12 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+  routeTree,
+  defaultPreload: "intent",
+});
 
+// Type registration
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;

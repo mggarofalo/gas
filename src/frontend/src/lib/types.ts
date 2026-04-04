@@ -94,3 +94,30 @@ export interface Stats {
   avgCostPerFillUp: number | null;
   costPerMile: number | null;
 }
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  mustResetPassword?: boolean;
+}
+
+export interface YnabConfig {
+  hasToken: boolean;
+  syncPlan: string;
+  accountId: string | null;
+  accountName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+}
+
+export interface YnabAccount {
+  id: string;
+  name: string;
+  balance: number;
+}
+
+export interface YnabCategory {
+  id: string;
+  name: string;
+  groupName: string;
+}

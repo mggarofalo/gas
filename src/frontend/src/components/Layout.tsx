@@ -1,105 +1,176 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "../contexts/AuthContext";
-import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { useState } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { clearTokens } from "@/lib/api";
 
 const navItems = [
-  { to: "/", label: "Dashboard" },
-  { to: "/fill-ups", label: "Fill-Ups" },
-  { to: "/fill-ups/new", label: "New Fill-Up" },
-  { to: "/vehicles", label: "Vehicles" },
-  { to: "/settings/ynab", label: "Settings" },
+  { to: "/", label: "Dashboard", icon: HomeIcon },
+  { to: "/fill-ups", label: "Fill-Ups", icon: GasPumpIcon },
+  { to: "/fill-ups/new", label: "New Fill-Up", icon: PlusIcon },
+  { to: "/vehicles", label: "Vehicles", icon: CarIcon },
+  { to: "/ynab/imports", label: "YNAB Imports", icon: ImportIcon },
+  { to: "/ynab/settings", label: "YNAB Settings", icon: SettingsIcon },
 ] as const;
 
-export function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
-  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  function handleLogout() {
+    clearTokens();
+    window.location.href = "/login";
+  }
 
-  // Close sidebar on Escape key
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeSidebar();
-    };
-    if (sidebarOpen) {
-      document.addEventListener("keydown", handleKey);
-      return () => document.removeEventListener("keydown", handleKey);
-    }
-  }, [sidebarOpen, closeSidebar]);
-
-  const handleLogout = async () => {
-    closeSidebar();
-    await logout();
-    navigate({ to: "/login" });
-  };
-
-  const sidebarContent = (
-    <>
-      <h1 className="mb-6 pl-4 text-xl font-bold">Gas Tracker</h1>
-      <ul className="flex-1 space-y-0.5">
-        {navItems.map((item) => (
-          <li key={item.to}>
-            <Link
-              to={item.to}
-              className="nav-item [&.active]:nav-item-active"
-              onClick={closeSidebar}
-            >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div className="border-t border-border pl-4 pt-3">
-        {user && <p className="mb-2 truncate px-3 text-xs text-text-muted">{user.email}</p>}
-        <button onClick={handleLogout} className="nav-item w-full text-left">
-          Sign Out
-        </button>
-        <p className="mt-2 px-3 text-[10px] text-text-muted/50">v{__APP_VERSION__}</p>
-      </div>
-    </>
-  );
+  function isActive(to: string) {
+    if (to === "/") return location.pathname === "/";
+    return location.pathname.startsWith(to);
+  }
 
   return (
-    <div className="flex min-h-screen bg-surface text-text-primary">
-      {/* Desktop sidebar (always visible at md+) */}
-      <nav className="hidden md:flex w-56 shrink-0 flex-col border-r border-border bg-surface-raised py-4 pr-4">
-        {sidebarContent}
-      </nav>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      {/* Mobile sidebar overlay */}
-      <div
-        className="sidebar-backdrop md:hidden"
-        data-open={sidebarOpen}
-        onClick={closeSidebar}
-        aria-hidden="true"
-      />
-      <nav
-        className="sidebar-drawer py-4 pr-4 md:hidden"
-        data-open={sidebarOpen}
-        aria-label="Main navigation"
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-lg transition-transform lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        {sidebarContent}
-      </nav>
+        <div className="flex h-16 items-center gap-2 border-b px-6">
+          <span className="text-xl font-bold text-blue-600">Gas Tracker</span>
+        </div>
 
-      {/* Main content area */}
-      <div className="flex flex-1 flex-col">
-        {/* Mobile top bar */}
-        <header className="flex items-center border-b border-border bg-surface-raised px-4 py-3 md:hidden">
+        <nav className="flex-1 overflow-y-auto p-4">
+          <ul className="space-y-1">
+            {navItems.map((item) => (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive(item.to)
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="border-t p-4">
+          <Link
+            to="/change-password"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            <LockIcon className="h-5 w-5" />
+            Change Password
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            <LogoutIcon className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile header */}
+        <header className="flex h-16 items-center gap-4 border-b bg-white px-4 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="mr-3 flex h-11 w-11 items-center justify-center rounded text-text-secondary hover:bg-surface-hover hover:text-text-primary touch-manipulation"
-            aria-label="Open menu"
+            className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-lg font-bold">Gas Tracker</span>
+          <span className="text-lg font-bold text-blue-600">Gas Tracker</span>
         </header>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
+  );
+}
+
+// Simple inline SVG icons
+function HomeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  );
+}
+
+function GasPumpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+    </svg>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function CarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m14 0V8a1 1 0 00-.684-.948l-4-1.333A1 1 0 0012 5.667V16" />
+    </svg>
+  );
+}
+
+function ImportIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  );
+}
+
+function SettingsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  );
+}
+
+function LogoutIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
   );
 }

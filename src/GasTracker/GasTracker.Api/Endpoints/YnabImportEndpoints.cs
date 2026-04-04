@@ -128,7 +128,7 @@ public static class YnabImportEndpoints
             return Results.Ok(ToDto(import));
         });
 
-        // Approve single import → create fill-up
+        // Approve single import -> create fill-up
         group.MapPost("/{id:guid}/approve", async (Guid id, AppDbContext db, IVehicleRepository vehicleRepo) =>
         {
             var import = await db.YnabImports.FindAsync(id);
@@ -234,12 +234,12 @@ public static class YnabImportEndpoints
             }
 
             // Retroactively update pending imports with matching vehicle name
-            var updated = await db.YnabImports
+            var updatedCount = await db.YnabImports
                 .Where(i => i.Status == "pending" && i.VehicleName == req.MemoName && i.VehicleId == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.VehicleId, req.VehicleId));
 
             await db.SaveChangesAsync();
-            return Results.Ok(new { mapped = true, importsUpdated = updated });
+            return Results.Ok(new { mapped = true, importsUpdated = updatedCount });
         });
 
         mappings.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>

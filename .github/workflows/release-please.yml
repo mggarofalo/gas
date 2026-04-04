@@ -1,28 +1,20 @@
-name: Release Please
-
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 permissions:
   contents: write
   pull-requests: write
 
+name: release-please
+
 jobs:
   release-please:
-    name: Release Please
     runs-on: ubuntu-latest
-
     steps:
       - uses: googleapis/release-please-action@v4
-        id: release
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-
-      - name: Auto-merge release PR
-        if: steps.release.outputs.prs_created == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-        run: |
-          gh pr merge "${{ fromJSON(steps.release.outputs.prs)[0].number }}" \
-            --repo "${{ github.repository }}" --merge --auto
+          release-type: node
+          manifest-file: .release-please-manifest.json
+          config-file: release-please-config.json

@@ -1,8 +1,7 @@
-export function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const dim = { sm: "h-4 w-4", md: "h-6 w-6", lg: "h-8 w-8" }[size];
+export default function Spinner({ className = "" }: { className?: string }) {
   return (
-    <div className="flex items-center justify-center py-8">
-      <div className={`spinner ${dim}`} />
+    <div className={`flex items-center justify-center ${className}`}>
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
     </div>
   );
 }
