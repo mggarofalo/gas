@@ -134,23 +134,23 @@ export default function EditFillUp() {
   }, [setValue, toast]);
 
   if (isLoading) return <Spinner className="mt-20" />;
-  if (!fillUp) return <p className="mt-10 text-center text-gray-500">Fill-up not found.</p>;
+  if (!fillUp) return <p className="mt-10 text-center text-gray-500 dark:text-gray-400">Fill-up not found.</p>;
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Edit Fill-Up</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Edit Fill-Up</h1>
 
       <form
         onSubmit={handleSubmit((data) => updateMutation.mutate(data))}
-        className="space-y-6 rounded-xl bg-white p-6 shadow-sm"
+        className="space-y-6 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30"
       >
         {/* Vehicle + Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
             <select {...register("vehicleId")} className={inputClass}>
               <option value="">Select vehicle...</option>
               {vehicles?.map((v) => (
@@ -160,14 +160,14 @@ export default function EditFillUp() {
               ))}
             </select>
             {errors.vehicleId && (
-              <p className="mt-1 text-xs text-red-600">{errors.vehicleId.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.vehicleId.message}</p>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
             <input type="date" {...register("date")} className={inputClass} />
             {errors.date && (
-              <p className="mt-1 text-xs text-red-600">{errors.date.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p>
             )}
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function EditFillUp() {
         {/* Odometer + Octane */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Odometer (miles)</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer (miles)</label>
             <input
               type="number"
               step="1"
@@ -183,11 +183,11 @@ export default function EditFillUp() {
               className={inputClass}
             />
             {errors.odometerMiles && (
-              <p className="mt-1 text-xs text-red-600">{errors.odometerMiles.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.odometerMiles.message}</p>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Octane Rating</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane Rating</label>
             <input
               type="number"
               step="1"
@@ -200,7 +200,7 @@ export default function EditFillUp() {
         {/* Gallons + Price */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Gallons</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
             <Controller
               name="gallons"
               control={control}
@@ -215,11 +215,11 @@ export default function EditFillUp() {
               )}
             />
             {errors.gallons && (
-              <p className="mt-1 text-xs text-red-600">{errors.gallons.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.gallons.message}</p>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Price per Gallon</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price per Gallon</label>
             <Controller
               name="pricePerGallon"
               control={control}
@@ -234,14 +234,14 @@ export default function EditFillUp() {
               )}
             />
             {errors.pricePerGallon && (
-              <p className="mt-1 text-xs text-red-600">{errors.pricePerGallon.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.pricePerGallon.message}</p>
             )}
           </div>
         </div>
 
         {/* Station */}
         <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Station Name</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Station Name</label>
           <input
             {...register("stationName")}
             autoComplete="off"
@@ -255,23 +255,23 @@ export default function EditFillUp() {
             className={inputClass}
           />
           {errors.stationName && (
-            <p className="mt-1 text-xs text-red-600">{errors.stationName.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.stationName.message}</p>
           )}
 
           {showSuggestions && stationSuggestions && stationSuggestions.length > 0 && (
-            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow-lg">
+            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg dark:shadow-gray-900/30">
               {stationSuggestions.map((s) => (
                 <button
                   key={s.stationName}
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
                   onMouseDown={() => {
                     setValue("stationName", s.stationName);
                     setShowSuggestions(false);
                   }}
                 >
                   <span className="font-medium">{s.stationName}</span>
-                  <span className="ml-2 text-gray-400">{s.visitCount} visits</span>
+                  <span className="ml-2 text-gray-400 dark:text-gray-500">{s.visitCount} visits</span>
                 </button>
               ))}
             </div>
@@ -280,7 +280,7 @@ export default function EditFillUp() {
 
         {/* Station address */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Address (optional)
           </label>
           <input {...register("stationAddress")} className={inputClass} />
@@ -288,18 +288,18 @@ export default function EditFillUp() {
 
         {/* GPS */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">GPS Location</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">GPS Location</label>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={getGps}
               disabled={gpsLoading}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
             >
               {gpsLoading ? "Getting location..." : "Use Current Location"}
             </button>
             {latitude != null && longitude != null && (
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {latitude.toFixed(5)}, {longitude.toFixed(5)}
               </span>
             )}
@@ -308,7 +308,7 @@ export default function EditFillUp() {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Notes (optional)</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (optional)</label>
           <textarea {...register("notes")} rows={3} className={inputClass} />
         </div>
 
@@ -319,14 +319,14 @@ export default function EditFillUp() {
             onClick={() =>
               navigate({ to: "/fill-ups/$fillUpId", params: { fillUpId } })
             }
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || updateMutation.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm dark:shadow-gray-900/30 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
           >
             {updateMutation.isPending ? "Saving..." : "Save Changes"}
           </button>

@@ -79,11 +79,11 @@ export default function Vehicles() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Vehicles</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Vehicles</h1>
         {!showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm dark:shadow-gray-900/30 hover:bg-blue-700 dark:hover:bg-blue-600"
           >
             Add Vehicle
           </button>
@@ -108,7 +108,7 @@ export default function Vehicles() {
             !showAddForm ? (
               <button
                 onClick={() => setShowAddForm(true)}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600"
               >
                 Add Vehicle
               </button>
@@ -131,37 +131,37 @@ export default function Vehicles() {
             ) : (
               <div
                 key={vehicle.id}
-                className={`rounded-xl bg-white p-6 shadow-sm ${
+                className={`rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30 ${
                   !vehicle.isActive ? "opacity-60" : ""
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       {vehicle.label}
                     </h3>
-                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-500">
+                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-500 dark:text-gray-400">
                       {vehicle.octaneRating && (
                         <span>{vehicle.octaneRating} octane</span>
                       )}
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           vehicle.isActive
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-500"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                         }`}
                       >
                         {vehicle.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
                     {vehicle.notes && (
-                      <p className="mt-2 text-sm text-gray-500">{vehicle.notes}</p>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{vehicle.notes}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingId(vehicle.id)}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       Edit
                     </button>
@@ -172,7 +172,7 @@ export default function Vehicles() {
                             deactivateMutation.mutate(vehicle.id);
                           }
                         }}
-                        className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                        className="rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
                         Deactivate
                       </button>
@@ -221,44 +221,44 @@ function VehicleForm({
   });
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4 rounded-xl bg-white p-6 shadow-sm"
+      className="space-y-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30"
     >
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Year</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Year</label>
           <input
             type="number"
             {...register("year", { valueAsNumber: true })}
             className={inputClass}
           />
           {errors.year && (
-            <p className="mt-1 text-xs text-red-600">{errors.year.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.year.message}</p>
           )}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Make</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Make</label>
           <input {...register("make")} className={inputClass} />
           {errors.make && (
-            <p className="mt-1 text-xs text-red-600">{errors.make.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.make.message}</p>
           )}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Model</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
           <input {...register("model")} className={inputClass} />
           {errors.model && (
-            <p className="mt-1 text-xs text-red-600">{errors.model.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.model.message}</p>
           )}
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Octane Rating (optional)
           </label>
           <input
@@ -268,7 +268,7 @@ function VehicleForm({
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Notes (optional)
           </label>
           <input {...register("notes")} className={inputClass} />
@@ -279,14 +279,14 @@ function VehicleForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm dark:shadow-gray-900/30 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
         >
           {isPending ? "Saving..." : initialValues ? "Update" : "Add Vehicle"}
         </button>

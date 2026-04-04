@@ -38,10 +38,10 @@ export default function FillUps() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Fill-Ups</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Fill-Ups</h1>
         <Link
           to="/fill-ups/new"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm dark:shadow-gray-900/30 hover:bg-blue-700 dark:hover:bg-blue-600"
         >
           New Fill-Up
         </Link>
@@ -55,7 +55,7 @@ export default function FillUps() {
             setVehicleId(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         >
           <option value="">All Vehicles</option>
           {vehicles?.map((v) => (
@@ -73,7 +73,7 @@ export default function FillUps() {
             setPage(1);
           }}
           placeholder="From"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
         <input
           type="date"
@@ -83,7 +83,7 @@ export default function FillUps() {
             setPage(1);
           }}
           placeholder="To"
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
 
         {(vehicleId || dateFrom || dateTo) && (
@@ -94,7 +94,7 @@ export default function FillUps() {
               setDateTo("");
               setPage(1);
             }}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             Clear Filters
           </button>
@@ -110,7 +110,7 @@ export default function FillUps() {
           action={
             <Link
               to="/fill-ups/new"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600"
             >
               New Fill-Up
             </Link>
@@ -119,10 +119,10 @@ export default function FillUps() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl bg-white shadow-sm md:block">
+          <div className="hidden overflow-x-auto rounded-xl bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/30 md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
                   <th className="p-4 font-medium">Date</th>
                   <th className="p-4 font-medium">Vehicle</th>
                   <th className="p-4 font-medium">Station</th>
@@ -133,14 +133,14 @@ export default function FillUps() {
                   <th className="p-4 text-right font-medium">MPG</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-gray-900 dark:text-gray-100">
                 {data.items.map((f) => (
-                  <tr key={f.id} className="border-b last:border-0 hover:bg-gray-50">
+                  <tr key={f.id} className="border-b border-gray-200 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="p-4">
                       <Link
                         to="/fill-ups/$fillUpId"
                         params={{ fillUpId: f.id }}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
                       >
                         {new Date(f.date).toLocaleDateString()}
                       </Link>
@@ -165,21 +165,21 @@ export default function FillUps() {
                 key={f.id}
                 to="/fill-ups/$fillUpId"
                 params={{ fillUpId: f.id }}
-                className="block rounded-xl bg-white p-4 shadow-sm"
+                className="block rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm dark:shadow-gray-900/30"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
                       {new Date(f.date).toLocaleDateString()}
                     </p>
-                    <p className="text-sm text-gray-500">{f.vehicleLabel}</p>
-                    <p className="text-sm text-gray-500">{f.stationName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{f.vehicleLabel}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{f.stationName}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">${f.totalCost.toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">{f.gallons.toFixed(3)} gal</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">${f.totalCost.toFixed(2)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{f.gallons.toFixed(3)} gal</p>
                     {f.mpg && (
-                      <p className="text-sm text-gray-500">{f.mpg.toFixed(1)} mpg</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{f.mpg.toFixed(1)} mpg</p>
                     )}
                   </div>
                 </div>
@@ -190,24 +190,24 @@ export default function FillUps() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {data.totalCount} fill-up{data.totalCount !== 1 ? "s" : ""}
               </p>
               <div className="flex gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
                   Previous
                 </button>
-                <span className="flex items-center px-3 text-sm text-gray-500">
+                <span className="flex items-center px-3 text-sm text-gray-500 dark:text-gray-400">
                   {page} / {totalPages}
                 </span>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
                   Next
                 </button>

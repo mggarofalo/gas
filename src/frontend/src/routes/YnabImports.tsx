@@ -108,11 +108,11 @@ export default function YnabImports() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">YNAB Imports</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">YNAB Imports</h1>
         <button
           onClick={() => syncMutation.mutate()}
           disabled={syncMutation.isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm dark:shadow-gray-900/30 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
         >
           {syncMutation.isPending ? "Syncing..." : "Sync Now"}
         </button>
@@ -129,8 +129,8 @@ export default function YnabImports() {
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize ${
               statusFilter === status
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
             {status}
@@ -182,24 +182,24 @@ export default function YnabImports() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {data.totalCount} import{data.totalCount !== 1 ? "s" : ""}
               </p>
               <div className="flex gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
                   Previous
                 </button>
-                <span className="flex items-center px-3 text-sm text-gray-500">
+                <span className="flex items-center px-3 text-sm text-gray-500 dark:text-gray-400">
                   {page} / {totalPages}
                 </span>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -228,34 +228,34 @@ function ImportCard({
   const amount = Math.abs(import_.amountMilliunits / 1000);
 
   const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700",
-    approved: "bg-green-100 text-green-700",
-    dismissed: "bg-gray-100 text-gray-500",
+    pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    approved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    dismissed: "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400",
   };
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm">
+    <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h3 className="font-semibold text-gray-900">{import_.payeeName}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{import_.payeeName}</h3>
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                statusColors[import_.status] ?? "bg-gray-100 text-gray-500"
+                statusColors[import_.status] ?? "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
               }`}
             >
               {import_.status}
             </span>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
           </p>
           {import_.memo && (
-            <p className="text-sm text-gray-500">Memo: {import_.memo}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Memo: {import_.memo}</p>
           )}
 
           {/* Parsed details */}
-          <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+          <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
             {import_.gallons != null && (
               <span>Gallons: {import_.gallons.toFixed(3)}</span>
             )}
@@ -278,21 +278,21 @@ function ImportCard({
           <div className="flex gap-2">
             <button
               onClick={onEdit}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Edit
             </button>
             <button
               onClick={onApprove}
               disabled={isPending}
-              className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg bg-green-600 dark:bg-green-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50"
             >
               Approve
             </button>
             <button
               onClick={onDismiss}
               disabled={isPending}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              className="rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50"
             >
               Dismiss
             </button>
@@ -334,26 +334,26 @@ function ImportEditForm({
   const amount = Math.abs(import_.amountMilliunits / 1000);
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="rounded-xl bg-white p-6 shadow-sm"
+      className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30"
     >
       <div className="mb-4">
-        <h3 className="font-semibold text-gray-900">{import_.payeeName}</h3>
-        <p className="text-sm text-gray-500">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{import_.payeeName}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
         </p>
         {import_.memo && (
-          <p className="text-sm text-gray-500">Memo: {import_.memo}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Memo: {import_.memo}</p>
         )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Gallons</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
           <Controller
             name="gallons"
             control={control}
@@ -370,7 +370,7 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Price/Gallon</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price/Gallon</label>
           <Controller
             name="pricePerGallon"
             control={control}
@@ -387,7 +387,7 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Octane</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane</label>
           <input
             type="number"
             {...register("octaneRating", { valueAsNumber: true })}
@@ -396,7 +396,7 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Odometer</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer</label>
           <input
             type="number"
             {...register("odometerMiles", { valueAsNumber: true })}
@@ -405,7 +405,7 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Vehicle</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
           <select {...register("vehicleId")} className={inputClass}>
             <option value="">Select...</option>
             {vehicles
@@ -423,14 +423,14 @@ function ImportEditForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           Cancel
         </button>
