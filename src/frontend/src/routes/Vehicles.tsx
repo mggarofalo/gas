@@ -64,7 +64,7 @@ export default function Vehicles() {
 
   const deactivateMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/vehicles/${id}/deactivate`, { method: "POST" }),
+      apiFetch(`/api/vehicles/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
       toast("Vehicle deactivated", "success");

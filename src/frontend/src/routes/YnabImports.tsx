@@ -60,7 +60,7 @@ export default function YnabImports() {
 
   const dismissMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/ynab/imports/${id}/dismiss`, { method: "POST" }),
+      apiFetch(`/api/ynab/imports/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
       toast("Import dismissed", "success");
@@ -93,7 +93,7 @@ export default function YnabImports() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: () => apiFetch("/api/ynab/sync", { method: "POST" }),
+    mutationFn: () => apiFetch("/api/ynab/imports/pull", { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ynab-imports"] });
       toast("Sync started", "success");
