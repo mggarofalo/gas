@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.1](https://github.com/mggarofalo/gas/compare/v1.27.0...v1.27.1) (2026-04-05)
+
+
+### Bug Fixes
+
+* date input overflow on mobile and sidebar double-highlight ([#117](https://github.com/mggarofalo/gas/issues/117)) ([89f448b](https://github.com/mggarofalo/gas/commit/89f448b28e5e6f3d600925be377cf486ef1c3388))
+
 ## [1.27.0](https://github.com/mggarofalo/gas/compare/v1.26.2...v1.27.0) (2026-04-05)
 
 
