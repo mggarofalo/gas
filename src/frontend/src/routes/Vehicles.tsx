@@ -26,7 +26,7 @@ export default function Vehicles() {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const { data: vehicles, isLoading } = useQuery({
-    queryKey: ["vehicles"],
+    queryKey: ["vehicles", "all"],
     queryFn: () => apiFetch<Vehicle[]>("/api/vehicles?active=false"),
   });
 
