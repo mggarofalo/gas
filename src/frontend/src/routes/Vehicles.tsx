@@ -27,7 +27,7 @@ export default function Vehicles() {
 
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => apiFetch<Vehicle[]>("/api/vehicles"),
+    queryFn: () => apiFetch<Vehicle[]>("/api/vehicles?active=false"),
   });
 
   const createMutation = useMutation({
