@@ -219,7 +219,7 @@ export default function YnabSettings() {
       {/* Config section */}
       {config?.configured && (
         <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Sync Configuration</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Sync Configuration</h2>
 
           <form
             onSubmit={configForm.handleSubmit((data) =>

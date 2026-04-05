@@ -116,15 +116,15 @@ export default function NewFillUp() {
     enabled: ynabConfig?.configured === true,
   });
 
-  // Set YNAB defaults from config once loaded
+  // Set YNAB defaults from config once loaded (wait for dropdown data)
   const [ynabDefaultsApplied, setYnabDefaultsApplied] = useState(false);
   useEffect(() => {
-    if (ynabConfig && !ynabDefaultsApplied) {
+    if (ynabConfig && ynabAccounts && ynabCategories && !ynabDefaultsApplied) {
       if (ynabConfig.accountId) setValue("ynabAccountId", ynabConfig.accountId);
       if (ynabConfig.categoryId) setValue("ynabCategoryId", ynabConfig.categoryId);
       setYnabDefaultsApplied(true);
     }
-  }, [ynabConfig, ynabDefaultsApplied, setValue]);
+  }, [ynabConfig, ynabAccounts, ynabCategories, ynabDefaultsApplied, setValue]);
 
   const latitude = watch("latitude");
   const longitude = watch("longitude");
