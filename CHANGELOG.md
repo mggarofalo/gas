@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.26.2](https://github.com/mggarofalo/gas/compare/v1.26.1...v1.26.2) (2026-04-05)
+
+
+### Bug Fixes
+
+* handle unconfigured YNAB in defaults effect to avoid stalled state ([#113](https://github.com/mggarofalo/gas/issues/113)) ([152e7ab](https://github.com/mggarofalo/gas/commit/152e7ab31cfb8809aa95d42251de3ffb93d0fee9))
+* UI bugs — vehicle deactivation, mobile layout, YNAB defaults, contrast ([#112](https://github.com/mggarofalo/gas/issues/112)) ([7d04a31](https://github.com/mggarofalo/gas/commit/7d04a318ff65f8b1d3c22381125f8106b2a4edc9))
+
 ## [1.26.1](https://github.com/mggarofalo/gas/compare/v1.26.0...v1.26.1) (2026-04-04)
 
 
