@@ -119,11 +119,16 @@ export default function NewFillUp() {
   // Set YNAB defaults from config once loaded (wait for dropdown data)
   const [ynabDefaultsApplied, setYnabDefaultsApplied] = useState(false);
   useEffect(() => {
-    if (ynabConfig && ynabAccounts && ynabCategories && !ynabDefaultsApplied) {
-      if (ynabConfig.accountId) setValue("ynabAccountId", ynabConfig.accountId);
-      if (ynabConfig.categoryId) setValue("ynabCategoryId", ynabConfig.categoryId);
+    if (ynabDefaultsApplied) return;
+    if (!ynabConfig) return;
+    if (!ynabConfig.configured) {
       setYnabDefaultsApplied(true);
+      return;
     }
+    if (!ynabAccounts || !ynabCategories) return;
+    if (ynabConfig.accountId) setValue("ynabAccountId", ynabConfig.accountId);
+    if (ynabConfig.categoryId) setValue("ynabCategoryId", ynabConfig.categoryId);
+    setYnabDefaultsApplied(true);
   }, [ynabConfig, ynabAccounts, ynabCategories, ynabDefaultsApplied, setValue]);
 
   const latitude = watch("latitude");
