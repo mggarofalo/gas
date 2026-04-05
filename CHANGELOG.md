@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.0](https://github.com/mggarofalo/gas/compare/v1.26.2...v1.27.0) (2026-04-05)
+
+
+### Features
+
+* add reactivate vehicle endpoint and UI button ([#115](https://github.com/mggarofalo/gas/issues/115)) ([06460b6](https://github.com/mggarofalo/gas/commit/06460b61dd51237f66e0bb7a69a23bc4e5257ee9))
+
 ## [1.26.2](https://github.com/mggarofalo/gas/compare/v1.26.1...v1.26.2) (2026-04-05)
 
 
