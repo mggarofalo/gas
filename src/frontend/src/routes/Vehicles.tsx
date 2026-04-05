@@ -74,6 +74,18 @@ export default function Vehicles() {
     },
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/vehicles/${id}/reactivate`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      toast("Vehicle reactivated", "success");
+    },
+    onError: (err) => {
+      toast(err instanceof Error ? err.message : "Failed to reactivate vehicle", "error");
+    },
+  });
+
   if (isLoading) return <Spinner className="mt-20" />;
 
   return (
@@ -165,7 +177,7 @@ export default function Vehicles() {
                     >
                       Edit
                     </button>
-                    {vehicle.isActive && (
+                    {vehicle.isActive ? (
                       <button
                         onClick={() => {
                           if (confirm("Deactivate this vehicle?")) {
@@ -175,6 +187,13 @@ export default function Vehicles() {
                         className="rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
                         Deactivate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => reactivateMutation.mutate(vehicle.id)}
+                        className="rounded-lg border border-green-300 dark:border-green-700 px-3 py-1.5 text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
+                      >
+                        Reactivate
                       </button>
                     )}
                   </div>

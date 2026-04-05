@@ -70,5 +70,14 @@ public static class VehicleEndpoints
             await repo.UpdateAsync(vehicle);
             return Results.NoContent();
         });
+
+        group.MapPost("/{id:guid}/reactivate", async (Guid id, IVehicleRepository repo) =>
+        {
+            var vehicle = await repo.GetByIdAsync(id);
+            if (vehicle is null) return Results.NotFound();
+            vehicle.IsActive = true;
+            await repo.UpdateAsync(vehicle);
+            return Results.Ok(vehicle.ToDto());
+        });
     }
 }
