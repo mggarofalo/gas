@@ -137,7 +137,7 @@ export default function EditFillUp() {
   if (!fillUp) return <p className="mt-10 text-center text-gray-500 dark:text-gray-400">Fill-up not found.</p>;
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full min-w-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

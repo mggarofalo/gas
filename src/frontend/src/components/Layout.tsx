@@ -23,8 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }
 
   function isActive(to: string) {
-    if (to === "/") return location.pathname === "/";
-    return location.pathname.startsWith(to);
+    return location.pathname === to;
   }
 
   function cycleTheme() {
