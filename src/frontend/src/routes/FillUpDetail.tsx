@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchRaw } from "@/lib/api";
 import type { FillUp } from "@/lib/types";
 import Spinner from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
@@ -37,9 +37,16 @@ export default function FillUpDetail() {
     // Open synchronously to preserve the user gesture; assign location after fetch.
     const tab = window.open("about:blank", "_blank");
     try {
-      const { url } = await apiFetch<{ url: string }>(`/api/fill-ups/${fillUpId}/receipt`);
-      if (tab) tab.location.href = url;
-      else window.location.href = url;
+      const res = await apiFetchRaw(`/api/fill-ups/${fillUpId}/receipt`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      if (tab) {
+        tab.location.href = objectUrl;
+        // Revoke after a delay so the tab has time to load the resource.
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      } else {
+        window.location.href = objectUrl;
+      }
     } catch (err) {
       tab?.close();
       toast(err instanceof Error ? err.message : "Failed to load receipt", "error");

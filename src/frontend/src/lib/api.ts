@@ -93,10 +93,10 @@ async function ensureFreshToken(): Promise<void> {
   }
 }
 
-export async function apiFetch<T>(
+export async function apiFetchRaw(
   url: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<Response> {
   await ensureFreshToken();
 
   const token = getAccessToken();
@@ -139,6 +139,15 @@ export async function apiFetch<T>(
     }
     throw new Error(message);
   }
+
+  return res;
+}
+
+export async function apiFetch<T>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const res = await apiFetchRaw(url, options);
 
   // Handle 204 No Content
   if (res.status === 204) {
