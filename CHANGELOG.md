@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.2](https://github.com/mggarofalo/gas/compare/v1.27.1...v1.27.2) (2026-04-12)
+
+
+### Bug Fixes
+
+* use strict:false in useParams to avoid invariant on fill-up detail ([#119](https://github.com/mggarofalo/gas/issues/119)) ([54e1148](https://github.com/mggarofalo/gas/commit/54e1148925055d517f51c34d53df6250a51be00e))
+
 ## [1.27.1](https://github.com/mggarofalo/gas/compare/v1.27.0...v1.27.1) (2026-04-05)
 
 
