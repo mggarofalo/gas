@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.4](https://github.com/mggarofalo/gas/compare/v1.27.3...v1.27.4) (2026-04-12)
+
+
+### Bug Fixes
+
+* proxy receipt bytes through API instead of presigned URL ([#123](https://github.com/mggarofalo/gas/issues/123)) ([248a297](https://github.com/mggarofalo/gas/commit/248a297e2e078f6b53c92e8a5f4ed9c5b40e034e))
+
 ## [1.27.3](https://github.com/mggarofalo/gas/compare/v1.27.2...v1.27.3) (2026-04-12)
 
 
