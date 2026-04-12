@@ -184,8 +184,11 @@ public static class FillUpEndpoints
         {
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp?.ReceiptPath is null) return Results.NotFound();
-            var url = await receiptStore.GetPresignedUrlAsync(fillUp.ReceiptPath, TimeSpan.FromHours(1));
-            return Results.Ok(new { url });
+
+            var stream = await receiptStore.DownloadAsync(fillUp.ReceiptPath);
+            var fileName = Path.GetFileName(fillUp.ReceiptPath);
+            var contentType = GetContentTypeFromExtension(fileName);
+            return Results.File(stream, contentType, fileName, enableRangeProcessing: true);
         });
 
         group.MapPost("/{id:guid}/resync", async (Guid id, IFillUpRepository repo) =>
@@ -210,6 +213,16 @@ public static class FillUpEndpoints
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["receipt"] = [$"File type {receipt.ContentType} not allowed"] });
         return null;
     }
+
+    private static string GetContentTypeFromExtension(string fileName) =>
+        Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream",
+        };
 
     private static async Task TrySyncToYnab(FillUp fillUp, AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, IFillUpRepository repo)
     {
