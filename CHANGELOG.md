@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.3](https://github.com/mggarofalo/gas/compare/v1.27.2...v1.27.3) (2026-04-12)
+
+
+### Bug Fixes
+
+* fetch presigned receipt URL via authenticated API call ([#121](https://github.com/mggarofalo/gas/issues/121)) ([d28b24d](https://github.com/mggarofalo/gas/commit/d28b24d8260b6c06e7414e459835ad595c459c03))
+
 ## [1.27.2](https://github.com/mggarofalo/gas/compare/v1.27.1...v1.27.2) (2026-04-12)
 
 
