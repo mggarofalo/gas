@@ -24,7 +24,7 @@ function SyncBadge({ status }: { status: string }) {
 }
 
 export default function FillUpDetail() {
-  const { fillUpId } = useParams({ from: "/fill-ups/$fillUpId" as never });
+  const { fillUpId } = useParams({ strict: false }) as { fillUpId: string };
 
   const { data: fillUp, isLoading } = useQuery({
     queryKey: ["fill-up", fillUpId],

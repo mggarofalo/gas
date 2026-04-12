@@ -27,7 +27,7 @@ const editFillUpSchema = z.object({
 type EditFillUpFormData = z.infer<typeof editFillUpSchema>;
 
 export default function EditFillUp() {
-  const { fillUpId } = useParams({ from: "/fill-ups/$fillUpId/edit" as never });
+  const { fillUpId } = useParams({ strict: false }) as { fillUpId: string };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
