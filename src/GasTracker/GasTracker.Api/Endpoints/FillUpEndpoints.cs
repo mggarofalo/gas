@@ -185,7 +185,7 @@ public static class FillUpEndpoints
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp?.ReceiptPath is null) return Results.NotFound();
             var url = await receiptStore.GetPresignedUrlAsync(fillUp.ReceiptPath, TimeSpan.FromHours(1));
-            return Results.Redirect(url);
+            return Results.Ok(new { url });
         });
 
         group.MapPost("/{id:guid}/resync", async (Guid id, IFillUpRepository repo) =>

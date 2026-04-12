@@ -3,6 +3,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { apiFetch } from "@/lib/api";
 import type { FillUp } from "@/lib/types";
 import Spinner from "@/components/Spinner";
+import { useToast } from "@/components/Toast";
 
 function SyncBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -25,11 +26,25 @@ function SyncBadge({ status }: { status: string }) {
 
 export default function FillUpDetail() {
   const { fillUpId } = useParams({ strict: false }) as { fillUpId: string };
+  const { toast } = useToast();
 
   const { data: fillUp, isLoading } = useQuery({
     queryKey: ["fill-up", fillUpId],
     queryFn: () => apiFetch<FillUp>(`/api/fill-ups/${fillUpId}`),
   });
+
+  async function handleViewReceipt() {
+    // Open synchronously to preserve the user gesture; assign location after fetch.
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const { url } = await apiFetch<{ url: string }>(`/api/fill-ups/${fillUpId}/receipt`);
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+    } catch (err) {
+      tab?.close();
+      toast(err instanceof Error ? err.message : "Failed to load receipt", "error");
+    }
+  }
 
   if (isLoading) return <Spinner className="mt-20" />;
   if (!fillUp) return <p className="mt-10 text-center text-gray-500 dark:text-gray-400">Fill-up not found.</p>;
@@ -135,10 +150,9 @@ export default function FillUpDetail() {
       {fillUp.receiptUrl && (
         <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Receipt</h2>
-          <a
-            href={fillUp.receiptUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={handleViewReceipt}
             className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
           >
             View Receipt
@@ -150,7 +164,7 @@ export default function FillUpDetail() {
                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
               />
             </svg>
-          </a>
+          </button>
         </div>
       )}
     </div>
