@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.27.5](https://github.com/mggarofalo/gas/compare/v1.27.4...v1.27.5) (2026-06-06)
+
+
+### Bug Fixes
+
+* **frontend:** gate router on session resolution to prevent auth flash (GAS-93) ([#127](https://github.com/mggarofalo/gas/issues/127)) ([2519888](https://github.com/mggarofalo/gas/commit/25198882fd277a718e37ef163556a4732e3cb008))
+* **frontend:** render date-only fields as local time, not UTC (GAS-92) ([#126](https://github.com/mggarofalo/gas/issues/126)) ([7e664fe](https://github.com/mggarofalo/gas/commit/7e664feab26749dcfd17c25e24bf751120fcd041))
+
 ## [1.27.4](https://github.com/mggarofalo/gas/compare/v1.27.3...v1.27.4) (2026-04-12)
 
 
