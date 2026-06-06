@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { apiFetch } from "@/lib/api";
+import { formatDateOnly } from "@/lib/date";
 import type { FillUpPage, Vehicle } from "@/lib/types";
 import Spinner from "@/components/Spinner";
 import EmptyState from "@/components/EmptyState";
@@ -142,7 +143,7 @@ export default function FillUps() {
                         params={{ fillUpId: f.id }}
                         className="text-blue-600 hover:underline dark:text-blue-400"
                       >
-                        {new Date(f.date).toLocaleDateString()}
+                        {formatDateOnly(f.date)}
                       </Link>
                     </td>
                     <td className="p-4">{f.vehicleLabel}</td>
@@ -170,7 +171,7 @@ export default function FillUps() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {new Date(f.date).toLocaleDateString()}
+                      {formatDateOnly(f.date)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{f.vehicleLabel}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{f.stationName}</p>

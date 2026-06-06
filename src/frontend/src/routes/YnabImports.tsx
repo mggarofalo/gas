@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { apiFetch } from "@/lib/api";
+import { formatDateOnly } from "@/lib/date";
 import type { YnabImportPage, YnabImport, Vehicle } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import Spinner from "@/components/Spinner";
@@ -248,7 +249,7 @@ function ImportCard({
             </span>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
+            {formatDateOnly(import_.date)} &middot; ${amount.toFixed(2)}
           </p>
           {import_.memo && (
             <p className="text-sm text-gray-500 dark:text-gray-400">Memo: {import_.memo}</p>
@@ -344,7 +345,7 @@ function ImportEditForm({
       <div className="mb-4">
         <h3 className="font-semibold text-gray-900 dark:text-gray-100">{import_.payeeName}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {new Date(import_.date).toLocaleDateString()} &middot; ${amount.toFixed(2)}
+          {formatDateOnly(import_.date)} &middot; ${amount.toFixed(2)}
         </p>
         {import_.memo && (
           <p className="text-sm text-gray-500 dark:text-gray-400">Memo: {import_.memo}</p>

@@ -54,7 +54,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./test-setup.ts"],
-    include: [path.resolve(repoRoot, "tests/frontend/**/*.test.{ts,tsx}")],
+    include: [path.resolve(repoRoot, "tests/frontend/**/*.test.{ts,tsx}").replace(/\\/g, "/")],
     coverage: {
       provider: "v8",
       reportsDirectory: path.resolve(repoRoot, "coverage/frontend"),
