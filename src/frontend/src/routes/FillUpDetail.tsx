@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { apiFetch, apiFetchRaw } from "@/lib/api";
+import { formatDateOnly } from "@/lib/date";
 import type { FillUp } from "@/lib/types";
 import Spinner from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
@@ -79,7 +80,7 @@ export default function FillUpDetail() {
 
       <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm dark:shadow-gray-900/30">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Date" value={new Date(fillUp.date).toLocaleDateString()} />
+          <Field label="Date" value={formatDateOnly(fillUp.date)} />
           <Field label="Vehicle" value={fillUp.vehicleLabel} />
           <Field label="Station" value={fillUp.stationName} />
           <Field label="Address" value={fillUp.stationAddress ?? "--"} />

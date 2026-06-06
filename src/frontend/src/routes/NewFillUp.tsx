@@ -5,6 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { apiFetch } from "@/lib/api";
+import { todayLocalIso } from "@/lib/date";
 import type {
   Vehicle,
   StationSuggestion,
@@ -67,7 +68,7 @@ export default function NewFillUp() {
   } = useForm<FillUpFormData>({
     resolver: standardSchemaResolver(fillUpSchema),
     defaultValues: {
-      date: new Date().toISOString().split("T")[0],
+      date: todayLocalIso(),
       latitude: null,
       longitude: null,
       stationAddress: null,

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { apiFetch } from "@/lib/api";
+import { formatDateOnly } from "@/lib/date";
 import type { Stats, FillUp, Vehicle } from "@/lib/types";
 import Spinner from "@/components/Spinner";
 import { useTheme } from "@/components/ThemeProvider";
@@ -67,21 +68,17 @@ export default function Dashboard() {
       ).then((r) => r.items),
   });
 
+  const chartDateOpts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+
   const mpgData = (chartFillUps ?? [])
     .filter((f) => f.mpg != null)
     .map((f) => ({
-      date: new Date(f.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      date: formatDateOnly(f.date, "en-US", chartDateOpts),
       mpg: f.mpg!,
     }));
 
   const priceData = (chartFillUps ?? []).map((f) => ({
-    date: new Date(f.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
+    date: formatDateOnly(f.date, "en-US", chartDateOpts),
     price: f.pricePerGallon,
   }));
 
@@ -229,7 +226,7 @@ export default function Dashboard() {
                         params={{ fillUpId: f.id }}
                         className="text-blue-600 dark:text-blue-400 hover:underline"
                       >
-                        {new Date(f.date).toLocaleDateString()}
+                        {formatDateOnly(f.date)}
                       </Link>
                     </td>
                     <td className="py-2 pr-4">{f.vehicleLabel}</td>
