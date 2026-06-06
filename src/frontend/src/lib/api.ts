@@ -25,14 +25,22 @@ export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
 
-/** Decode JWT payload to check expiration */
-function getTokenExpiry(token: string): number | null {
+/** Decode JWT payload to check expiration. Returns ms since epoch, or null. */
+export function getTokenExpiry(token: string): number | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.exp ? payload.exp * 1000 : null;
   } catch {
     return null;
   }
+}
+
+/** True iff a current access token exists AND is not past its expiry. */
+export function hasValidAccessToken(): boolean {
+  const token = getAccessToken();
+  if (!token) return false;
+  const expiry = getTokenExpiry(token);
+  return expiry == null || expiry > Date.now();
 }
 
 function getTokenClaim<T>(token: string, claim: string): T | null {
@@ -53,18 +61,19 @@ export function mustResetPassword(): boolean {
 /** Module-level promise for deduplicating concurrent refresh calls */
 let refreshPromise: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
+export function refreshAccessToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
-
+  const p = (async () => {
     try {
+      const accessToken = getAccessToken();
+      const refreshToken = getRefreshToken();
+      if (!accessToken || !refreshToken) return false;
+
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ accessToken, refreshToken }),
       });
 
       if (!res.ok) return false;
@@ -74,12 +83,15 @@ async function refreshAccessToken(): Promise<boolean> {
       return true;
     } catch {
       return false;
-    } finally {
-      refreshPromise = null;
     }
   })();
 
-  return refreshPromise;
+  refreshPromise = p;
+  // Clear after the assignment is visible, so dedup correctly releases.
+  void p.finally(() => {
+    if (refreshPromise === p) refreshPromise = null;
+  });
+  return p;
 }
 
 /** Proactively refresh if token expires within 60 seconds */
