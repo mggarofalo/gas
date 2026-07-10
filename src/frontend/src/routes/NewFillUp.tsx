@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import CurrencyInput from "@/components/CurrencyInput";
+import { uploadReceiptInBackground } from "@/lib/receiptUpload";
 
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle is required"),
@@ -202,18 +203,36 @@ export default function NewFillUp() {
         if (category) formData.append("ynabCategoryName", category.name);
       }
 
-      // Receipt in same request
-      if (receiptFile) formData.append("receipt", receiptFile);
-
+      // Receipt is uploaded separately in the background after the save succeeds
       return apiFetch<{ id: string }>("/api/fill-ups", {
         method: "POST",
         body: formData,
       });
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
-      toast("Fill-up created", "success");
+
+      if (receiptFile) {
+        toast("Fill-up saved — uploading receipt in background", "success");
+        uploadReceiptInBackground(created.id, receiptFile, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
+            queryClient.invalidateQueries({ queryKey: ["fill-up", created.id] });
+            toast("Receipt uploaded", "success");
+          },
+          onFailure: (err) => {
+            toast(
+              `Receipt upload failed: ${err.message}. You can re-attach it from the fill-up's edit page.`,
+              "error",
+              10000
+            );
+          },
+        });
+      } else {
+        toast("Fill-up created", "success");
+      }
+
       navigate({ to: "/fill-ups" });
     },
     onError: (err) => {
@@ -540,17 +559,24 @@ export default function NewFillUp() {
 
         {/* Receipt */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            htmlFor="receipt"
+            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Receipt (optional)
           </label>
           <input
+            id="receipt"
             type="file"
             accept="image/*,.pdf"
+            aria-describedby="receipt-hint"
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
           />
           {receiptFile && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{receiptFile.name}</p>
+            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {receiptFile.name}
+            </p>
           )}
         </div>
 

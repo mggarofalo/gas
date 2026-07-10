@@ -1,5 +1,16 @@
 import type { AuthTokens } from "./types";
 
+/** Error thrown for non-OK API responses; carries the HTTP status for retry decisions. */
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 const ACCESS_TOKEN_KEY = "gas_access_token";
 const REFRESH_TOKEN_KEY = "gas_refresh_token";
 
@@ -136,7 +147,7 @@ export async function apiFetchRaw(
     if (res.status === 401) {
       clearTokens();
       window.location.href = "/login";
-      throw new Error("Unauthorized");
+      throw new ApiError("Unauthorized", 401);
     }
   }
 
@@ -149,7 +160,7 @@ export async function apiFetchRaw(
     } catch {
       message = body;
     }
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
 
   return res;
