@@ -41,6 +41,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
+            role={t.type === "error" ? "alert" : "status"}
             className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg transition-all ${
               t.type === "success"
                 ? "bg-green-600"
@@ -52,6 +53,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <span className="flex-1">{t.message}</span>
             <button
               onClick={() => removeToast(t.id)}
+              aria-label="Dismiss notification"
               className="ml-2 text-white/80 hover:text-white"
             >
               &times;

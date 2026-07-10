@@ -340,19 +340,26 @@ export default function EditFillUp() {
 
         {/* Receipt */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            htmlFor="receipt"
+            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Receipt (optional)
           </label>
           <input
+            id="receipt"
             type="file"
             accept="image/*,.pdf"
+            aria-describedby="receipt-hint"
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
           />
           {receiptFile ? (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{receiptFile.name}</p>
+            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {receiptFile.name}
+            </p>
           ) : fillUp.receiptUrl ? (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               A receipt is already attached — uploading a new one replaces it.
             </p>
           ) : null}

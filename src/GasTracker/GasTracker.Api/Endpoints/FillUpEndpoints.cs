@@ -181,8 +181,9 @@ public static class FillUpEndpoints
             var receiptError = ValidateReceipt(receipt);
             if (receiptError is not null) return receiptError;
 
-            if (fillUp.ReceiptPath is not null)
-                await receiptStore.DeleteAsync(fillUp.ReceiptPath);
+            // Upload first, persist, then delete the old object: an orphaned blob
+            // on failure is recoverable; a DB pointer to a deleted object is not.
+            var oldPath = fillUp.ReceiptPath;
 
             using var stream = receipt.OpenReadStream();
             fillUp.ReceiptPath = await receiptStore.UploadAsync(
@@ -192,6 +193,11 @@ public static class FillUpEndpoints
             fillUp.PaperlessSyncError = null;
 
             await repo.UpdateAsync(fillUp);
+
+            // Same filename produces the same object key (overwritten in place)
+            if (oldPath is not null && oldPath != fillUp.ReceiptPath)
+                await receiptStore.DeleteAsync(oldPath);
+
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
             return Results.Ok(fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
