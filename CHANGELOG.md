@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.27.6](https://github.com/mggarofalo/gas/compare/v1.27.5...v1.27.6) (2026-07-10)
+
+
+### Bug Fixes
+
+* decouple receipt upload from fill-up save with background retry (GAS-94) ([#131](https://github.com/mggarofalo/gas/issues/131)) ([f9756e6](https://github.com/mggarofalo/gas/commit/f9756e69102625230fc7e5450b1b16132cd6fed1))
+* **deps:** pin Microsoft.OpenApi 2.7.5 to resolve NU1903 vulnerability ([#129](https://github.com/mggarofalo/gas/issues/129)) ([2e4c42b](https://github.com/mggarofalo/gas/commit/2e4c42b7f9b5d64007df5181fc06a3575a056bdc))
+* stop mobile browsers zooming when form fields are focused (GAS-95) ([#132](https://github.com/mggarofalo/gas/issues/132)) ([0d1fd4c](https://github.com/mggarofalo/gas/commit/0d1fd4c0068f1e480ffe40c1140b6218baa598a0))
+
 ## [1.27.5](https://github.com/mggarofalo/gas/compare/v1.27.4...v1.27.5) (2026-06-06)
 
 
