@@ -9,6 +9,7 @@ import type { FillUp, Vehicle, StationSuggestion } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import CurrencyInput from "@/components/CurrencyInput";
 import Spinner from "@/components/Spinner";
+import { uploadReceiptInBackground } from "@/lib/receiptUpload";
 
 const editFillUpSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle is required"),
@@ -34,6 +35,7 @@ export default function EditFillUp() {
   const [stationQuery, setStationQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const { data: fillUp, isLoading } = useQuery({
     queryKey: ["fill-up", fillUpId],
@@ -90,22 +92,52 @@ export default function EditFillUp() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: EditFillUpFormData) => {
-      const body: Record<string, unknown> = {
-        ...data,
-        gallons: parseFloat(data.gallons),
-        pricePerGallon: parseFloat(data.pricePerGallon),
-      };
+      // The API reads multipart form data, not JSON (see FillUpEndpoints PUT)
+      const formData = new FormData();
+      formData.append("date", data.date);
+      formData.append("odometerMiles", data.odometerMiles.toString());
+      formData.append("gallons", parseFloat(data.gallons).toString());
+      formData.append("pricePerGallon", parseFloat(data.pricePerGallon).toString());
+      formData.append("stationName", data.stationName);
+      formData.append("stationAddress", data.stationAddress ?? "");
+      formData.append("notes", data.notes ?? "");
+      if (data.octaneRating != null)
+        formData.append("octaneRating", data.octaneRating.toString());
+      if (data.latitude != null)
+        formData.append("latitude", data.latitude.toString());
+      if (data.longitude != null)
+        formData.append("longitude", data.longitude.toString());
 
       return apiFetch<FillUp>(`/api/fill-ups/${fillUpId}`, {
         method: "PUT",
-        body: JSON.stringify(body),
+        body: formData,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
       queryClient.invalidateQueries({ queryKey: ["fill-up", fillUpId] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
-      toast("Fill-up updated", "success");
+
+      if (receiptFile) {
+        toast("Fill-up updated — uploading receipt in background", "success");
+        uploadReceiptInBackground(fillUpId, receiptFile, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["fill-ups"] });
+            queryClient.invalidateQueries({ queryKey: ["fill-up", fillUpId] });
+            toast("Receipt uploaded", "success");
+          },
+          onFailure: (err) => {
+            toast(
+              `Receipt upload failed: ${err.message}. You can re-attach it from the fill-up's edit page.`,
+              "error",
+              10000
+            );
+          },
+        });
+      } else {
+        toast("Fill-up updated", "success");
+      }
+
       navigate({ to: "/fill-ups/$fillUpId", params: { fillUpId } });
     },
     onError: (err) => {
@@ -304,6 +336,26 @@ export default function EditFillUp() {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Receipt */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Receipt (optional)
+          </label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+            className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
+          />
+          {receiptFile ? (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{receiptFile.name}</p>
+          ) : fillUp.receiptUrl ? (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              A receipt is already attached — uploading a new one replaces it.
+            </p>
+          ) : null}
         </div>
 
         {/* Notes */}

@@ -168,6 +168,34 @@ public static class FillUpEndpoints
             return Results.Ok(fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
 
+        group.MapPut("/{id:guid}/receipt", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore) =>
+        {
+            var fillUp = await repo.GetByIdAsync(id);
+            if (fillUp is null) return Results.NotFound();
+
+            var form = await request.ReadFormAsync();
+            var receipt = form.Files.GetFile("receipt");
+            if (receipt is null)
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["receipt"] = ["A receipt file is required"] });
+
+            var receiptError = ValidateReceipt(receipt);
+            if (receiptError is not null) return receiptError;
+
+            if (fillUp.ReceiptPath is not null)
+                await receiptStore.DeleteAsync(fillUp.ReceiptPath);
+
+            using var stream = receipt.OpenReadStream();
+            fillUp.ReceiptPath = await receiptStore.UploadAsync(
+                fillUp.VehicleId, fillUp.Id, receipt.FileName, receipt.ContentType, stream);
+            fillUp.PaperlessSyncStatus = "pending";
+            fillUp.PaperlessSyncAttempts = 0;
+            fillUp.PaperlessSyncError = null;
+
+            await repo.UpdateAsync(fillUp);
+            var tripMiles = await repo.GetTripMilesAsync(fillUp);
+            return Results.Ok(fillUp.ToDto(tripMiles));
+        }).DisableAntiforgery();
+
         group.MapDelete("/{id:guid}", async (Guid id, IFillUpRepository repo, IReceiptStore receiptStore) =>
         {
             var fillUp = await repo.GetByIdAsync(id);
