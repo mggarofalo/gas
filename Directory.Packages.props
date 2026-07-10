@@ -16,6 +16,8 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+    <!-- Direct pin: lifts transitive Microsoft.OpenApi 2.0.0 (GHSA-v5pm-xwqc-g5wc, NU1903) -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
