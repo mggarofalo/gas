@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0](https://github.com/mggarofalo/gas/compare/v1.27.6...v1.28.0) (2026-07-11)
+
+
+### Features
+
+* surface app version in /health and the UI (GAS-107) ([#133](https://github.com/mggarofalo/gas/issues/133)) ([2950919](https://github.com/mggarofalo/gas/commit/295091936ccf0ed138acb6fa8d0823345708e56a))
+
 ## [1.27.6](https://github.com/mggarofalo/gas/compare/v1.27.5...v1.27.6) (2026-07-10)
 
 
