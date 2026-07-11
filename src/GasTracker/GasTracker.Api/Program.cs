@@ -152,6 +152,8 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Public endpoints
+var appVersion = app.Configuration["APP_VERSION"] is { Length: > 0 } v ? v : "dev";
+var appCommit = app.Configuration["APP_COMMIT"] is { Length: > 0 } c ? c : null;
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -160,6 +162,8 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         var result = new
         {
             status = report.Status.ToString(),
+            version = appVersion,
+            commit = appCommit,
             checks = report.Entries.Select(e => new
             {
                 name = e.Key,
