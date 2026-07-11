@@ -18,7 +18,14 @@ public class HealthEndpointTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task Health_WithoutVersionConfig_ReportsDevAndNoCommit()
     {
-        var client = _factory.CreateClient();
+        // Shadow any ambient env vars so the default-case assertion is deterministic
+        // (empty string is treated as unset by Program.cs)
+        using var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("APP_VERSION", "");
+            builder.UseSetting("APP_COMMIT", "");
+        });
+        var client = factory.CreateClient();
 
         var response = await client.GetAsync("/health");
 

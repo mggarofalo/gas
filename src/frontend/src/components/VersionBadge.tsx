@@ -21,7 +21,7 @@ export default function VersionBadge() {
   const label = data.version === "dev" ? "dev" : `v${data.version}`;
   return (
     <p
-      className="px-3 pt-3 text-xs text-gray-400 dark:text-gray-500"
+      className="px-3 pt-3 text-xs text-gray-500 dark:text-gray-400"
       title={data.commit ? `Commit ${data.commit}` : undefined}
     >
       Gas Tracker {label}
