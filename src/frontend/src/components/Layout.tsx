@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { clearTokens } from "@/lib/api";
 import { useTheme } from "@/components/ThemeProvider";
+import VersionBadge from "@/components/VersionBadge";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: HomeIcon },
@@ -101,6 +102,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <LogoutIcon className="h-5 w-5" />
             Logout
           </button>
+
+          <VersionBadge />
         </div>
       </aside>
 

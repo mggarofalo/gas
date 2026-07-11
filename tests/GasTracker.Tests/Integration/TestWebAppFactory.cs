@@ -108,6 +108,17 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             foreach (var d in healthCheckDescriptors)
                 services.Remove(d);
 
+            // AddCheck<MinioHealthCheck> also registers the check in the health
+            // check options (created via ActivatorUtilities), so removing the DI
+            // descriptors above isn't enough — drop the registration itself or
+            // /health times out against a nonexistent MinIO and returns 503.
+            services.Configure<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckServiceOptions>(opts =>
+            {
+                var minio = opts.Registrations.FirstOrDefault(r => r.Name == "minio");
+                if (minio is not null)
+                    opts.Registrations.Remove(minio);
+            });
+
             // Configure JWT with test keys
             services.Configure<JwtOptions>(opts =>
             {

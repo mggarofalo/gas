@@ -40,6 +40,12 @@ RUN case ${TARGETARCH} in \
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
+# Release version and commit, injected by docker-publish.yml; "dev" for local builds
+ARG APP_VERSION=dev
+ARG APP_COMMIT=""
+ENV APP_VERSION=${APP_VERSION} \
+    APP_COMMIT=${APP_COMMIT}
+
 LABEL org.opencontainers.image.title="Gas Tracker" \
       org.opencontainers.image.description="Personal fuel tracking API with React SPA" \
       org.opencontainers.image.source="https://github.com/mggarofalo/gas"
