@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.0](https://github.com/mggarofalo/gas/compare/v1.28.0...v1.29.0) (2026-08-19)
+
+
+### Features
+
+* number-pad currency masks and a remembered GPS fix ([#135](https://github.com/mggarofalo/gas/issues/135)) ([c69e1ff](https://github.com/mggarofalo/gas/commit/c69e1ff4f6d7eda09fc17c14b9b96a9c256e2cba))
+
 ## [1.28.0](https://github.com/mggarofalo/gas/compare/v1.27.6...v1.28.0) (2026-07-11)
 
 
