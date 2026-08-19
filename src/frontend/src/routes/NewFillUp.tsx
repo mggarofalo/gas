@@ -17,11 +17,12 @@ import type {
 import { useToast } from "@/components/Toast";
 import CurrencyInput from "@/components/CurrencyInput";
 import { uploadReceiptInBackground } from "@/lib/receiptUpload";
+import { getCurrentPosition } from "@/lib/geolocation";
 
 const fillUpSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle is required"),
   date: z.string().min(1, "Date is required"),
-  odometerMiles: z.number().positive("Must be positive"),
+  odometerMiles: z.number({ error: "Odometer is required" }).positive("Must be positive"),
   pricePerGallon: z.string().min(1, "Price per gallon is required"),
   totalPrice: z.string().min(1, "Total price is required"),
   octaneRating: z.number().nullable().optional(),
@@ -58,6 +59,7 @@ export default function NewFillUp() {
   const [stationQuery, setStationQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsRemembered, setGpsRemembered] = useState(false);
 
   const {
     register,
@@ -243,25 +245,25 @@ export default function NewFillUp() {
     },
   });
 
-  const getGps = useCallback(() => {
-    if (!navigator.geolocation) {
-      toast("Geolocation not supported", "error");
-      return;
-    }
-    setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setValue("latitude", pos.coords.latitude);
-        setValue("longitude", pos.coords.longitude);
+  const applyPosition = useCallback(
+    async (forceFresh: boolean) => {
+      setGpsLoading(true);
+      try {
+        const pos = await getCurrentPosition({ forceFresh });
+        setValue("latitude", pos.latitude);
+        setValue("longitude", pos.longitude);
+        setGpsRemembered(pos.remembered);
+      } catch (err) {
+        toast(
+          `GPS error: ${err instanceof Error ? err.message : "Unable to get location"}`,
+          "error"
+        );
+      } finally {
         setGpsLoading(false);
-      },
-      (err) => {
-        toast(`GPS error: ${err.message}`, "error");
-        setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [setValue, toast]);
+      }
+    },
+    [setValue, toast]
+  );
 
   // Auto-fill octane from selected vehicle
   const vehicleId = watch("vehicleId");
@@ -324,11 +326,18 @@ export default function NewFillUp() {
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Odometer (miles)
             </label>
-            <input
-              type="number"
-              step="1"
-              {...register("odometerMiles", { valueAsNumber: true })}
-              className={inputClass}
+            <Controller
+              name="odometerMiles"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={Number.isFinite(field.value) ? String(field.value) : ""}
+                  onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
+                  decimals={0}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              )}
             />
             {errors.odometerMiles && (
               <p className="mt-1 text-xs text-red-600">
@@ -343,6 +352,7 @@ export default function NewFillUp() {
             <input
               type="number"
               step="1"
+              inputMode="numeric"
               {...register("octaneRating", { valueAsNumber: true })}
               className={inputClass}
             />
@@ -502,10 +512,10 @@ export default function NewFillUp() {
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             GPS Location
           </label>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={getGps}
+              onClick={() => applyPosition(false)}
               disabled={gpsLoading}
               className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
             >
@@ -515,6 +525,16 @@ export default function NewFillUp() {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {latitude.toFixed(5)}, {longitude.toFixed(5)}
               </span>
+            )}
+            {gpsRemembered && (
+              <button
+                type="button"
+                onClick={() => applyPosition(true)}
+                disabled={gpsLoading}
+                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              >
+                Remembered &mdash; refresh
+              </button>
             )}
           </div>
         </div>

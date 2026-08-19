@@ -39,7 +39,23 @@
 - **Spinner**: Loading indicator
 - **EmptyState**: No-data placeholder
 - **Toast**: Context + hook for notifications
-- **CurrencyInput**: Controlled decimal input that avoids `type=number` quirks on mobile
+- **CurrencyInput**: Controlled numeric input with an ATM-style progressive mask (see below)
+
+### CurrencyInput and the number mask
+
+`src/lib/numberMask.ts` holds the mask; `CurrencyInput` is the input that wears it.
+
+- The user types digits only. They fill in from the right, so with `decimals={3}`
+  the keystrokes 3, 4, 5, 9 read `0.003`, `0.034`, `0.345`, `3.459`. The decimal
+  point and thousands separators are placed as you go; there is no way to type
+  them, and no blur-time reformat.
+- `decimals={0}` gives a whole-number field with comma grouping — that's the
+  odometer.
+- Backspace removes the rightmost digit; deleting them all empties the field.
+- The value handed to the form is canonical (`"3.459"`, `""` when blank), never
+  the display string with separators.
+- `type="text"` + `inputMode="numeric"` gets iOS Safari's number pad. `type="number"`
+  brings up the full keyboard there, which is what this replaced.
 
 ## Dashboard
 
@@ -52,14 +68,19 @@
 
 - Vehicle selector dropdown
 - Date picker
-- Odometer miles input
-- Gallons input
-- Price per gallon input (CurrencyInput)
-- Total cost input (auto-computed, manually overridable)
+- Odometer miles input (CurrencyInput, `decimals={0}` — comma-grouped whole miles)
+- Gallons input (CurrencyInput, 3 decimals)
+- Price per gallon input (CurrencyInput, 3 decimals)
+- Total cost input (CurrencyInput, 2 decimals; gallons are derived from total ÷ price)
 - Octane grade selector (87/89/91/93, defaults from vehicle)
 - Station name with autocomplete (searches `/api/stations/search`)
 - Station address
-- GPS location (browser geolocation prompt + nearby station suggestions)
+- GPS location (browser geolocation prompt + nearby station suggestions). The last
+  fix is remembered in `localStorage` under `gas_last_position` for 5 minutes
+  (`src/lib/geolocation.ts`), so a second request inside that window reuses it
+  instead of raising another Safari permission prompt. When a remembered fix is
+  used, the form offers a "Remembered — refresh" link to force a live read.
+  `clearTokens()` drops the remembered fix on sign-out.
 - Receipt file upload (image/PDF)
 - Notes textarea
 - YNAB account/category selectors (when YNAB enabled)
