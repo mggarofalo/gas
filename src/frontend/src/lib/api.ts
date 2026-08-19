@@ -1,3 +1,4 @@
+import { forgetRememberedPosition } from "./geolocation";
 import type { AuthTokens } from "./types";
 
 /** Error thrown for non-OK API responses; carries the HTTP status for retry decisions. */
@@ -30,6 +31,8 @@ export function setTokens(tokens: AuthTokens): void {
 export function clearTokens(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // The remembered GPS fix belongs to whoever was signed in.
+  forgetRememberedPosition();
 }
 
 export function isAuthenticated(): boolean {

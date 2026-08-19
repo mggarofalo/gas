@@ -1,57 +1,130 @@
 import { describe, it, expect, vi } from "vitest";
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CurrencyInput from "@/components/CurrencyInput";
 
+/** Renders the input as a controlled field so typing accumulates like it does in a form. */
+function Harness({
+  decimals,
+  initial = "",
+  onValue,
+}: {
+  decimals?: number;
+  initial?: string;
+  onValue?: (v: string) => void;
+}) {
+  const [value, setValue] = useState(initial);
+  return (
+    <CurrencyInput
+      value={value}
+      decimals={decimals}
+      onChange={(v) => {
+        setValue(v);
+        onValue?.(v);
+      }}
+    />
+  );
+}
+
 describe("CurrencyInput", () => {
-  it("renders with the provided value", () => {
-    render(<CurrencyInput value="12.34" onChange={() => {}} />);
-    expect(screen.getByRole("textbox")).toHaveValue("12.34");
+  it("renders the stored value padded to the required decimals", () => {
+    render(<CurrencyInput value="12.3" onChange={() => {}} />);
+    expect(screen.getByRole("textbox")).toHaveValue("12.30");
   });
 
-  it("has decimal inputMode", () => {
+  it("uses the numeric keypad on mobile", () => {
     render(<CurrencyInput value="" onChange={() => {}} />);
-    expect(screen.getByRole("textbox")).toHaveAttribute("inputMode", "decimal");
+    expect(screen.getByRole("textbox")).toHaveAttribute("inputMode", "numeric");
   });
 
-  it("calls onChange for valid numeric input", async () => {
-    const onChange = vi.fn();
+  it("progressively masks three decimals as digits are typed", async () => {
     const user = userEvent.setup();
-    render(<CurrencyInput value="" onChange={onChange} />);
+    const onValue = vi.fn();
+    render(<Harness decimals={3} onValue={onValue} />);
+    const input = screen.getByRole("textbox");
 
-    await user.type(screen.getByRole("textbox"), "5");
-    expect(onChange).toHaveBeenCalledWith("5");
+    await user.type(input, "3");
+    expect(input).toHaveValue("0.003");
+    await user.type(input, "4");
+    expect(input).toHaveValue("0.034");
+    await user.type(input, "5");
+    expect(input).toHaveValue("0.345");
+    await user.type(input, "9");
+    expect(input).toHaveValue("3.459");
+    expect(onValue).toHaveBeenLastCalledWith("3.459");
   });
 
-  it("rejects letters", async () => {
-    const onChange = vi.fn();
+  it("progressively masks two decimals with thousands separators", async () => {
     const user = userEvent.setup();
-    render(<CurrencyInput value="" onChange={onChange} />);
+    const onValue = vi.fn();
+    render(<Harness decimals={2} onValue={onValue} />);
+    const input = screen.getByRole("textbox");
 
-    await user.type(screen.getByRole("textbox"), "abc");
-    expect(onChange).not.toHaveBeenCalled();
+    await user.type(input, "123456");
+    expect(input).toHaveValue("1,234.56");
+    expect(onValue).toHaveBeenLastCalledWith("1234.56");
   });
 
-  it("allows a decimal point", async () => {
-    const onChange = vi.fn();
+  it("masks whole numbers with commas for the odometer", async () => {
     const user = userEvent.setup();
-    render(<CurrencyInput value="3" onChange={onChange} />);
+    const onValue = vi.fn();
+    render(<Harness decimals={0} onValue={onValue} />);
+    const input = screen.getByRole("textbox");
 
-    await user.type(screen.getByRole("textbox"), ".");
-    expect(onChange).toHaveBeenCalledWith("3.");
+    await user.type(input, "123456");
+    expect(input).toHaveValue("123,456");
+    expect(onValue).toHaveBeenLastCalledWith("123456");
   });
 
-  it("respects custom decimals prop", () => {
-    // With decimals=3, "1.234" should be valid
-    const onChange = vi.fn();
-    const { rerender } = render(
-      <CurrencyInput value="1.234" onChange={onChange} decimals={3} />,
-    );
-    expect(screen.getByRole("textbox")).toHaveValue("1.234");
+  it("drops a digit from the right on backspace", async () => {
+    const user = userEvent.setup();
+    render(<Harness decimals={2} initial="1234.56" />);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue("1,234.56");
 
-    // Verify it renders correctly with the value
-    rerender(<CurrencyInput value="1.2345" onChange={onChange} decimals={3} />);
-    expect(screen.getByRole("textbox")).toHaveValue("1.2345");
+    await user.click(input);
+    await user.keyboard("{Backspace}");
+    expect(input).toHaveValue("123.45");
+    await user.keyboard("{Backspace}");
+    expect(input).toHaveValue("12.34");
+  });
+
+  it("empties out once every digit is deleted", async () => {
+    const user = userEvent.setup();
+    const onValue = vi.fn();
+    render(<Harness decimals={2} initial="0.05" onValue={onValue} />);
+    const input = screen.getByRole("textbox");
+
+    await user.click(input);
+    await user.keyboard("{Backspace}");
+    expect(input).toHaveValue("");
+    expect(onValue).toHaveBeenLastCalledWith("");
+  });
+
+  it("ignores letters and stray punctuation", async () => {
+    const user = userEvent.setup();
+    render(<Harness decimals={2} />);
+    const input = screen.getByRole("textbox");
+
+    await user.type(input, "a.b$c");
+    expect(input).toHaveValue("");
+
+    await user.type(input, "4a2");
+    expect(input).toHaveValue("0.42");
+  });
+
+  it("appends at the end when tapped mid-number", async () => {
+    const user = userEvent.setup();
+    render(<Harness decimals={2} initial="12.34" />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+
+    input.setSelectionRange(1, 1); // as if the tap landed between digits
+    await user.click(input);
+    await user.type(input, "5");
+
+    expect(input).toHaveValue("123.45");
+    expect(input.selectionStart).toBe(input.value.length);
   });
 
   it("passes through additional input props", () => {

@@ -391,6 +391,7 @@ function ImportEditForm({
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane</label>
           <input
             type="number"
+            inputMode="numeric"
             {...register("octaneRating", { valueAsNumber: true })}
             className={inputClass}
           />
@@ -398,10 +399,18 @@ function ImportEditForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer</label>
-          <input
-            type="number"
-            {...register("odometerMiles", { valueAsNumber: true })}
-            className={inputClass}
+          <Controller
+            name="odometerMiles"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                value={Number.isFinite(field.value) ? String(field.value) : ""}
+                onChange={(v) => field.onChange(v === "" ? null : Number(v))}
+                decimals={0}
+                placeholder="0"
+                className={inputClass}
+              />
+            )}
           />
         </div>
 
