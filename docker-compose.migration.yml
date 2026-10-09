@@ -1,0 +1,6 @@
+# Temporary host access for import/verification. Remove this override afterward.
+# GAS must remain stopped until both import and restart verification pass.
+services:
+  s3mock:
+    ports:
+      - "127.0.0.1:${S3_MIGRATION_PORT:-19090}:9090"

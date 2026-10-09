@@ -10,6 +10,38 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  receipt-migration:
+    name: Receipt migration (MinIO to S3Mock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build native migration test tools from pinned source
+        env:
+          GOBIN: ${{ runner.temp }}/migration-tools
+          CGO_ENABLED: "0"
+        run: |
+          go install github.com/minio/mc@RELEASE.2025-03-12T17-29-24Z
+          go install github.com/minio/minio@RELEASE.2025-03-12T18-04-18Z
+      - name: Check scripts and Compose
+        run: |
+          shellcheck -x -P scripts scripts/export-minio-receipts.sh scripts/import-s3mock-receipts.sh scripts/receipt-migration-common.sh tests/migration/run.sh
+          docker compose config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.migration.yml config --quiet
+      - name: Build storage smoke test
+        run: dotnet build tests/GasTracker.Tests/GasTracker.Tests.csproj -c Release
+      - name: Test export, import, recovery, conflicts, persistence and AWS SDK
+        env:
+          MIGRATION_TEST_TOOLS: ${{ runner.temp }}/migration-tools
+        run: bash tests/migration/run.sh
+
   backend:
     name: Build & Check (.NET)
     runs-on: ubuntu-latest

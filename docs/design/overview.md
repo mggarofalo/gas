@@ -11,7 +11,7 @@ A self-hosted, single-household fuel tracking application. Records every gas fil
 | Frontend      | React 19, TypeScript, Vite, TailwindCSS, TanStack   |
 | Backend       | .NET 10 (ASP.NET Core Minimal APIs, C#)             |
 | Database      | PostgreSQL 17 via EF Core + Npgsql                  |
-| Object Store  | MinIO (S3-compatible, via AWS SDK)                   |
+| Object Store  | S3Mock (S3-compatible, via AWS SDK)                   |
 | Auth          | JWT (HS256) + refresh tokens, ASP.NET Core Identity |
 | Doc Sync      | Paperless-ngx (async background service)            |
 | Budget Sync   | YNAB API (bidirectional push/pull)                   |
@@ -31,7 +31,7 @@ A self-hosted, single-household fuel tracking application. Records every gas fil
                          │          │
                          v          v
                   ┌──────────┐  ┌────────────────┐
-                  │  MinIO   │  │ Paperless-ngx  │
+                  │  S3Mock   │  │ Paperless-ngx  │
                   │(receipts)│  │ (doc archive)  │
                   └──────────┘  └────────────────┘
 ```
@@ -42,7 +42,7 @@ The React SPA is served from `wwwroot` by ASP.NET static files middleware, with 
 
 ### 1. Log a Fill-Up
 
-User selects a vehicle, enters date, mileage, gallons, price per gallon, station name, and optionally attaches a receipt photo, GPS coordinates, octane grade, and YNAB account/category overrides. The API persists the record, uploads the receipt to MinIO, sets Paperless sync to "pending", and pushes a transaction to YNAB (inline, fire-and-forget on failure).
+User selects a vehicle, enters date, mileage, gallons, price per gallon, station name, and optionally attaches a receipt photo, GPS coordinates, octane grade, and YNAB account/category overrides. The API persists the record, uploads the receipt to S3Mock, sets Paperless sync to "pending", and pushes a transaction to YNAB (inline, fire-and-forget on failure).
 
 ### 2. Manage Vehicles
 
@@ -67,7 +67,7 @@ Paginated, sortable, filterable list. Desktop table with mobile card layout. Eac
 
 ### 6. Receipt Archival
 
-Receipts uploaded to MinIO. Background service polls for pending receipts and syncs to Paperless-ngx with exponential backoff (max 3 attempts).
+Receipts uploaded to S3Mock. Background service polls for pending receipts and syncs to Paperless-ngx with exponential backoff (max 3 attempts).
 
 ### 7. Authentication
 
@@ -86,7 +86,7 @@ src/
   frontend/                   # React SPA (Vite + TanStack)
 docs/design/                  # These design documents
 Dockerfile                    # Multi-stage: Node build + .NET build + runtime
-docker-compose.yml            # init, db, minio, app services
+docker-compose.yml            # init, db, s3mock, app services
 docker-entrypoint.sh          # Secrets bridge + app launch
 ```
 

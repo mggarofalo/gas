@@ -66,7 +66,7 @@ All primary keys are `uuid` with `gen_random_uuid()` default. EF Core uses `UseS
 | `station_address`         | varchar(500)  | nullable                                 |
 | `latitude`                | numeric(10,7) | nullable                                 |
 | `longitude`               | numeric(10,7) | nullable                                 |
-| `receipt_path`            | varchar(500)  | nullable, MinIO key: `{vehicleId}/{fillUpId}/{fileName}` |
+| `receipt_path`            | varchar(500)  | nullable, S3Mock key: `{vehicleId}/{fillUpId}/{fileName}` |
 | `notes`                   | text          | nullable                                 |
 | `paperless_sync_status`   | varchar(20)   | default "none" (none/pending/synced/failed) |
 | `paperless_document_id`   | integer       | nullable                                 |
