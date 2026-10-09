@@ -40,7 +40,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
         foreach (var tx in page.Transactions)
         {
             // Skip our own pushes
-            if (tx.ImportId is not null && tx.ImportId.StartsWith("GAS:", StringComparison.Ordinal))
+            if (YnabTransactionIdentity.IsGasTransaction(tx.ImportId, tx.Memo))
             {
                 skipped++;
                 continue;

@@ -146,10 +146,10 @@ public class YnabClient(HttpClient http) : IYnabClient
         var res = await http.SendAsync(req);
 
         if (res.StatusCode == HttpStatusCode.Unauthorized)
-            throw new InvalidOperationException("YNAB API token is invalid or revoked");
+            throw new HttpRequestException("YNAB API token is invalid or revoked", null, res.StatusCode);
 
         if (res.StatusCode == HttpStatusCode.TooManyRequests)
-            throw new InvalidOperationException("YNAB API rate limit exceeded (200 requests/hour)");
+            throw new HttpRequestException("YNAB API rate limit exceeded (200 requests/hour)", null, res.StatusCode);
 
         if (allowConflict && res.StatusCode == HttpStatusCode.Conflict)
             return res;

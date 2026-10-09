@@ -65,7 +65,7 @@ public static class YnabBackfillEndpoints
             foreach (var tx in transactions)
             {
                 // Skip our own pushes
-                if (tx.ImportId is not null && tx.ImportId.StartsWith("GAS:", StringComparison.Ordinal))
+                if (YnabTransactionIdentity.IsGasTransaction(tx.ImportId, tx.Memo))
                     continue;
 
                 if (string.IsNullOrWhiteSpace(tx.Memo))

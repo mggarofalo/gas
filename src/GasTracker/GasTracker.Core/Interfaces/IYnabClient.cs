@@ -22,7 +22,7 @@ public record YnabTransaction(
     string PayeeName,
     string? CategoryId,
     string? Memo,
-    string Cleared = "cleared",
+    string Cleared = "uncleared",
     bool Approved = true,
     string? ImportId = null);
 

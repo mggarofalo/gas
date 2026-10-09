@@ -107,6 +107,7 @@ builder.Services.AddHostedService<PaperlessSyncService>();
 // YNAB services
 builder.Services.AddScoped<YnabTokenService>();
 builder.Services.AddScoped<YnabPullSyncService>();
+builder.Services.AddScoped<YnabPushSyncService>();
 
 // Health checks
 builder.Services.AddHealthChecks()
