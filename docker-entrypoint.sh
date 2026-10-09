@@ -19,17 +19,17 @@ else
     echo "Warning: /secrets/pg_password not found, using ConnectionStrings__Default from environment"
 fi
 
-if [ -f /secrets/minio_access_key ]; then
-    export MinIO__AccessKey
-    MinIO__AccessKey="$(cat /secrets/minio_access_key)"
-    echo "MinIO access key loaded from secrets"
-fi
-
-if [ -f /secrets/minio_secret_key ]; then
-    export MinIO__SecretKey
-    MinIO__SecretKey="$(cat /secrets/minio_secret_key)"
-    echo "MinIO secret key loaded from secrets"
-fi
+# Prefer new names; existing installations can reuse the legacy secret files.
+for kind in access_key secret_key; do
+    secret_file="/secrets/s3_${kind}"
+    [ -f "$secret_file" ] || secret_file="/secrets/minio_${kind}"
+    if [ -f "$secret_file" ]; then
+        case "$kind" in
+            access_key) export S3__AccessKey="$(cat "$secret_file")" ;;
+            secret_key) export S3__SecretKey="$(cat "$secret_file")" ;;
+        esac
+    fi
+done
 
 if [ -f /secrets/jwt_key ]; then
     export Jwt__Key

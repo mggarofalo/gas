@@ -8,7 +8,7 @@
 - JWT (HS256) authentication with refresh tokens
 - FluentValidation for request validation
 - Data Protection API for encrypting YNAB tokens at rest
-- AWS SDK for S3 (MinIO client)
+- AWS SDK for S3 (S3Mock client)
 - BackgroundService for async Paperless sync
 
 ## Project Structure
@@ -61,9 +61,9 @@ Auth/
   TokenService.cs              # JWT generation, refresh token storage, expired token validation
   AdminSeeder.cs               # Seeds admin user on first launch
 Storage/
-  MinioOptions.cs              # Endpoint, AccessKey, SecretKey, BucketName, UseSSL
-  MinioReceiptStore.cs         # Upload, download, delete, presigned URL
-  MinioHealthCheck.cs          # Health check for MinIO connectivity
+  S3Options.cs              # Endpoint, AccessKey, SecretKey, BucketName, UseSSL
+  S3ReceiptStore.cs         # Upload, download, delete, presigned URL
+  S3HealthCheck.cs          # Health check for S3Mock connectivity
 Paperless/
   PaperlessOptions.cs          # BaseUrl, Token, Enabled, PollIntervalSeconds
   PaperlessClient.cs           # Upload document, ensure tags, health check
@@ -165,10 +165,10 @@ Attempt N: wait `2^N * 30` seconds. After 3 failures: permanently "failed".
 | `Jwt:Issuer` / `Jwt:Audience` | JWT claims | Env (default: gas-api/gas-app) |
 | `Jwt:AccessTokenExpiryMinutes` | Access token TTL | Config (default: 60) |
 | `Jwt:RefreshTokenExpiryDays` | Refresh token TTL | Config (default: 30) |
-| `MinIO:Endpoint` | MinIO host:port | Env |
-| `MinIO:AccessKey` / `MinIO:SecretKey` | MinIO credentials | Secret file -> env |
-| `MinIO:BucketName` | S3 bucket | Env (default: gas-receipts) |
-| `MinIO:UseSSL` | TLS to MinIO | Env (default: false) |
+| `S3:Endpoint` | S3Mock host:port | Env |
+| `S3:AccessKey` / `S3:SecretKey` | S3Mock credentials | Secret file -> env |
+| `S3:BucketName` | S3 bucket | Env (default: gas-receipts) |
+| `S3:UseSSL` | TLS to S3Mock | Env (default: false) |
 | `Paperless:Enabled` | Enable Paperless sync | Env |
 | `Paperless:BaseUrl` | Paperless-ngx URL | Env |
 | `Paperless:Token` | Paperless API token | Env |
@@ -186,4 +186,4 @@ Attempt N: wait `2^N * 30` seconds. After 3 failures: permanently "failed".
 ## Health Checks
 
 - PostgreSQL: `AddDbContextCheck<AppDbContext>("postgresql")`
-- MinIO: custom `MinioHealthCheck` that calls `GetBucketLocationAsync`
+- S3: custom `S3HealthCheck` that calls `GetBucketLocationAsync`

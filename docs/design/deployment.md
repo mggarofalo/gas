@@ -9,7 +9,7 @@ Single `docker-compose.yml` runs the full stack. The API and React SPA are combi
 ### init
 
 - Alpine container, runs once
-- Generates random secrets (48 chars each) into a shared Docker volume: `pg_password`, `minio_access_key`, `minio_secret_key`, `jwt_key`
+- Generates random secrets (48 chars each) into a shared Docker volume: `pg_password`, `s3_access_key`, `s3_secret_key`, `jwt_key`
 - Admin password: 44 alphanum + `@A1!` suffix (meets Identity password policy)
 - Files created with `chmod 644`, idempotent (skips existing)
 
@@ -20,19 +20,19 @@ Single `docker-compose.yml` runs the full stack. The API and React SPA are combi
 - Health check: `pg_isready`
 - Persistent volume for data
 
-### minio
+### s3mock
 
-- MinIO (S3-compatible object storage)
-- Reads credentials from shared secrets at startup via entrypoint script
-- Console on port 9001 (not exposed by default)
-- Persistent volume for data
+- Adobe S3Mock 5.2.3 (S3-compatible receipt storage, pinned multi-architecture image)
+- Persistent named volume at `/s3mockroot`, with retain-files-on-exit enabled
+- No published host ports in the normal stack
+- See the [offline migration runbook](../runbooks/minio-to-s3mock.md) before upgrading an existing installation
 
 ### app
 
 - Built from multi-stage Dockerfile
 - `docker-entrypoint.sh` reads secret files and exports as environment variables
 - Port 8080
-- Depends on healthy db + minio
+- Depends on healthy db + s3mock
 - Resource limits: 512MB RAM, 1 CPU
 - tmpfs on /tmp
 
@@ -67,8 +67,8 @@ Single `docker-compose.yml` runs the full stack. The API and React SPA are combi
 
 1. Sets timezone from `$TZ` if configured
 2. Reads `/secrets/pg_password` -> constructs `ConnectionStrings__Default`
-3. Reads `/secrets/minio_access_key` -> `MinIO__AccessKey`
-4. Reads `/secrets/minio_secret_key` -> `MinIO__SecretKey`
+3. Reads `/secrets/s3_access_key` -> `S3__AccessKey`
+4. Reads `/secrets/s3_secret_key` -> `S3__SecretKey`
 5. Reads `/secrets/jwt_key` -> `Jwt__Key` (strips whitespace)
 6. Reads `/secrets/admin_password` -> `AdminSeed__Password` (strips newlines)
 7. Exec `dotnet GasTracker.Api.dll`

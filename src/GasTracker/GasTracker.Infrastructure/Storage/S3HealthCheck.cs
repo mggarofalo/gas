@@ -5,12 +5,12 @@ using Microsoft.Extensions.Options;
 
 namespace GasTracker.Infrastructure.Storage;
 
-public class MinioHealthCheck : IHealthCheck
+public class S3HealthCheck : IHealthCheck
 {
     private readonly IAmazonS3 _s3;
     private readonly string _bucketName;
 
-    public MinioHealthCheck(IOptions<MinioOptions> opts)
+    public S3HealthCheck(IOptions<S3Options> opts)
     {
         var o = opts.Value;
         _bucketName = o.BucketName;
@@ -18,6 +18,7 @@ public class MinioHealthCheck : IHealthCheck
         {
             ServiceURL = $"{(o.UseSSL ? "https" : "http")}://{o.Endpoint}",
             ForcePathStyle = true,
+            AuthenticationRegion = "us-east-1",
         };
         _s3 = new AmazonS3Client(o.AccessKey, o.SecretKey, config);
     }
@@ -33,7 +34,7 @@ public class MinioHealthCheck : IHealthCheck
         }
         catch
         {
-            return HealthCheckResult.Unhealthy("MinIO is unreachable");
+            return HealthCheckResult.Unhealthy("S3 storage is unreachable");
         }
     }
 }

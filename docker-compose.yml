@@ -7,7 +7,7 @@ services:
     command:
       - -c
       - |
-        for secret in pg_password minio_access_key minio_secret_key jwt_key; do
+        for secret in pg_password s3_access_key s3_secret_key jwt_key; do
           if [ ! -f "/secrets/$${secret}" ]; then
             tr -dc 'A-Za-z0-9+/' < /dev/urandom | head -c 48 > "/secrets/$${secret}"
             chmod 644 "/secrets/$${secret}"
@@ -68,36 +68,24 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  minio:
-    image: minio/minio:RELEASE.2025-03-12T18-04-18Z
-    container_name: gas-minio
+  s3mock:
+    image: adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92
+    container_name: gas-s3mock
     restart: unless-stopped
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        export MINIO_ROOT_USER=$$(cat /secrets/minio_access_key)
-        export MINIO_ROOT_PASSWORD=$$(cat /secrets/minio_secret_key)
-        exec minio server /data --console-address ":9001"
-    depends_on:
-      init:
-        condition: service_completed_successfully
+    environment:
+      - COM_ADOBE_TESTING_S3MOCK_STORE_ROOT=/s3mockroot
+      - COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT=true
+      - COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=${S3__BucketName:-gas-receipts}
     volumes:
-      - secrets:/secrets:ro
-      - minio-data:/data
+      - s3mock-data:/s3mockroot
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/favicon.ico"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 12
+      start_period: 60s
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-      - DAC_OVERRIDE
     security_opt:
       - no-new-privileges:true
     networks:
@@ -121,9 +109,9 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_USER=${POSTGRES_USER:-gas}
       - POSTGRES_DB=${POSTGRES_DB:-gastracker}
-      - MinIO__Endpoint=${MinIO__Endpoint:-minio:9000}
-      - MinIO__BucketName=${MinIO__BucketName:-gas-receipts}
-      - MinIO__UseSSL=${MinIO__UseSSL:-false}
+      - S3__Endpoint=${S3__Endpoint:-s3mock:9090}
+      - S3__BucketName=${S3__BucketName:-gas-receipts}
+      - S3__UseSSL=${S3__UseSSL:-false}
       - AllowedOrigins=${AllowedOrigins:-*}
       - Paperless__Enabled=${Paperless__Enabled:-false}
       - AdminSeed__Email=${AdminSeed__Email:-admin@gastracker.local}
@@ -134,7 +122,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio:
+      s3mock:
         condition: service_healthy
     volumes:
       - secrets:/secrets:ro
@@ -193,7 +181,8 @@ volumes:
   secrets:
   dp-keys:
   db-data:
-  minio-data:
+  minio-data: # Retained for rollback; never run docker compose down -v during migration.
+  s3mock-data:
   backups:
 
 networks:

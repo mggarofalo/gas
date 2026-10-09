@@ -159,7 +159,7 @@ Admin-only bulk import. Deduplicates by `(vehicleId, date, odometerMiles)`.
 | ------ | --------- | ------------------------------------- |
 | GET    | `/health` | `{status, checks: [{name, status, description, duration}]}` |
 
-Checks PostgreSQL and MinIO connectivity.
+Checks PostgreSQL and S3Mock connectivity.
 
 ---
 

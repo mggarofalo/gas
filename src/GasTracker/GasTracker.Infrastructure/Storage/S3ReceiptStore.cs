@@ -5,18 +5,19 @@ using Microsoft.Extensions.Options;
 
 namespace GasTracker.Infrastructure.Storage;
 
-public class MinioReceiptStore : IReceiptStore
+public class S3ReceiptStore : IReceiptStore
 {
     private readonly IAmazonS3 _s3;
-    private readonly MinioOptions _opts;
+    private readonly S3Options _opts;
 
-    public MinioReceiptStore(IOptions<MinioOptions> opts)
+    public S3ReceiptStore(IOptions<S3Options> opts)
     {
         _opts = opts.Value;
         var config = new AmazonS3Config
         {
             ServiceURL = $"{(_opts.UseSSL ? "https" : "http")}://{_opts.Endpoint}",
             ForcePathStyle = true,
+            AuthenticationRegion = "us-east-1",
         };
         _s3 = new AmazonS3Client(_opts.AccessKey, _opts.SecretKey, config);
     }
@@ -33,9 +34,9 @@ public class MinioReceiptStore : IReceiptStore
         }
         catch (Exception ex)
         {
-            // Log but don't crash — bucket may already exist or MinIO may not be ready yet.
+            // Log but don't crash — bucket may already exist or S3 storage may not be ready yet.
             // The app will retry on first upload.
-            Console.WriteLine($"Warning: Could not ensure MinIO bucket exists: {ex.Message}");
+            Console.WriteLine($"Warning: Could not ensure S3 storage bucket exists: {ex.Message}");
         }
     }
 

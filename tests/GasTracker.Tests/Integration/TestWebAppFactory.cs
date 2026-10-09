@@ -100,23 +100,23 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             foreach (var d in paperlessSyncDescriptor)
                 services.Remove(d);
 
-            // Remove MinioHealthCheck (requires real MinIO connection)
+            // Remove S3HealthCheck (requires real S3 storage connection)
             var healthCheckDescriptors = services
-                .Where(d => d.ServiceType == typeof(MinioHealthCheck)
-                         || (d.ImplementationType == typeof(MinioHealthCheck)))
+                .Where(d => d.ServiceType == typeof(S3HealthCheck)
+                         || (d.ImplementationType == typeof(S3HealthCheck)))
                 .ToList();
             foreach (var d in healthCheckDescriptors)
                 services.Remove(d);
 
-            // AddCheck<MinioHealthCheck> also registers the check in the health
+            // AddCheck<S3HealthCheck> also registers the check in the health
             // check options (created via ActivatorUtilities), so removing the DI
             // descriptors above isn't enough — drop the registration itself or
-            // /health times out against a nonexistent MinIO and returns 503.
+            // /health times out against a nonexistent S3 storage and returns 503.
             services.Configure<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckServiceOptions>(opts =>
             {
-                var minio = opts.Registrations.FirstOrDefault(r => r.Name == "minio");
-                if (minio is not null)
-                    opts.Registrations.Remove(minio);
+                var storage = opts.Registrations.FirstOrDefault(r => r.Name == "s3");
+                if (storage is not null)
+                    opts.Registrations.Remove(storage);
             });
 
             // Configure JWT with test keys
@@ -129,8 +129,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 opts.RefreshTokenExpiryDays = 30;
             });
 
-            // Override MinIO options so the health check factory doesn't blow up
-            services.Configure<MinioOptions>(opts =>
+            // Override S3 storage options so the health check factory doesn't blow up
+            services.Configure<S3Options>(opts =>
             {
                 opts.Endpoint = "localhost:9000";
                 opts.AccessKey = "test";

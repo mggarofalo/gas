@@ -75,9 +75,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IFillUpRepository, FillUpRepository>();
 
-// MinIO
-builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("MinIO"));
-builder.Services.AddSingleton<IReceiptStore, MinioReceiptStore>();
+// S3-compatible receipt storage
+builder.Services.Configure<S3Options>(builder.Configuration.GetSection("MinIO")); // Legacy configuration
+builder.Services.Configure<S3Options>(builder.Configuration.GetSection("S3"));
+builder.Services.AddSingleton<IReceiptStore, S3ReceiptStore>();
 
 // YNAB API client
 builder.Services.AddHttpClient<IYnabClient, YnabClient>(c =>
@@ -112,7 +113,7 @@ builder.Services.AddScoped<YnabPushSyncService>();
 // Health checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("postgresql")
-    .AddCheck<MinioHealthCheck>("minio");
+    .AddCheck<S3HealthCheck>("s3");
 
 // CORS
 builder.Services.AddCors(options =>
@@ -135,7 +136,7 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-// Ensure MinIO bucket exists
+// Ensure receipt bucket exists
 var receiptStore = app.Services.GetRequiredService<IReceiptStore>();
 await receiptStore.EnsureBucketExistsAsync();
 
