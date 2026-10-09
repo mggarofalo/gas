@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.1](https://github.com/mggarofalo/gas/compare/v1.29.0...v1.29.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* allow bank imports to match GAS transactions ([#137](https://github.com/mggarofalo/gas/issues/137)) ([0a4a191](https://github.com/mggarofalo/gas/commit/0a4a1914a2813fff581f9672ab907d28d5f4cb84))
+
 ## [1.29.0](https://github.com/mggarofalo/gas/compare/v1.28.0...v1.29.0) (2026-08-19)
 
 
