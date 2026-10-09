@@ -26,6 +26,7 @@ public static partial class MemoParser
     public static ParsedMemo? Parse(string? memo, IReadOnlySet<string>? knownVehicleNames = null)
     {
         if (string.IsNullOrWhiteSpace(memo)) return null;
+        memo = YnabTransactionIdentity.StripMarker(memo);
 
         // Try push-sync format first (exact match)
         var match = PushFormat().Match(memo.Trim());

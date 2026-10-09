@@ -124,6 +124,28 @@ var costPerMile = plausibleTrip && mpg.HasValue
 
 `amount = -(long)Math.Round(totalCost * 1000)` (milliunits, negative = outflow)
 
+### YNAB Bank Matching and Push Retries
+
+New fill-ups are sent as approved, uncleared, user-entered transactions: `import_id`
+is omitted. Supplying it marks the API transaction as imported and prevents matching
+with a later bank import. See [YNAB's API FAQ](https://support.ynab.com/en_us/the-ynab-api-an-overview-BJMgQ3zAq).
+
+`YnabPushSyncService` appends `[GAS:<fill-up GUID in N format>]` to the memo for
+recovery without changing the import classification. Before sending, it looks for
+that reference (or the legacy `GAS:` import ID) across the configured plan. Linked
+or previously synced fill-ups are not recreated. Pull sync and backfill skip both
+forms of GAS reference; memo parsing ignores the new marker.
+
+The service saves `pending` before posting and uses the sync status as an EF
+concurrency token to prevent concurrent sends. Explicit API rejections permit a
+retry. Timeouts, server errors, missing transaction IDs, or an interrupted process
+leave the outcome uncertain: subsequent calls to `POST /api/fill-ups/{id}/ynab-sync`
+only look for the transaction and never blindly resend it. The response includes
+`ynabSyncError` explaining unresolved outcomes. If the transaction remains missing,
+manual reconciliation is required; verify the original plan/account before any new
+entry. Keep the memo reference intact until recovery completes. This change does
+not repair or recreate previously imported transactions and needs no schema migration.
+
 ### Paperless Sync Backoff
 
 Attempt N: wait `2^N * 30` seconds. After 3 failures: permanently "failed".
