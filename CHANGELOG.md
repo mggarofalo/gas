@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.0](https://github.com/mggarofalo/gas/compare/v1.29.1...v1.30.0) (2026-10-09)
+
+
+### Features
+
+* replace MinIO with S3Mock and add offline receipt migration ([#139](https://github.com/mggarofalo/gas/issues/139)) ([7cb0d86](https://github.com/mggarofalo/gas/commit/7cb0d867be142253ebd9b244381d08c159bd2e3f))
+
 ## [1.29.1](https://github.com/mggarofalo/gas/compare/v1.29.0...v1.29.1) (2026-10-09)
 
 
