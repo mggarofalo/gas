@@ -53,6 +53,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}},suffix=-${{ matrix.arch_suffix }}
             type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.arch_suffix }}
