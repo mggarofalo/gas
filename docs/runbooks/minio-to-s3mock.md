@@ -86,8 +86,7 @@ for cmd in docker jq curl sha256sum flock; do command -v "$cmd"; done
 test -n "$PROJECT"
 printf '%s\n' "$PROJECT" > "$MIGRATION/compose-project.txt"
 docker compose -p "$PROJECT" config > "$MIGRATION/rollback-compose.yml"
-docker inspect gas-db gas-minio --format '{{.Name}} {{json .Mounts}}' \
-  > "$MIGRATION/original-volumes.txt"
+docker inspect gas-db gas-minio --format '{{.Name}} {{json .Mounts}}'  > "$MIGRATION/original-volumes.txt"
 df -h "$MIGRATION"
 )
 ```
@@ -101,9 +100,7 @@ set -euo pipefail
 RELEASE=v1.30.0
 mkdir -p "$SCRIPTS"
 for file in export-minio-receipts.sh import-s3mock-receipts.sh receipt-migration-common.sh; do
-  curl --fail --location --show-error \
-    "https://raw.githubusercontent.com/mggarofalo/gas/$RELEASE/scripts/$file" \
-    --output "$SCRIPTS/$file"
+  curl --fail --location --show-error  "https://raw.githubusercontent.com/mggarofalo/gas/$RELEASE/scripts/$file"  --output "$SCRIPTS/$file"
 done
 )
 ```
@@ -179,13 +176,10 @@ that log before retrying. Do not pull or replace the stack yet.
 ```bash
 (
 set -euo pipefail
-bash "$SCRIPTS/export-minio-receipts.sh" \
-  --output "$MIGRATION/export" \
-  --bucket gas-receipts
+bash "$SCRIPTS/export-minio-receipts.sh"  --output "$MIGRATION/export"  --bucket gas-receipts
 
 test -s "$MIGRATION/export/COMPLETE"
-jq '{bucket, objects: (.objects | length), receipts: (.receiptKeys | length), bytes: ([.objects[].size] | add // 0)}' \
-  "$MIGRATION/export/manifest.json"
+jq '{bucket, objects: (.objects | length), receipts: (.receiptKeys | length), bytes: ([.objects[].size] | add // 0)}'  "$MIGRATION/export/manifest.json"
 )
 ```
 
@@ -238,9 +232,7 @@ S3Mock uses its own `s3mock-data` volume and explicitly retains files on exit.
 (
 set -euo pipefail
 docker compose -p "$PROJECT" pull
-docker compose -p "$PROJECT" \
-  -f docker-compose.yml -f docker-compose.migration.yml \
-  up -d db s3mock
+docker compose -p "$PROJECT"  -f docker-compose.yml -f docker-compose.migration.yml  up -d db s3mock
 
 curl --fail http://127.0.0.1:19090/favicon.ico
 )
@@ -258,9 +250,7 @@ Do not add `--remove-orphans`: keep the old stopped containers through verificat
 ```bash
 (
 set -euo pipefail
-bash "$SCRIPTS/import-s3mock-receipts.sh" \
-  --input "$MIGRATION/export" \
-  --endpoint http://127.0.0.1:19090
+bash "$SCRIPTS/import-s3mock-receipts.sh"  --input "$MIGRATION/export"  --endpoint http://127.0.0.1:19090
 
 cat "$MIGRATION/export/verification-report.json"
 )
@@ -285,13 +275,9 @@ therefore be resumed by rerunning the same command.
 ```bash
 (
 set -euo pipefail
-docker compose -p "$PROJECT" \
-  -f docker-compose.yml -f docker-compose.migration.yml restart s3mock
+docker compose -p "$PROJECT"  -f docker-compose.yml -f docker-compose.migration.yml restart s3mock
 
-bash "$SCRIPTS/import-s3mock-receipts.sh" \
-  --input "$MIGRATION/export" \
-  --endpoint http://127.0.0.1:19090 \
-  --verify-only
+bash "$SCRIPTS/import-s3mock-receipts.sh"  --input "$MIGRATION/export"  --endpoint http://127.0.0.1:19090  --verify-only
 )
 ```
 
@@ -339,9 +325,7 @@ is compatible.
 (
 set -euo pipefail
 docker stop gas-app gas-s3mock
-docker compose -p "$PROJECT" \
-  -f "$MIGRATION/rollback-compose.yml" -f "$MIGRATION/rollback-images.yml" \
-  up -d --no-deps --pull never minio app
+docker compose -p "$PROJECT"  -f "$MIGRATION/rollback-compose.yml" -f "$MIGRATION/rollback-images.yml"  up -d --no-deps --pull never minio app
 )
 ```
 
