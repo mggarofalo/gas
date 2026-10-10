@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.30.1](https://github.com/mggarofalo/gas/compare/v1.30.0...v1.30.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **a11y:** associate form labels and improve toast contrast ([#144](https://github.com/mggarofalo/gas/issues/144)) ([01f13dd](https://github.com/mggarofalo/gas/commit/01f13dd7fd680986ec527f9189dee821af3d0088))
+* **ci:** reserve latest tag for multi-arch manifest ([#142](https://github.com/mggarofalo/gas/issues/142)) ([ad14bd3](https://github.com/mggarofalo/gas/commit/ad14bd35f048224e60e2dafc354fbaecdbc902b8))
+* preserve receipts during fill-up replacement (GAS-105) ([#143](https://github.com/mggarofalo/gas/issues/143)) ([807a6e7](https://github.com/mggarofalo/gas/commit/807a6e7cf333b7df5009a89f22d60a8271573e38))
+
 ## [1.30.0](https://github.com/mggarofalo/gas/compare/v1.29.1...v1.30.0) (2026-10-09)
 
 
