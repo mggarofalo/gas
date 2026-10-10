@@ -124,7 +124,7 @@ public static class FillUpEndpoints
             return Results.Ok(new { fillUp.YnabSyncStatus, fillUp.YnabTransactionId, fillUp.YnabSyncError });
         });
 
-        group.MapPut("/{id:guid}", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore) =>
+        group.MapPut("/{id:guid}", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore, ILoggerFactory loggerFactory) =>
         {
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp is null) return Results.NotFound();
@@ -145,28 +145,31 @@ public static class FillUpEndpoints
             if (form.ContainsKey("ynabAccountId")) fillUp.YnabAccountId = string.IsNullOrEmpty(form["ynabAccountId"].ToString()) ? null : form["ynabAccountId"].ToString();
             if (form.ContainsKey("ynabAccountName")) fillUp.YnabAccountName = string.IsNullOrEmpty(form["ynabAccountName"].ToString()) ? null : form["ynabAccountName"].ToString();
 
+            var oldPath = fillUp.ReceiptPath;
             var receipt = form.Files.GetFile("receipt");
             if (receipt is not null)
             {
                 var receiptError = ValidateReceipt(receipt);
                 if (receiptError is not null) return receiptError;
 
-                if (fillUp.ReceiptPath is not null)
-                    await receiptStore.DeleteAsync(fillUp.ReceiptPath);
-
+                // Upload and save the replacement before cleaning up the old object.
                 using var stream = receipt.OpenReadStream();
                 fillUp.ReceiptPath = await receiptStore.UploadAsync(
                     fillUp.VehicleId, fillUp.Id, receipt.FileName, receipt.ContentType, stream);
                 fillUp.PaperlessSyncStatus = "pending";
                 fillUp.PaperlessSyncAttempts = 0;
+                fillUp.PaperlessSyncError = null;
             }
 
             await repo.UpdateAsync(fillUp);
+            if (receipt is not null)
+                await DeleteReplacedReceiptAsync(oldPath, fillUp.ReceiptPath!, receiptStore, loggerFactory);
+
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
             return Results.Ok(fillUp.ToDto(tripMiles));
         }).DisableAntiforgery();
 
-        group.MapPut("/{id:guid}/receipt", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore) =>
+        group.MapPut("/{id:guid}/receipt", async (Guid id, HttpRequest request, IFillUpRepository repo, IReceiptStore receiptStore, ILoggerFactory loggerFactory) =>
         {
             var fillUp = await repo.GetByIdAsync(id);
             if (fillUp is null) return Results.NotFound();
@@ -192,9 +195,7 @@ public static class FillUpEndpoints
 
             await repo.UpdateAsync(fillUp);
 
-            // Same filename produces the same object key (overwritten in place)
-            if (oldPath is not null && oldPath != fillUp.ReceiptPath)
-                await receiptStore.DeleteAsync(oldPath);
+            await DeleteReplacedReceiptAsync(oldPath, fillUp.ReceiptPath, receiptStore, loggerFactory);
 
             var tripMiles = await repo.GetTripMilesAsync(fillUp);
             return Results.Ok(fillUp.ToDto(tripMiles));
@@ -235,6 +236,24 @@ public static class FillUpEndpoints
             await repo.UpdateAsync(fillUp);
             return Results.NoContent();
         });
+    }
+
+    private static async Task DeleteReplacedReceiptAsync(
+        string? oldPath, string newPath, IReceiptStore receiptStore, ILoggerFactory loggerFactory)
+    {
+        // Same filename produces the same object key (overwritten in place).
+        if (oldPath is null || oldPath == newPath) return;
+
+        try
+        {
+            await receiptStore.DeleteAsync(oldPath);
+        }
+        catch (Exception ex)
+        {
+            // The replacement is already saved; cleanup must not fail the update.
+            loggerFactory.CreateLogger(typeof(FillUpEndpoints).FullName!)
+                .LogWarning(ex, "Could not delete replaced receipt {ReceiptPath}", oldPath);
+        }
     }
 
     private static IResult? ValidateReceipt(IFormFile receipt)
