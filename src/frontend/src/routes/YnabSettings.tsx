@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useId, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,6 +22,7 @@ interface ConfigFormValues {
 }
 
 export default function YnabSettings() {
+  const formId = useId();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showTokenForm, setShowTokenForm] = useState(false);
@@ -185,7 +186,11 @@ export default function YnabSettings() {
             )}
             className="mt-4 space-y-3"
           >
+            <label htmlFor={`${formId}-apiToken`} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              YNAB Personal Access Token
+            </label>
             <input
+              id={`${formId}-apiToken`}
               type="password"
               placeholder="YNAB Personal Access Token"
               {...tokenForm.register("apiToken")}
@@ -228,24 +233,24 @@ export default function YnabSettings() {
             className="space-y-4"
           >
             <div className="flex items-center gap-3">
-              <label className="relative inline-flex cursor-pointer items-center">
+              <label className="relative inline-flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
                   {...configForm.register("enabled")}
                   className="peer sr-only"
                 />
                 <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-blue-300" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Enable YNAB sync
+                </span>
               </label>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Enable YNAB sync
-              </span>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor={`${formId}-planId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Budget
               </label>
-              <select {...configForm.register("planId")} className={inputClass}>
+              <select id={`${formId}-planId`} {...configForm.register("planId")} className={inputClass}>
                 <option value="">Select budget...</option>
                 {plans?.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -256,10 +261,10 @@ export default function YnabSettings() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor={`${formId}-accountId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Default Account
               </label>
-              <select {...configForm.register("accountId")} className={inputClass}>
+              <select id={`${formId}-accountId`} {...configForm.register("accountId")} className={inputClass}>
                 <option value="">None</option>
                 {accounts?.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -270,10 +275,10 @@ export default function YnabSettings() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor={`${formId}-categoryId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Default Category
               </label>
-              <select {...configForm.register("categoryId")} className={inputClass}>
+              <select id={`${formId}-categoryId`} {...configForm.register("categoryId")} className={inputClass}>
                 <option value="">None</option>
                 {categories?.map((c) => (
                   <option key={c.id} value={c.id}>

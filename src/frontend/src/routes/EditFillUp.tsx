@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useId, useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
@@ -29,6 +29,7 @@ const editFillUpSchema = z.object({
 type EditFillUpFormData = z.infer<typeof editFillUpSchema>;
 
 export default function EditFillUp() {
+  const formId = useId();
   const { fillUpId } = useParams({ strict: false }) as { fillUpId: string };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -184,8 +185,8 @@ export default function EditFillUp() {
         {/* Vehicle + Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
-            <select {...register("vehicleId")} className={inputClass}>
+            <label htmlFor={`${formId}-vehicleId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
+            <select id={`${formId}-vehicleId`} {...register("vehicleId")} className={inputClass}>
               <option value="">Select vehicle...</option>
               {vehicles?.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -198,8 +199,8 @@ export default function EditFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-            <input type="date" {...register("date")} className={inputClass} />
+            <label htmlFor={`${formId}-date`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+            <input id={`${formId}-date`} type="date" {...register("date")} className={inputClass} />
             {errors.date && (
               <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p>
             )}
@@ -209,12 +210,13 @@ export default function EditFillUp() {
         {/* Odometer + Octane */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer (miles)</label>
+            <label htmlFor={`${formId}-odometerMiles`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer (miles)</label>
             <Controller
               name="odometerMiles"
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-odometerMiles`}
                   value={Number.isFinite(field.value) ? String(field.value) : ""}
                   onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
                   decimals={0}
@@ -228,8 +230,9 @@ export default function EditFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane Rating</label>
+            <label htmlFor={`${formId}-octaneRating`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane Rating</label>
             <input
+              id={`${formId}-octaneRating`}
               type="number"
               step="1"
               inputMode="numeric"
@@ -242,12 +245,13 @@ export default function EditFillUp() {
         {/* Gallons + Price */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
+            <label htmlFor={`${formId}-gallons`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
             <Controller
               name="gallons"
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-gallons`}
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   decimals={3}
@@ -261,12 +265,13 @@ export default function EditFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price per Gallon</label>
+            <label htmlFor={`${formId}-pricePerGallon`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price per Gallon</label>
             <Controller
               name="pricePerGallon"
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-pricePerGallon`}
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   decimals={3}
@@ -283,8 +288,9 @@ export default function EditFillUp() {
 
         {/* Station */}
         <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Station Name</label>
+          <label htmlFor={`${formId}-stationName`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Station Name</label>
           <input
+            id={`${formId}-stationName`}
             {...register("stationName")}
             autoComplete="off"
             onChange={(e) => {
@@ -322,15 +328,15 @@ export default function EditFillUp() {
 
         {/* Station address */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-stationAddress`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Address (optional)
           </label>
-          <input {...register("stationAddress")} className={inputClass} />
+          <input id={`${formId}-stationAddress`} {...register("stationAddress")} className={inputClass} />
         </div>
 
         {/* GPS */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">GPS Location</label>
+        <fieldset className="min-w-0">
+          <legend className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">GPS Location</legend>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -356,30 +362,30 @@ export default function EditFillUp() {
               </button>
             )}
           </div>
-        </div>
+        </fieldset>
 
         {/* Receipt */}
         <div>
           <label
-            htmlFor="receipt"
+            htmlFor={`${formId}-receipt`}
             className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Receipt (optional)
           </label>
           <input
-            id="receipt"
+            id={`${formId}-receipt`}
             type="file"
             accept="image/*,.pdf"
-            aria-describedby="receipt-hint"
+            aria-describedby={receiptFile || fillUp.receiptUrl ? `${formId}-receipt-hint` : undefined}
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
           />
           {receiptFile ? (
-            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p id={`${formId}-receipt-hint`} className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {receiptFile.name}
             </p>
           ) : fillUp.receiptUrl ? (
-            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p id={`${formId}-receipt-hint`} className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               A receipt is already attached — uploading a new one replaces it.
             </p>
           ) : null}
@@ -387,8 +393,8 @@ export default function EditFillUp() {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (optional)</label>
-          <textarea {...register("notes")} rows={3} className={inputClass} />
+          <label htmlFor={`${formId}-notes`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (optional)</label>
+          <textarea id={`${formId}-notes`} {...register("notes")} rows={3} className={inputClass} />
         </div>
 
         {/* Submit */}

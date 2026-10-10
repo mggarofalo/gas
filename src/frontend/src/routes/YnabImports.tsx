@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -317,6 +317,7 @@ function ImportEditForm({
   onCancel: () => void;
   isPending: boolean;
 }) {
+  const formId = useId();
   const {
     register,
     handleSubmit,
@@ -354,12 +355,13 @@ function ImportEditForm({
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
+          <label htmlFor={`${formId}-gallons`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Gallons</label>
           <Controller
             name="gallons"
             control={control}
             render={({ field }) => (
               <CurrencyInput
+                id={`${formId}-gallons`}
                 value={field.value ?? ""}
                 onChange={field.onChange}
                 decimals={3}
@@ -371,12 +373,13 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price/Gallon</label>
+          <label htmlFor={`${formId}-pricePerGallon`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Price/Gallon</label>
           <Controller
             name="pricePerGallon"
             control={control}
             render={({ field }) => (
               <CurrencyInput
+                id={`${formId}-pricePerGallon`}
                 value={field.value ?? ""}
                 onChange={field.onChange}
                 decimals={3}
@@ -388,8 +391,9 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane</label>
+          <label htmlFor={`${formId}-octaneRating`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Octane</label>
           <input
+            id={`${formId}-octaneRating`}
             type="number"
             inputMode="numeric"
             {...register("octaneRating", { valueAsNumber: true })}
@@ -398,12 +402,13 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer</label>
+          <label htmlFor={`${formId}-odometerMiles`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer</label>
           <Controller
             name="odometerMiles"
             control={control}
             render={({ field }) => (
               <CurrencyInput
+                id={`${formId}-odometerMiles`}
                 value={Number.isFinite(field.value) ? String(field.value) : ""}
                 onChange={(v) => field.onChange(v === "" ? null : Number(v))}
                 decimals={0}
@@ -415,8 +420,8 @@ function ImportEditForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
-          <select {...register("vehicleId")} className={inputClass}>
+          <label htmlFor={`${formId}-vehicleId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle</label>
+          <select id={`${formId}-vehicleId`} {...register("vehicleId")} className={inputClass}>
             <option value="">Select...</option>
             {vehicles
               .filter((v) => v.isActive)

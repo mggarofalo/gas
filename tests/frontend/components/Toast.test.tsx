@@ -45,8 +45,9 @@ describe("Toast", () => {
     );
 
     await user.click(screen.getByText("Show Success"));
-    const toast = screen.getByText("Success!").closest("div");
-    expect(toast?.className).toContain("bg-green-600");
+    const toast = screen.getByRole("status");
+    expect(toast).toHaveTextContent("Success!");
+    expect(toast.className).toContain("bg-green-700");
   });
 
   it("applies correct color for error toasts", async () => {
@@ -58,8 +59,9 @@ describe("Toast", () => {
     );
 
     await user.click(screen.getByText("Show Error"));
-    const toast = screen.getByText("Error!").closest("div");
-    expect(toast?.className).toContain("bg-red-600");
+    const toast = screen.getByRole("alert");
+    expect(toast).toHaveTextContent("Error!");
+    expect(toast.className).toContain("bg-red-700");
   });
 
   it("dismisses toast on close button click", async () => {
@@ -77,6 +79,24 @@ describe("Toast", () => {
     const closeButton = screen.getByText("×");
     await user.click(closeButton);
     expect(screen.queryByText("Hello")).not.toBeInTheDocument();
+  });
+
+  it("lets keyboard users reach and dismiss a notification", async () => {
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <TestConsumer />
+      </ToastProvider>,
+    );
+    await user.click(screen.getByText("Show Info"));
+    await user.tab();
+    await user.tab();
+    await user.tab();
+    const dismiss = screen.getByRole("button", { name: "Dismiss notification" });
+    expect(dismiss).toHaveFocus();
+    expect(dismiss).toHaveAttribute("type", "button");
+    await user.keyboard("{Enter}");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("auto-dismisses after 4 seconds", () => {

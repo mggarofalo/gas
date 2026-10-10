@@ -44,17 +44,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             role={t.type === "error" ? "alert" : "status"}
             className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg transition-all ${
               t.type === "success"
-                ? "bg-green-600"
+                ? "bg-green-700"
                 : t.type === "error"
-                  ? "bg-red-600"
+                  ? "bg-red-700"
                   : "bg-blue-600"
             }`}
           >
             <span className="flex-1">{t.message}</span>
             <button
+              type="button"
               onClick={() => removeToast(t.id)}
               aria-label="Dismiss notification"
-              className="ml-2 text-white/80 hover:text-white"
+              className="ml-2 flex min-h-6 min-w-6 items-center justify-center rounded text-lg text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               &times;
             </button>

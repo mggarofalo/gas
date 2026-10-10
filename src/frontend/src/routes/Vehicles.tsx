@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -218,6 +218,7 @@ function VehicleForm({
   onCancel: () => void;
   isPending: boolean;
 }) {
+  const formId = useId();
   const {
     register,
     handleSubmit,
@@ -249,8 +250,9 @@ function VehicleForm({
     >
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Year</label>
+          <label htmlFor={`${formId}-year`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Year</label>
           <input
+            id={`${formId}-year`}
             type="number"
             {...register("year", { valueAsNumber: true })}
             className={inputClass}
@@ -260,15 +262,15 @@ function VehicleForm({
           )}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Make</label>
-          <input {...register("make")} className={inputClass} />
+          <label htmlFor={`${formId}-make`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Make</label>
+          <input id={`${formId}-make`} {...register("make")} className={inputClass} />
           {errors.make && (
             <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.make.message}</p>
           )}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-          <input {...register("model")} className={inputClass} />
+          <label htmlFor={`${formId}-model`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
+          <input id={`${formId}-model`} {...register("model")} className={inputClass} />
           {errors.model && (
             <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.model.message}</p>
           )}
@@ -277,20 +279,21 @@ function VehicleForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-octaneRating`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Octane Rating (optional)
           </label>
           <input
+            id={`${formId}-octaneRating`}
             type="number"
             {...register("octaneRating", { valueAsNumber: true })}
             className={inputClass}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-notes`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Notes (optional)
           </label>
-          <input {...register("notes")} className={inputClass} />
+          <input id={`${formId}-notes`} {...register("notes")} className={inputClass} />
         </div>
       </div>
 

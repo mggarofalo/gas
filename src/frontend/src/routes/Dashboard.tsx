@@ -92,6 +92,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <select
+            aria-label="Vehicle"
             value={selectedVehicleId}
             onChange={(e) => setSelectedVehicleId(e.target.value)}
             className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
