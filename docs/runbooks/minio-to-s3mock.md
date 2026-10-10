@@ -25,6 +25,36 @@ size and recorded metadata rather than assuming ETags are portable.
 
 ## 1. Prepare without changing the running stack
 
+Run these blocks in Bash. Do not enable `set -e` in the interactive SSH shell:
+it can close the session when a command fails. Each operational block below
+uses a subshell to stop on errors without closing SSH. Stop after any failed
+block; do not paste the whole runbook at once.
+
+If the original instructions closed your session, reconnect and first run:
+
+```bash
+set +e
+set +u
+set +o pipefail
+ls -dt /var/tmp/gas-migration-*/
+```
+
+Select your existing migration directory below (replace the example path),
+instead of creating a new timestamp or repeating preparation:
+
+```bash
+MIGRATION=/var/tmp/gas-migration-YOUR-EXISTING-TIMESTAMP
+STAMP=${MIGRATION##*/gas-migration-}
+SCRIPTS="$HOME/gas-migration-scripts"
+PROJECT=$(cat "$MIGRATION/compose-project.txt")
+```
+
+Then retry the backup block in section 2. A `.part` file is not a valid backup:
+the shell creates it before `docker exec` starts. The revised block preserves
+earlier partial attempts, records stderr, and reports the exit status. If SSH
+still disconnects with these instructions, this shell-setting explanation is
+insufficient; keep the logs and check the Pi/SSH service for a restart or kill.
+
 Obtain these three files from the migration release and put them together in a
 directory such as `$HOME/gas-migration-scripts`. Copying the scripts does not
 require updating the old application or its Compose definition:
@@ -39,28 +69,35 @@ space for all receipts, the bundled client, a database backup, and one additiona
 receipt-sized readback file. Do not reboot or clean the staging folder mid-migration.
 
 ```bash
-set -euo pipefail
+set +e
+set +u
+set +o pipefail
 umask 077
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 MIGRATION="/var/tmp/gas-migration-$STAMP"
 SCRIPTS="$HOME/gas-migration-scripts"
+PROJECT=$(docker inspect gas-db --format '{{index .Config.Labels "com.docker.compose.project"}}')
+(
+set -euo pipefail
 mkdir -p "$MIGRATION"
 chmod 700 "$MIGRATION"
 uname -m
 for cmd in docker jq curl sha256sum flock; do command -v "$cmd"; done
-PROJECT=$(docker inspect gas-db --format '{{index .Config.Labels "com.docker.compose.project"}}')
 test -n "$PROJECT"
 printf '%s\n' "$PROJECT" > "$MIGRATION/compose-project.txt"
 docker compose -p "$PROJECT" config > "$MIGRATION/rollback-compose.yml"
 docker inspect gas-db gas-minio --format '{{.Name}} {{json .Mounts}}' \
   > "$MIGRATION/original-volumes.txt"
 df -h "$MIGRATION"
+)
 ```
 
 For this migration, the release is `v1.30.0`. Once it is published, the scripts can
 be downloaded without pulling any Docker images:
 
 ```bash
+(
+set -euo pipefail
 RELEASE=v1.30.0
 mkdir -p "$SCRIPTS"
 for file in export-minio-receipts.sh import-s3mock-receipts.sh receipt-migration-common.sh; do
@@ -68,6 +105,7 @@ for file in export-minio-receipts.sh import-s3mock-receipts.sh receipt-migration
     "https://raw.githubusercontent.com/mggarofalo/gas/$RELEASE/scripts/$file" \
     --output "$SCRIPTS/$file"
 done
+)
 ```
 
 Keep the same Compose project name and existing `db-data`, `secrets`, and `dp-keys`
@@ -77,6 +115,8 @@ database and different secrets instead of using the existing installation.
 Pin the old app and MinIO images locally so rollback never needs a registry pull:
 
 ```bash
+(
+set -euo pipefail
 docker image tag "$(docker inspect gas-app --format '{{.Image}}')" "gas-rollback-app:$STAMP"
 docker image tag "$(docker inspect gas-minio --format '{{.Image}}')" "gas-rollback-minio:$STAMP"
 cat > "$MIGRATION/rollback-images.yml" <<EOF
@@ -88,6 +128,7 @@ services:
     image: gas-rollback-minio:$STAMP
     pull_policy: never
 EOF
+)
 ```
 
 Do not run `docker compose pull` against the old definition. Do not remove or prune
@@ -100,13 +141,44 @@ container to remain present, so they can verify that application writes are paus
 Also pause any external writers to the receipt bucket or database.
 
 ```bash
+(
+set -euo pipefail
+test -d "${MIGRATION:?Select your existing migration directory first}"
+test ! -e "$MIGRATION/gastracker.dump"
 docker stop gas-app
-docker exec gas-db sh -eu -c '
-  export PGPASSWORD="$(cat /secrets/pg_password)"
+if [ -e "$MIGRATION/gastracker.dump.part" ]; then
+  mv "$MIGRATION/gastracker.dump.part" "$MIGRATION/gastracker.dump.part.$(date -u +%Y%m%dT%H%M%S).$$"
+fi
+if docker exec gas-db sh -eu -c '
+  if [ -f /secrets/pg_password ]; then
+    PGPASSWORD=$(cat /secrets/pg_password)
+    export PGPASSWORD
+  fi
   exec pg_dump -U "${POSTGRES_USER:-gas}" -d "${POSTGRES_DB:-gastracker}" -Fc
-' > "$MIGRATION/gastracker.dump.part"
-mv "$MIGRATION/gastracker.dump.part" "$MIGRATION/gastracker.dump"
+' > "$MIGRATION/gastracker.dump.part" 2> "$MIGRATION/gastracker.dump.stderr.log"; then
+  test -s "$MIGRATION/gastracker.dump.part"
+  docker exec -i gas-db pg_restore --list < "$MIGRATION/gastracker.dump.part" > "$MIGRATION/gastracker.dump.contents.txt"
+  mv "$MIGRATION/gastracker.dump.part" "$MIGRATION/gastracker.dump"
+  printf 'Backup complete: %s\n' "$MIGRATION/gastracker.dump"
+else
+  backup_status=$?
+  printf 'Backup failed (exit %s). Do not proceed. Error log:\n' "$backup_status" >&2
+  cat "$MIGRATION/gastracker.dump.stderr.log" >&2
+  exit "$backup_status"
+fi
+)
+printf 'Backup block exit status: %s\n' "$?"
+```
 
+Proceed only after `Backup complete` and exit status zero. If the block refuses
+an existing `gastracker.dump`, keep that backup; do not overwrite it. A failed
+attempt leaves `.part` and `gastracker.dump.stderr.log` for diagnosis. If the
+session still disconnects, reconnect, restore the variables above, and read
+that log before retrying. Do not pull or replace the stack yet.
+
+```bash
+(
+set -euo pipefail
 bash "$SCRIPTS/export-minio-receipts.sh" \
   --output "$MIGRATION/export" \
   --bucket gas-receipts
@@ -114,6 +186,7 @@ bash "$SCRIPTS/export-minio-receipts.sh" \
 test -s "$MIGRATION/export/COMPLETE"
 jq '{bucket, objects: (.objects | length), receipts: (.receiptKeys | length), bytes: ([.objects[].size] | add // 0)}' \
   "$MIGRATION/export/manifest.json"
+)
 ```
 
 If your bucket is not `gas-receipts`, supply its actual name. Nonstandard container
@@ -131,7 +204,10 @@ is treated as an immutable snapshot and the exporter refuses to replace it.
 Only after this gate passes may you stop MinIO:
 
 ```bash
+(
+set -euo pipefail
 docker stop gas-minio
+)
 ```
 
 ## 3. Install the new definition and start S3Mock
@@ -159,12 +235,15 @@ remain intact; the new stack generates `s3_access_key` and `s3_secret_key` if ne
 S3Mock uses its own `s3mock-data` volume and explicitly retains files on exit.
 
 ```bash
+(
+set -euo pipefail
 docker compose -p "$PROJECT" pull
 docker compose -p "$PROJECT" \
   -f docker-compose.yml -f docker-compose.migration.yml \
   up -d db s3mock
 
 curl --fail http://127.0.0.1:19090/favicon.ico
+)
 ```
 
 The migration override exposes only `127.0.0.1:19090`, not the Pi's LAN address.
@@ -177,11 +256,14 @@ Do not add `--remove-orphans`: keep the old stopped containers through verificat
 ## 4. Import into the running S3Mock service
 
 ```bash
+(
+set -euo pipefail
 bash "$SCRIPTS/import-s3mock-receipts.sh" \
   --input "$MIGRATION/export" \
   --endpoint http://127.0.0.1:19090
 
 cat "$MIGRATION/export/verification-report.json"
+)
 ```
 
 The importer checks the complete local export before uploading, then uploads via
@@ -201,6 +283,8 @@ therefore be resumed by rerunning the same command.
 ## 5. Prove persistence before starting GAS
 
 ```bash
+(
+set -euo pipefail
 docker compose -p "$PROJECT" \
   -f docker-compose.yml -f docker-compose.migration.yml restart s3mock
 
@@ -208,6 +292,7 @@ bash "$SCRIPTS/import-s3mock-receipts.sh" \
   --input "$MIGRATION/export" \
   --endpoint http://127.0.0.1:19090 \
   --verify-only
+)
 ```
 
 **Gate:** verification must pass again. `--verify-only` never creates a bucket or
@@ -217,11 +302,14 @@ Remove the temporary host port by recreating S3Mock with just the base definitio
 then start GAS. The named volume is preserved:
 
 ```bash
+(
+set -euo pipefail
 docker compose -p "$PROJECT" -f docker-compose.yml up -d --force-recreate s3mock
 docker port gas-s3mock
 docker compose -p "$PROJECT" -f docker-compose.yml up -d app
 docker compose -p "$PROJECT" ps
 curl --fail http://127.0.0.1:8080/health
+)
 ```
 
 `docker port gas-s3mock` should print no host bindings. Verify several old receipt
@@ -248,10 +336,13 @@ is compatible.
   original MinIO and app using saved images and the original volumes:
 
 ```bash
+(
+set -euo pipefail
 docker stop gas-app gas-s3mock
 docker compose -p "$PROJECT" \
   -f "$MIGRATION/rollback-compose.yml" -f "$MIGRATION/rollback-images.yml" \
   up -d --no-deps --pull never minio app
+)
 ```
 
 This procedure does not change database receipt paths or require restoring the
