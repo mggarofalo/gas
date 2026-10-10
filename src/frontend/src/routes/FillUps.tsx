@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { apiFetch } from "@/lib/api";
@@ -8,6 +8,7 @@ import Spinner from "@/components/Spinner";
 import EmptyState from "@/components/EmptyState";
 
 export default function FillUps() {
+  const filterId = useId();
   const [page, setPage] = useState(1);
   const [vehicleId, setVehicleId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -50,7 +51,9 @@ export default function FillUps() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <label htmlFor={`${filterId}-vehicle`} className="sr-only">Vehicle</label>
         <select
+          id={`${filterId}-vehicle`}
           value={vehicleId}
           onChange={(e) => {
             setVehicleId(e.target.value);
@@ -66,7 +69,9 @@ export default function FillUps() {
           ))}
         </select>
 
+        <label htmlFor={`${filterId}-from`} className="sr-only">From date</label>
         <input
+          id={`${filterId}-from`}
           type="date"
           value={dateFrom}
           onChange={(e) => {
@@ -76,7 +81,9 @@ export default function FillUps() {
           placeholder="From"
           className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
+        <label htmlFor={`${filterId}-to`} className="sr-only">To date</label>
         <input
+          id={`${filterId}-to`}
           type="date"
           value={dateTo}
           onChange={(e) => {

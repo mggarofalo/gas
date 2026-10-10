@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useId, useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
@@ -52,6 +52,7 @@ interface CachedCategory {
 }
 
 export default function NewFillUp() {
+  const formId = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -288,10 +289,10 @@ export default function NewFillUp() {
         {/* Vehicle + Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-vehicleId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Vehicle
             </label>
-            <select {...register("vehicleId")} className={inputClass}>
+            <select id={`${formId}-vehicleId`} {...register("vehicleId")} className={inputClass}>
               <option value="">Select vehicle...</option>
               {vehicles
                 ?.filter((v) => v.isActive)
@@ -308,10 +309,10 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-date`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Date
             </label>
-            <input type="date" {...register("date")} className={inputClass} />
+            <input id={`${formId}-date`} type="date" {...register("date")} className={inputClass} />
             {errors.date && (
               <p className="mt-1 text-xs text-red-600">
                 {errors.date.message}
@@ -323,7 +324,7 @@ export default function NewFillUp() {
         {/* Odometer + Octane */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-odometerMiles`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Odometer (miles)
             </label>
             <Controller
@@ -331,6 +332,7 @@ export default function NewFillUp() {
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-odometerMiles`}
                   value={Number.isFinite(field.value) ? String(field.value) : ""}
                   onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
                   decimals={0}
@@ -346,10 +348,11 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-octaneRating`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Octane Rating
             </label>
             <input
+              id={`${formId}-octaneRating`}
               type="number"
               step="1"
               inputMode="numeric"
@@ -362,7 +365,7 @@ export default function NewFillUp() {
         {/* Price per Gallon + Total Price + Calculated Gallons */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-pricePerGallon`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Price/Gallon
             </label>
             <Controller
@@ -370,6 +373,7 @@ export default function NewFillUp() {
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-pricePerGallon`}
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   decimals={3}
@@ -385,7 +389,7 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-totalPrice`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Total Price
             </label>
             <Controller
@@ -393,6 +397,7 @@ export default function NewFillUp() {
               control={control}
               render={({ field }) => (
                 <CurrencyInput
+                  id={`${formId}-totalPrice`}
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   decimals={2}
@@ -408,24 +413,25 @@ export default function NewFillUp() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`${formId}-gallons`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Gallons
             </label>
-            <div className="flex h-[38px] items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-600 dark:text-gray-400">
+            <output id={`${formId}-gallons`} className="flex h-[38px] items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-600 dark:text-gray-400">
               {calculatedGallons != null
                 ? calculatedGallons.toFixed(3)
                 : "--"}
-            </div>
+            </output>
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Calculated</p>
           </div>
         </div>
 
         {/* Station */}
         <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-stationName`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Name
           </label>
           <input
+            id={`${formId}-stationName`}
             {...register("stationName")}
             autoComplete="off"
             onChange={(e) => {
@@ -501,17 +507,15 @@ export default function NewFillUp() {
 
         {/* Station address */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-stationAddress`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Station Address (optional)
           </label>
-          <input {...register("stationAddress")} className={inputClass} />
+          <input id={`${formId}-stationAddress`} {...register("stationAddress")} className={inputClass} />
         </div>
 
         {/* GPS */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            GPS Location
-          </label>
+        <fieldset className="min-w-0">
+          <legend className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">GPS Location</legend>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -537,16 +541,17 @@ export default function NewFillUp() {
               </button>
             )}
           </div>
-        </div>
+        </fieldset>
 
         {/* YNAB Account & Category */}
         {ynabConfig?.configured && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor={`${formId}-ynabAccountId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 YNAB Account
               </label>
               <select
+                id={`${formId}-ynabAccountId`}
                 {...register("ynabAccountId")}
                 className={inputClass}
               >
@@ -559,10 +564,11 @@ export default function NewFillUp() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor={`${formId}-ynabCategoryId`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 YNAB Category
               </label>
               <select
+                id={`${formId}-ynabCategoryId`}
                 {...register("ynabCategoryId")}
                 className={inputClass}
               >
@@ -580,21 +586,21 @@ export default function NewFillUp() {
         {/* Receipt */}
         <div>
           <label
-            htmlFor="receipt"
+            htmlFor={`${formId}-receipt`}
             className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             Receipt (optional)
           </label>
           <input
-            id="receipt"
+            id={`${formId}-receipt`}
             type="file"
             accept="image/*,.pdf"
-            aria-describedby="receipt-hint"
+            aria-describedby={receiptFile ? `${formId}-receipt-hint` : undefined}
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
             className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 dark:file:bg-blue-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
           />
           {receiptFile && (
-            <p id="receipt-hint" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p id={`${formId}-receipt-hint`} className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {receiptFile.name}
             </p>
           )}
@@ -602,10 +608,10 @@ export default function NewFillUp() {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`${formId}-notes`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Notes (optional)
           </label>
-          <textarea {...register("notes")} rows={3} className={inputClass} />
+          <textarea id={`${formId}-notes`} {...register("notes")} rows={3} className={inputClass} />
         </div>
 
         {/* Submit */}
