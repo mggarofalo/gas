@@ -4,6 +4,10 @@ Base path: `/api`
 
 All responses use JSON. Dates use ISO 8601. IDs are UUIDs. All endpoints except auth and health require a valid Bearer JWT.
 
+### Household scoping
+
+The access token carries a `household_id` claim; a token without one is rejected with 401, and refreshing issues one that has it. Every endpoint sees only the caller's household: vehicles, fill-ups (through their vehicle), receipts, stats, location suggestions, YNAB settings, caches, imports and memo mappings. A resource in another household returns 404, exactly like one that does not exist, and a vehicle ID in a request body that belongs to another household is rejected as "not found". Creates are stamped with the caller's household; requests cannot supply one.
+
 ---
 
 ## Auth -- `/api/auth`

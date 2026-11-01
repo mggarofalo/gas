@@ -10,6 +10,7 @@ public class YnabTokenService(AppDbContext db, IDataProtectionProvider dp)
 
     public async Task<string> GetDecryptedTokenAsync()
     {
+        // The household query filter limits this to the caller's own connection.
         var settings = await db.YnabSettings.FirstOrDefaultAsync()
             ?? throw new InvalidOperationException("YNAB is not configured");
 

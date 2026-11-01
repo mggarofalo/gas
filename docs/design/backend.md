@@ -97,6 +97,10 @@ Program.cs                     # DI, middleware, endpoint registration
 
 ## Key Business Rules
 
+### Household Isolation
+
+`ICurrentHousehold` (`HttpCurrentHousehold` in the API) reads the `household_id` claim that `TokenService` writes. `AppDbContext` applies a global query filter to `Vehicle`, `FillUp` (through `Vehicle`), `YnabSettings`, `YnabImport`, `YnabAccountCache`, `YnabCategoryCache` and `VehicleMemoMapping`. The filter is on for every HTTP request and fails closed: a request without a household matches no rows. It is off at startup and in background services such as Paperless sync, which have no HTTP context. Users and households are not filtered, because sign-in looks users up across households. Look entities up with a filtered query (`FirstOrDefaultAsync`), not `FindAsync`, which returns tracked entities without applying filters.
+
 ### TripMiles Computation
 
 ```sql

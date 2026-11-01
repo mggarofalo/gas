@@ -22,6 +22,7 @@ public class TokenService(IOptions<JwtOptions> opts, UserManager<ApplicationUser
             new(JwtRegisteredClaimNames.Email, user.Email!),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("must_reset_password", user.MustResetPassword.ToString().ToLowerInvariant()),
+            new(HouseholdClaimTypes.HouseholdId, user.HouseholdId.ToString()),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opts.Key));

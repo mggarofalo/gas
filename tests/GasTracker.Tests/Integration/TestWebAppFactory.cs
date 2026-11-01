@@ -75,7 +75,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             mockReceiptStore.Setup(r => r.UploadAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()))
                 .ReturnsAsync("test/receipt/path.jpg");
             mockReceiptStore.Setup(r => r.DownloadAsync(It.IsAny<string>()))
-                .ReturnsAsync(new MemoryStream());
+                .ReturnsAsync(() => new MemoryStream()); // a fresh stream each time: the response disposes it
             mockReceiptStore.Setup(r => r.DeleteAsync(It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
             mockReceiptStore.Setup(r => r.GetPresignedUrlAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
@@ -227,9 +227,42 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Generates a valid JWT access token for the given user.
+    /// Creates a household with its own Owner and returns a client signed in as that Owner.
     /// </summary>
-    public string GenerateTestToken(ApplicationUser user)
+    public async Task<(HttpClient Client, Guid HouseholdId)> CreateClientInNewHouseholdAsync(string name)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var household = new Household { Name = name };
+        db.Households.Add(household);
+        await db.SaveChangesAsync();
+
+        var email = $"{name}-{Guid.NewGuid():N}@example.com";
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            HouseholdId = household.Id,
+            HouseholdRole = HouseholdRole.Owner,
+        };
+        var result = await userManager.CreateAsync(user, TestUserPassword);
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Failed to seed household user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GenerateTestToken(user));
+        return (client, household.Id);
+    }
+
+    /// <summary>
+    /// Generates a valid JWT access token for the given user, carrying the household claim
+    /// that TokenService issues unless <paramref name="includeHousehold"/> is false.
+    /// </summary>
+    public string GenerateTestToken(ApplicationUser user, bool includeHousehold = true)
     {
         var claims = new List<Claim>
         {
@@ -238,6 +271,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("must_reset_password", user.MustResetPassword.ToString().ToLowerInvariant()),
         };
+        if (includeHousehold)
+            claims.Add(new(HouseholdClaimTypes.HouseholdId, user.HouseholdId.ToString()));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
