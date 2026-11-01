@@ -223,6 +223,10 @@ public static class YnabImportEndpoints
             if (string.IsNullOrWhiteSpace(req.MemoName))
                 return Results.BadRequest(new { error = "memoName is required" });
 
+            var vehicle = await db.Vehicles.FindAsync(req.VehicleId);
+            if (vehicle is null)
+                return Results.BadRequest(new { error = "Vehicle not found" });
+
             var existing = await db.VehicleMemoMappings.FirstOrDefaultAsync(m => m.MemoName == req.MemoName);
             if (existing is not null)
             {
@@ -230,7 +234,7 @@ public static class YnabImportEndpoints
             }
             else
             {
-                db.VehicleMemoMappings.Add(new VehicleMemoMapping { MemoName = req.MemoName, VehicleId = req.VehicleId });
+                db.VehicleMemoMappings.Add(new VehicleMemoMapping { HouseholdId = vehicle.HouseholdId, MemoName = req.MemoName, VehicleId = req.VehicleId });
             }
 
             // Retroactively update pending imports with matching vehicle name

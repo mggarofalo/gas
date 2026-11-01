@@ -5,10 +5,12 @@ namespace GasTracker.Core.Entities;
 public class VehicleMemoMapping : ITimestamped
 {
     public Guid Id { get; set; }
+    public Guid HouseholdId { get; set; }
     public required string MemoName { get; set; }
     public Guid VehicleId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
+    public Household Household { get; set; } = null!;
     public Vehicle Vehicle { get; set; } = null!;
 }

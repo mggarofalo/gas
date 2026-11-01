@@ -12,7 +12,7 @@ public class YnabImportConfiguration : IEntityTypeConfiguration<YnabImport>
         builder.Property(i => i.Id).HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(i => i.YnabTransactionId).HasMaxLength(100).IsRequired();
-        builder.HasIndex(i => i.YnabTransactionId).IsUnique();
+        builder.HasIndex(i => new { i.HouseholdId, i.YnabTransactionId }).IsUnique();
 
         builder.Property(i => i.PayeeName).HasMaxLength(200).IsRequired();
         builder.Property(i => i.Memo).HasMaxLength(500);
@@ -23,5 +23,10 @@ public class YnabImportConfiguration : IEntityTypeConfiguration<YnabImport>
         builder.Property(i => i.PricePerGallon).HasPrecision(10, 3);
 
         builder.HasIndex(i => i.Status);
+
+        builder.HasOne(i => i.Household)
+            .WithMany()
+            .HasForeignKey(i => i.HouseholdId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

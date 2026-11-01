@@ -145,12 +145,28 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
+    /// All seeded users share one household, mirroring today's single-household deployment.
+    /// </summary>
+    private static async Task<Guid> EnsureTestHouseholdAsync(AppDbContext db)
+    {
+        var household = await db.Households.FirstOrDefaultAsync();
+        if (household is null)
+        {
+            household = new Household { Name = "Test Household" };
+            db.Households.Add(household);
+            await db.SaveChangesAsync();
+        }
+        return household.Id;
+    }
+
+    /// <summary>
     /// Seeds a test user with known credentials and returns the user.
     /// </summary>
     public async Task<ApplicationUser> SeedTestUserAsync()
     {
         using var scope = Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var householdId = await EnsureTestHouseholdAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
 
         var existing = await userManager.FindByEmailAsync(TestUserEmail);
         if (existing is not null)
@@ -165,6 +181,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             LastName = "User",
             MustResetPassword = false,
             CreatedAt = DateTimeOffset.UtcNow,
+            HouseholdId = householdId,
+            HouseholdRole = HouseholdRole.Owner,
         };
 
         var result = await userManager.CreateAsync(user, TestUserPassword);
@@ -182,6 +200,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var householdId = await EnsureTestHouseholdAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
 
         var existing = await userManager.FindByEmailAsync(email);
         if (existing is not null)
@@ -196,6 +215,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             LastName = "User",
             MustResetPassword = false,
             CreatedAt = DateTimeOffset.UtcNow,
+            HouseholdId = householdId,
+            HouseholdRole = HouseholdRole.Owner,
         };
 
         var result = await userManager.CreateAsync(user, password);

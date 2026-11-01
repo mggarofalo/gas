@@ -59,7 +59,7 @@ Repositories/
 Auth/
   JwtOptions.cs                # Key, Issuer, Audience, ExpiryMinutes/Days
   TokenService.cs              # JWT generation, refresh token storage, expired token validation
-  AdminSeeder.cs               # Seeds admin user on first launch
+  HouseholdBootstrapper.cs     # First launch: creates the household and its Owner
 Storage/
   S3Options.cs              # Endpoint, AccessKey, SecretKey, BucketName, UseSSL
   S3ReceiptStore.cs         # Upload, download, delete, presigned URL
@@ -175,6 +175,7 @@ Attempt N: wait `2^N * 30` seconds. After 3 failures: permanently "failed".
 | `Paperless:PollIntervalSeconds` | Sync poll rate | Config (default: 30) |
 | `AdminSeed:Email` | Admin user email | Env |
 | `AdminSeed:Password` | Admin initial password | Secret file -> env |
+| `AdminSeed:HouseholdName` | Name of the first household | Env (default: Default) |
 | `AllowedOrigins` | CORS origins | Env (default: http://localhost:5173) |
 
 ## Identity Configuration

@@ -79,7 +79,7 @@ public static class YnabProxyEndpoints
             try
             {
                 var accounts = await ynab.GetAccountsAsync(token, settings.PlanId);
-                return Results.Ok(await RefreshCache(db, accounts));
+                return Results.Ok(await RefreshCache(db, settings.HouseholdId, accounts));
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
@@ -100,7 +100,7 @@ public static class YnabProxyEndpoints
             try
             {
                 var accounts = await ynab.GetAccountsAsync(token, settings.PlanId);
-                return Results.Ok(await RefreshCache(db, accounts));
+                return Results.Ok(await RefreshCache(db, settings.HouseholdId, accounts));
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
@@ -125,7 +125,7 @@ public static class YnabProxyEndpoints
             try
             {
                 var categories = await ynab.GetCategoriesAsync(token, settings.PlanId);
-                return Results.Ok(await RefreshCategoryCache(db, categories));
+                return Results.Ok(await RefreshCategoryCache(db, settings.HouseholdId, categories));
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
@@ -146,7 +146,7 @@ public static class YnabProxyEndpoints
             try
             {
                 var categories = await ynab.GetCategoriesAsync(token, settings.PlanId);
-                return Results.Ok(await RefreshCategoryCache(db, categories));
+                return Results.Ok(await RefreshCategoryCache(db, settings.HouseholdId, categories));
             }
             catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
             {
@@ -155,12 +155,13 @@ public static class YnabProxyEndpoints
         });
     }
 
-    private static async Task<object[]> RefreshCategoryCache(AppDbContext db, List<YnabCategory> categories)
+    private static async Task<object[]> RefreshCategoryCache(AppDbContext db, Guid householdId, List<YnabCategory> categories)
     {
         var now = DateTimeOffset.UtcNow;
         db.YnabCategoryCache.RemoveRange(await db.YnabCategoryCache.ToListAsync());
         var cached = categories.Select(c => new Core.Entities.YnabCategoryCache
         {
+            HouseholdId = householdId,
             CategoryId = c.Id,
             Name = c.Name,
             CategoryGroupName = c.CategoryGroupName,
@@ -171,12 +172,13 @@ public static class YnabProxyEndpoints
         return cached.Select(c => new { c.CategoryId, c.Name, c.CategoryGroupName, c.FetchedAt } as object).ToArray();
     }
 
-    private static async Task<object[]> RefreshCache(AppDbContext db, List<YnabAccount> accounts)
+    private static async Task<object[]> RefreshCache(AppDbContext db, Guid householdId, List<YnabAccount> accounts)
     {
         var now = DateTimeOffset.UtcNow;
         db.YnabAccountCache.RemoveRange(await db.YnabAccountCache.ToListAsync());
         var cached = accounts.Select(a => new Core.Entities.YnabAccountCache
         {
+            HouseholdId = householdId,
             AccountId = a.Id,
             Name = a.Name,
             Type = a.Type,

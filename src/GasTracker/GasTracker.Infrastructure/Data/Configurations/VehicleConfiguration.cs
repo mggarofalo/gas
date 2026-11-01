@@ -17,5 +17,12 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(v => v.IsActive).HasDefaultValue(true);
 
         builder.Ignore(v => v.Label);
+
+        builder.HasOne(v => v.Household)
+            .WithMany(h => h.Vehicles)
+            .HasForeignKey(v => v.HouseholdId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(v => v.HouseholdId);
     }
 }

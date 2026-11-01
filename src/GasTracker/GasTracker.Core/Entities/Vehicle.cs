@@ -5,6 +5,7 @@ namespace GasTracker.Core.Entities;
 public class Vehicle : ITimestamped
 {
     public Guid Id { get; set; }
+    public Guid HouseholdId { get; set; }
     public required short Year { get; set; }
     public required string Make { get; set; }
     public required string Model { get; set; }
@@ -14,6 +15,7 @@ public class Vehicle : ITimestamped
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
+    public Household Household { get; set; } = null!;
     public ICollection<FillUp> FillUps { get; set; } = [];
 
     public string Label => $"{Year} {Make} {Model}";

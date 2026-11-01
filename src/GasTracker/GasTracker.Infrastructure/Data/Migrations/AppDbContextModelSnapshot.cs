@@ -54,6 +54,16 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("first_name");
 
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
+
+                    b.Property<string>("HouseholdRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("household_role");
+
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
@@ -119,6 +129,9 @@ namespace GasTracker.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_asp_net_users");
+
+                    b.HasIndex("HouseholdId")
+                        .HasDatabaseName("ix_asp_net_users_household_id");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -259,6 +272,7 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasColumnName("ynab_sync_error");
 
                     b.Property<string>("YnabSyncStatus")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
@@ -290,6 +304,34 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.ToTable("fill_ups", (string)null);
                 });
 
+            modelBuilder.Entity("GasTracker.Core.Entities.Household", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_households");
+
+                    b.ToTable("households", (string)null);
+                });
+
             modelBuilder.Entity("GasTracker.Core.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -301,6 +343,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -339,6 +385,9 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_vehicles");
 
+                    b.HasIndex("HouseholdId")
+                        .HasDatabaseName("ix_vehicles_household_id");
+
                     b.ToTable("vehicles", (string)null);
                 });
 
@@ -353,6 +402,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
 
                     b.Property<string>("MemoName")
                         .IsRequired()
@@ -371,12 +424,12 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_vehicle_memo_mappings");
 
-                    b.HasIndex("MemoName")
-                        .IsUnique()
-                        .HasDatabaseName("ix_vehicle_memo_mappings_memo_name");
-
                     b.HasIndex("VehicleId")
                         .HasDatabaseName("ix_vehicle_memo_mappings_vehicle_id");
+
+                    b.HasIndex("HouseholdId", "MemoName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_vehicle_memo_mappings_household_id_memo_name");
 
                     b.ToTable("vehicle_memo_mappings", (string)null);
                 });
@@ -403,6 +456,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fetched_at");
 
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -417,6 +474,9 @@ namespace GasTracker.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_ynab_account_cache");
+
+                    b.HasIndex("HouseholdId")
+                        .HasDatabaseName("ix_ynab_account_cache_household_id");
 
                     b.ToTable("ynab_account_cache", (string)null);
                 });
@@ -445,6 +505,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fetched_at");
 
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -454,9 +518,9 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_ynab_category_cache");
 
-                    b.HasIndex("CategoryId")
+                    b.HasIndex("HouseholdId", "CategoryId")
                         .IsUnique()
-                        .HasDatabaseName("ix_ynab_category_cache_category_id");
+                        .HasDatabaseName("ix_ynab_category_cache_household_id_category_id");
 
                     b.ToTable("ynab_category_cache", (string)null);
                 });
@@ -485,6 +549,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("gallons");
+
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
 
                     b.Property<string>("Memo")
                         .HasMaxLength(500)
@@ -543,9 +611,9 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_ynab_imports_status");
 
-                    b.HasIndex("YnabTransactionId")
+                    b.HasIndex("HouseholdId", "YnabTransactionId")
                         .IsUnique()
-                        .HasDatabaseName("ix_ynab_imports_ynab_transaction_id");
+                        .HasDatabaseName("ix_ynab_imports_household_id_ynab_transaction_id");
 
                     b.ToTable("ynab_imports", (string)null);
                 });
@@ -594,6 +662,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("enabled");
 
+                    b.Property<Guid>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
+
                     b.Property<long?>("LastServerKnowledge")
                         .HasColumnType("bigint")
                         .HasColumnName("last_server_knowledge");
@@ -614,6 +686,10 @@ namespace GasTracker.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_ynab_settings");
+
+                    b.HasIndex("HouseholdId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ynab_settings_household_id");
 
                     b.ToTable("ynab_settings", (string)null);
                 });
@@ -782,6 +858,18 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GasTracker.Core.Entities.ApplicationUser", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany("Members")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_users_households_household_id");
+
+                    b.Navigation("Household");
+                });
+
             modelBuilder.Entity("GasTracker.Core.Entities.FillUp", b =>
                 {
                     b.HasOne("GasTracker.Core.Entities.Vehicle", "Vehicle")
@@ -794,8 +882,27 @@ namespace GasTracker.Infrastructure.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("GasTracker.Core.Entities.Vehicle", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_vehicles_households_household_id");
+
+                    b.Navigation("Household");
+                });
+
             modelBuilder.Entity("GasTracker.Core.Entities.VehicleMemoMapping", b =>
                 {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_vehicle_memo_mappings_households_household_id");
+
                     b.HasOne("GasTracker.Core.Entities.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
@@ -803,7 +910,57 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_vehicle_memo_mappings_vehicles_vehicle_id");
 
+                    b.Navigation("Household");
+
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GasTracker.Core.Entities.YnabAccountCache", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ynab_account_cache_households_household_id");
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("GasTracker.Core.Entities.YnabCategoryCache", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ynab_category_cache_households_household_id");
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("GasTracker.Core.Entities.YnabImport", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ynab_imports_households_household_id");
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("GasTracker.Core.Entities.YnabSettings", b =>
+                {
+                    b.HasOne("GasTracker.Core.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ynab_settings_households_household_id");
+
+                    b.Navigation("Household");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -861,6 +1018,13 @@ namespace GasTracker.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("GasTracker.Core.Entities.Household", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("GasTracker.Core.Entities.Vehicle", b =>

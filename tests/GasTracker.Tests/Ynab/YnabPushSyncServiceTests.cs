@@ -243,5 +243,21 @@ public class YnabPushSyncServiceTests : IDisposable
         _db.YnabImports.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Pull_StampsImportsWithTheYnabConnectionsHousehold()
+    {
+        await SeedAsync();
+        var settings = await _db.YnabSettings.SingleAsync();
+        settings.HouseholdId = Guid.NewGuid();
+        await _db.SaveChangesAsync();
+        _transactions.Add(new YnabTransactionRead("bank-id", "2026-10-11", -40000, "Shell",
+            "Sienna 87 3.299 12400", "category", "account", null));
+
+        var result = await new YnabPullSyncService(_db, _ynab.Object).PullAsync("token", "plan", categoryId: "category");
+
+        result.NewImports.Should().Be(1);
+        (await _db.YnabImports.SingleAsync()).HouseholdId.Should().Be(settings.HouseholdId);
+    }
+
     public void Dispose() => _db.Dispose();
 }

@@ -133,7 +133,7 @@ using (var scope = app.Services.CreateScope())
     else
         db.Database.Migrate();
 
-    await AdminSeeder.SeedAsync(scope.ServiceProvider);
+    await HouseholdBootstrapper.BootstrapAsync(scope.ServiceProvider);
 }
 
 // Ensure receipt bucket exists

@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using FluentValidation;
 using GasTracker.Core.DTOs;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
+using GasTracker.Infrastructure.Data;
 
 namespace GasTracker.Api.Endpoints;
 
@@ -25,14 +27,18 @@ public static class VehicleEndpoints
             return vehicle is null ? Results.NotFound() : Results.Ok(vehicle.ToDto());
         });
 
-        group.MapPost("/", async (CreateVehicleRequest req, IVehicleRepository repo, IValidator<CreateVehicleRequest> validator) =>
+        group.MapPost("/", async (CreateVehicleRequest req, IVehicleRepository repo, IValidator<CreateVehicleRequest> validator, AppDbContext db, ClaimsPrincipal caller) =>
         {
             var validation = await validator.ValidateAsync(req);
             if (!validation.IsValid)
                 return Results.ValidationProblem(validation.ToDictionary());
 
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
             var vehicle = new Vehicle
             {
+                HouseholdId = householdId.Value,
                 Make = req.Make,
                 Model = req.Model,
                 Year = req.Year,

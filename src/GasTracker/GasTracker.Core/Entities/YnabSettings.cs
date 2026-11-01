@@ -5,6 +5,7 @@ namespace GasTracker.Core.Entities;
 public class YnabSettings : ITimestamped
 {
     public Guid Id { get; set; }
+    public Guid HouseholdId { get; set; }
     public required string ApiToken { get; set; }
     public string? PlanId { get; set; }
     public string? PlanName { get; set; }
@@ -16,4 +17,6 @@ public class YnabSettings : ITimestamped
     public long? LastServerKnowledge { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    public Household Household { get; set; } = null!;
 }

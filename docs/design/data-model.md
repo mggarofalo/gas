@@ -3,14 +3,21 @@
 ## Entity Relationships
 
 ```
-vehicles 1───* fill_ups
-vehicles 1───* vehicle_memo_mappings
-ynab_settings (singleton)
-ynab_imports (standalone queue)
-ynab_account_cache (flat cache)
-ynab_category_cache (flat cache)
-AspNetUsers (Identity)
+households 1───* AspNetUsers (Identity)
+households 1───* vehicles 1───* fill_ups
+households 1───* vehicle_memo_mappings *───1 vehicles
+households 1───1 ynab_settings
+households 1───* ynab_imports (review queue)
+households 1───* ynab_account_cache (flat cache)
+households 1───* ynab_category_cache (flat cache)
 ```
+
+## Tenancy
+
+`households` is the tenant boundary. Every domain table carries a required `household_id`
+(FK -> households, RESTRICT delete, indexed) except `fill_ups`, which inherits its household
+through its required vehicle. Endpoints do not filter by household yet; scoping enforcement
+lands separately (GAS-98).
 
 ## Shared Behavior
 
@@ -30,11 +37,28 @@ All primary keys are `uuid` with `gen_random_uuid()` default. EF Core uses `UseS
 
 ---
 
+## households
+
+| Column       | Type         | Constraints           |
+| ------------ | ------------ | --------------------- |
+| `id`         | uuid         | PK, gen_random_uuid() |
+| `name`       | varchar(200) | required              |
+| `created_at` | timestamptz  |                       |
+| `updated_at` | timestamptz  |                       |
+
+The `AddHouseholds` migration backfills an upgraded database: when any pre-existing row exists
+it creates a "Default" household (fixed ID `6f1c2b8e-3d4a-4c5b-9e7f-0a1b2c3d4e5f`), attaches
+every existing row to it, and makes every existing user its Owner. A fresh database gets no
+household from the migration; `HouseholdBootstrapper` creates it with the first user.
+
+---
+
 ## vehicles
 
 | Column         | Type       | Constraints                   |
 | -------------- | ---------- | ----------------------------- |
 | `id`           | uuid       | PK, gen_random_uuid()         |
+| `household_id` | uuid       | required, FK -> households, indexed |
 | `year`         | smallint   | required                      |
 | `make`         | varchar(100) | required                    |
 | `model`        | varchar(100) | required                    |
@@ -107,11 +131,12 @@ On create, if `octaneRating` is null, it inherits from the vehicle's `octaneRati
 
 ## ynab_settings (singleton)
 
-Fixed ID: `00000000-0000-0000-0000-000000000001`
+Fixed ID: `00000000-0000-0000-0000-000000000001`. Unique on `household_id` (one connection per household).
 
 | Column                  | Type         | Constraints                |
 | ----------------------- | ------------ | -------------------------- |
 | `id`                    | uuid         | PK, gen_random_uuid()      |
+| `household_id`          | uuid         | required, FK -> households, unique |
 | `api_token`             | varchar(500) | required, encrypted (DPAPI) |
 | `plan_id`               | varchar(100) | nullable (budget ID)       |
 | `plan_name`             | varchar(200) | nullable                   |
@@ -131,7 +156,8 @@ Fixed ID: `00000000-0000-0000-0000-000000000001`
 | Column               | Type         | Constraints                |
 | -------------------- | ------------ | -------------------------- |
 | `id`                 | uuid         | PK, gen_random_uuid()      |
-| `ynab_transaction_id`| varchar(100) | required, unique           |
+| `household_id`       | uuid         | FK -> households           |
+| `ynab_transaction_id`| varchar(100) | required, unique per household |
 | `date`               | date         |                            |
 | `payee_name`         | varchar(200) | required                   |
 | `amount_milliunits`  | bigint       | YNAB native (negative=outflow) |
@@ -148,7 +174,7 @@ Fixed ID: `00000000-0000-0000-0000-000000000001`
 
 ### Indexes
 
-- Unique on `ynab_transaction_id`
+- Unique on (`household_id`, `ynab_transaction_id`)
 - Index on `status`
 
 ---
@@ -158,6 +184,7 @@ Fixed ID: `00000000-0000-0000-0000-000000000001`
 | Column       | Type         | Constraints           |
 | ------------ | ------------ | --------------------- |
 | `id`         | uuid         | PK, gen_random_uuid() |
+| `household_id` | uuid       | FK -> households, indexed |
 | `account_id` | varchar(100) | required              |
 | `name`       | varchar(200) | required              |
 | `type`       | varchar(50)  | required              |
@@ -173,7 +200,8 @@ Cleared and replaced on each refresh.
 | Column                | Type         | Constraints           |
 | --------------------- | ------------ | --------------------- |
 | `id`                  | uuid         | PK, gen_random_uuid() |
-| `category_id`         | varchar(100) | required, unique      |
+| `household_id`        | uuid         | FK -> households      |
+| `category_id`         | varchar(100) | required, unique per household |
 | `name`                | varchar(200) | required              |
 | `category_group_name` | varchar(200) | required              |
 | `fetched_at`          | timestamptz  |                       |
@@ -185,7 +213,8 @@ Cleared and replaced on each refresh.
 | Column       | Type         | Constraints                     |
 | ------------ | ------------ | ------------------------------- |
 | `id`         | uuid         | PK, gen_random_uuid()           |
-| `memo_name`  | varchar(200) | required, unique                |
+| `household_id` | uuid       | FK -> households                |
+| `memo_name`  | varchar(200) | required, unique per household  |
 | `vehicle_id` | uuid         | FK -> vehicles (CASCADE delete) |
 | `created_at` | timestamptz  |                                 |
 | `updated_at` | timestamptz  |                                 |
@@ -203,6 +232,8 @@ Cleared and replaced on each refresh.
 | `must_reset_password`      | boolean       | true on seed             |
 | `created_at`               | datetimeoffset|                          |
 | `last_login_at`            | datetimeoffset| nullable, set on login   |
+| `household_id`             | uuid          | required, FK -> households, indexed |
+| `household_role`           | varchar(20)   | `Owner` or `Member`      |
 
 ---
 

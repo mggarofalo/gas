@@ -19,5 +19,13 @@ public class YnabSettingsConfiguration : IEntityTypeConfiguration<YnabSettings>
         builder.Property(s => s.CategoryId).HasMaxLength(100);
         builder.Property(s => s.CategoryName).HasMaxLength(200);
         builder.Property(s => s.Enabled).HasDefaultValue(false);
+
+        builder.HasOne(s => s.Household)
+            .WithMany()
+            .HasForeignKey(s => s.HouseholdId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // One YNAB connection per household.
+        builder.HasIndex(s => s.HouseholdId).IsUnique();
     }
 }

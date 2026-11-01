@@ -13,5 +13,12 @@ public class YnabAccountCacheConfiguration : IEntityTypeConfiguration<YnabAccoun
         builder.Property(a => a.AccountId).HasMaxLength(100).IsRequired();
         builder.Property(a => a.Name).HasMaxLength(200).IsRequired();
         builder.Property(a => a.Type).HasMaxLength(50).IsRequired();
+
+        builder.HasOne(a => a.Household)
+            .WithMany()
+            .HasForeignKey(a => a.HouseholdId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(a => a.HouseholdId);
     }
 }

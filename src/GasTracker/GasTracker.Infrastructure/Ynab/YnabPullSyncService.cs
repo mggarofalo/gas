@@ -16,6 +16,10 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
     /// </summary>
     public async Task<PullSyncResult> PullAsync(string token, string planId, string? accountId = null, string? categoryId = null, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
     {
+        // Imports belong to the household that owns the YNAB connection.
+        var settings = await db.YnabSettings.FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("YNAB is not configured");
+
         var page = await ynab.GetTransactionsAsync(token, planId, accountId, sinceDate, lastServerKnowledge);
 
         var newImports = 0;
@@ -84,6 +88,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
 
                 var import = new YnabImport
                 {
+                    HouseholdId = settings.HouseholdId,
                     YnabTransactionId = tx.Id,
                     Date = DateOnly.Parse(tx.Date),
                     PayeeName = tx.PayeeName ?? "Unknown",
@@ -119,12 +124,8 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
         }
 
         // Update server knowledge for delta sync
-        var settings = await db.YnabSettings.FirstOrDefaultAsync();
-        if (settings is not null)
-            settings.LastServerKnowledge = page.ServerKnowledge;
-
-        if (newImports > 0 || settings is not null)
-            await db.SaveChangesAsync();
+        settings.LastServerKnowledge = page.ServerKnowledge;
+        await db.SaveChangesAsync();
 
         return new PullSyncResult(newImports, skipped, errors, errorMessages);
     }

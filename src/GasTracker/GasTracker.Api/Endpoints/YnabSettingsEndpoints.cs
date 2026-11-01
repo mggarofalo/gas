@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GasTracker.Core.Entities;
 using GasTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.DataProtection;
@@ -48,7 +49,7 @@ public static class YnabSettingsEndpoints
         });
 
         // Set/replace the YNAB API token (separate from settings to avoid accidental overwrite)
-        group.MapPut("/token", async (TokenRequest req, AppDbContext db, IDataProtectionProvider dp) =>
+        group.MapPut("/token", async (TokenRequest req, AppDbContext db, IDataProtectionProvider dp, ClaimsPrincipal caller) =>
         {
             if (string.IsNullOrWhiteSpace(req.ApiToken))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -58,7 +59,10 @@ public static class YnabSettingsEndpoints
             var settings = await db.YnabSettings.FindAsync(SingletonId);
             if (settings is null)
             {
-                settings = new YnabSettings { Id = SingletonId, ApiToken = protector.Protect(req.ApiToken) };
+                var householdId = await db.GetCallerHouseholdIdAsync(caller);
+                if (householdId is null) return Results.Unauthorized();
+
+                settings = new YnabSettings { Id = SingletonId, HouseholdId = householdId.Value, ApiToken = protector.Protect(req.ApiToken) };
                 db.YnabSettings.Add(settings);
             }
             else
