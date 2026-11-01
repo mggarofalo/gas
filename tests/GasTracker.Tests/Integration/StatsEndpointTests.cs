@@ -42,6 +42,7 @@ public class StatsEndpointTests : IClassFixture<TestWebAppFactory>
     public async Task GetStats_WithFillUps_ReturnsCorrectAggregations()
     {
         // Seed fill-ups directly in the database
+        var householdId = (await _factory.SeedTestUserAsync()).HouseholdId;
         var vehicleId = Guid.NewGuid();
         using (var scope = _factory.Services.CreateScope())
         {
@@ -50,6 +51,7 @@ public class StatsEndpointTests : IClassFixture<TestWebAppFactory>
             var vehicle = new Vehicle
             {
                 Id = vehicleId,
+                HouseholdId = householdId,
                 Year = 2024,
                 Make = "Toyota",
                 Model = "StatsTest",
@@ -131,6 +133,7 @@ public class StatsEndpointTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task GetStats_FilterByVehicle_ReturnsOnlyThatVehicleStats()
     {
+        var householdId = (await _factory.SeedTestUserAsync()).HouseholdId;
         var vehicleId1 = Guid.NewGuid();
         var vehicleId2 = Guid.NewGuid();
 
@@ -138,8 +141,8 @@ public class StatsEndpointTests : IClassFixture<TestWebAppFactory>
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            db.Vehicles.Add(new Vehicle { Id = vehicleId1, Year = 2024, Make = "Honda", Model = "Accord", IsActive = true });
-            db.Vehicles.Add(new Vehicle { Id = vehicleId2, Year = 2023, Make = "Ford", Model = "F150", IsActive = true });
+            db.Vehicles.Add(new Vehicle { Id = vehicleId1, HouseholdId = householdId, Year = 2024, Make = "Honda", Model = "Accord", IsActive = true });
+            db.Vehicles.Add(new Vehicle { Id = vehicleId2, HouseholdId = householdId, Year = 2023, Make = "Ford", Model = "F150", IsActive = true });
 
             db.FillUps.Add(new FillUp
             {

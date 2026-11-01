@@ -16,7 +16,8 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
     /// </summary>
     public async Task<PullSyncResult> PullAsync(string token, string planId, string? accountId = null, string? categoryId = null, DateOnly? sinceDate = null, long? lastServerKnowledge = null)
     {
-        // Imports belong to the household that owns the YNAB connection.
+        // Imports belong to the household that owns the YNAB connection; inside a request the
+        // household query filter limits this lookup to the caller's connection.
         var settings = await db.YnabSettings.FirstOrDefaultAsync()
             ?? throw new InvalidOperationException("YNAB is not configured");
 

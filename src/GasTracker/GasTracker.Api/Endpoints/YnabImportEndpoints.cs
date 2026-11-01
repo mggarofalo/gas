@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using GasTracker.Core;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
@@ -43,10 +42,9 @@ public static class YnabImportEndpoints
         });
 
         // List pending imports — auto-applies memo mappings on read
-        group.MapGet("/", async (string? status, int? page, int? pageSize, AppDbContext db, ClaimsPrincipal caller) =>
+        group.MapGet("/", async (string? status, int? page, int? pageSize, AppDbContext db, ICurrentHousehold household) =>
         {
-            var householdId = await db.GetCallerHouseholdIdAsync(caller);
-            if (householdId is null) return Results.Unauthorized();
+            if (household.HouseholdId is not { } householdId) return Results.Unauthorized();
 
             var filterStatus = status ?? "pending";
             var p = page ?? 1;
@@ -121,9 +119,11 @@ public static class YnabImportEndpoints
         // Update parsed fields
         group.MapPut("/{id:guid}", async (Guid id, UpdateImportRequest req, AppDbContext db) =>
         {
-            var import = await db.YnabImports.FindAsync(id);
+            var import = await db.YnabImports.FirstOrDefaultAsync(i => i.Id == id);
             if (import is null) return Results.NotFound();
             if (import.Status != "pending") return Results.BadRequest(new { error = "Import is not pending" });
+            if (req.VehicleId is { } vehicleId && !await db.Vehicles.AnyAsync(v => v.Id == vehicleId))
+                return Results.BadRequest(new { error = "Vehicle not found" });
 
             import.Gallons = req.Gallons;
             import.PricePerGallon = req.PricePerGallon;
@@ -138,7 +138,7 @@ public static class YnabImportEndpoints
         // Approve single import -> create fill-up
         group.MapPost("/{id:guid}/approve", async (Guid id, AppDbContext db, IVehicleRepository vehicleRepo) =>
         {
-            var import = await db.YnabImports.FindAsync(id);
+            var import = await db.YnabImports.FirstOrDefaultAsync(i => i.Id == id);
             if (import is null) return Results.NotFound();
             if (import.Status != "pending") return Results.BadRequest(new { error = "Import is not pending" });
 
@@ -187,7 +187,7 @@ public static class YnabImportEndpoints
         // Dismiss import
         group.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
         {
-            var import = await db.YnabImports.FindAsync(id);
+            var import = await db.YnabImports.FirstOrDefaultAsync(i => i.Id == id);
             if (import is null) return Results.NotFound();
             import.Status = "dismissed";
             await db.SaveChangesAsync();
@@ -230,7 +230,8 @@ public static class YnabImportEndpoints
             if (string.IsNullOrWhiteSpace(req.MemoName))
                 return Results.BadRequest(new { error = "memoName is required" });
 
-            var vehicle = await db.Vehicles.FindAsync(req.VehicleId);
+            // Filtered to the caller's household, so the mapping is stamped with it too.
+            var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == req.VehicleId);
             if (vehicle is null)
                 return Results.BadRequest(new { error = "Vehicle not found" });
 
@@ -256,7 +257,7 @@ public static class YnabImportEndpoints
 
         mappings.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
         {
-            var mapping = await db.VehicleMemoMappings.FindAsync(id);
+            var mapping = await db.VehicleMemoMappings.FirstOrDefaultAsync(m => m.Id == id);
             if (mapping is null) return Results.NotFound();
             db.VehicleMemoMappings.Remove(mapping);
             await db.SaveChangesAsync();

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using GasTracker.Core.Interfaces;
 using GasTracker.Infrastructure.Data;
 using GasTracker.Infrastructure.Ynab;
@@ -63,10 +62,9 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapGet("/accounts/cached", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ClaimsPrincipal caller) =>
+        group.MapGet("/accounts/cached", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ICurrentHousehold household) =>
         {
-            var householdId = await db.GetCallerHouseholdIdAsync(caller);
-            if (householdId is null) return Results.Unauthorized();
+            if (household.HouseholdId is not { } householdId) return Results.Unauthorized();
 
             var cached = await db.YnabAccountCache.Where(a => a.HouseholdId == householdId).OrderBy(a => a.Name).ToListAsync();
             if (cached.Count > 0)
@@ -91,10 +89,9 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapPost("/accounts/refresh", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ClaimsPrincipal caller) =>
+        group.MapPost("/accounts/refresh", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ICurrentHousehold household) =>
         {
-            var householdId = await db.GetCallerHouseholdIdAsync(caller);
-            if (householdId is null) return Results.Unauthorized();
+            if (household.HouseholdId is not { } householdId) return Results.Unauthorized();
 
             var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))
@@ -115,10 +112,9 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapGet("/categories/cached", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ClaimsPrincipal caller) =>
+        group.MapGet("/categories/cached", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ICurrentHousehold household) =>
         {
-            var householdId = await db.GetCallerHouseholdIdAsync(caller);
-            if (householdId is null) return Results.Unauthorized();
+            if (household.HouseholdId is not { } householdId) return Results.Unauthorized();
 
             var cached = await db.YnabCategoryCache.Where(c => c.HouseholdId == householdId).OrderBy(c => c.CategoryGroupName).ThenBy(c => c.Name).ToListAsync();
             if (cached.Count > 0)
@@ -143,10 +139,9 @@ public static class YnabProxyEndpoints
             }
         });
 
-        group.MapPost("/categories/refresh", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ClaimsPrincipal caller) =>
+        group.MapPost("/categories/refresh", async (AppDbContext db, YnabTokenService tokenService, IYnabClient ynab, ICurrentHousehold household) =>
         {
-            var householdId = await db.GetCallerHouseholdIdAsync(caller);
-            if (householdId is null) return Results.Unauthorized();
+            if (household.HouseholdId is not { } householdId) return Results.Unauthorized();
 
             var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is null || string.IsNullOrWhiteSpace(settings.PlanId))

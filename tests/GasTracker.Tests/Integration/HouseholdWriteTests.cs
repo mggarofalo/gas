@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using GasTracker.Core.Entities;
 using GasTracker.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +10,7 @@ namespace GasTracker.Tests.Integration;
 
 /// <summary>
 /// Writes that are keyed per household must not touch another household's rows.
-/// Full read isolation is covered by the scoping work (GAS-98).
+/// Read and endpoint isolation is covered by <see cref="HouseholdIsolationTests"/>.
 /// </summary>
 public class HouseholdWriteTests : IClassFixture<TestWebAppFactory>
 {
@@ -22,8 +21,8 @@ public class HouseholdWriteTests : IClassFixture<TestWebAppFactory>
     [Fact]
     public async Task YnabToken_IsStoredPerHousehold()
     {
-        var (clientA, householdA) = await ClientInNewHouseholdAsync("ynab-a");
-        var (clientB, householdB) = await ClientInNewHouseholdAsync("ynab-b");
+        var (clientA, householdA) = await _factory.CreateClientInNewHouseholdAsync("ynab-a");
+        var (clientB, householdB) = await _factory.CreateClientInNewHouseholdAsync("ynab-b");
 
         (await clientA.PutAsJsonAsync("/api/settings/ynab/token", new { apiToken = "token-a-1234" })).EnsureSuccessStatusCode();
         var tokenA = await StoredTokenAsync(householdA);
@@ -38,8 +37,8 @@ public class HouseholdWriteTests : IClassFixture<TestWebAppFactory>
     {
         // The mapping PUT itself uses ExecuteUpdate, which the in-memory provider cannot run,
         // so the duplicate memo names are seeded directly.
-        var (clientA, householdA) = await ClientInNewHouseholdAsync("memo-a");
-        var (_, householdB) = await ClientInNewHouseholdAsync("memo-b");
+        var (clientA, householdA) = await _factory.CreateClientInNewHouseholdAsync("memo-a");
+        var (_, householdB) = await _factory.CreateClientInNewHouseholdAsync("memo-b");
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -50,32 +49,6 @@ public class HouseholdWriteTests : IClassFixture<TestWebAppFactory>
         }
 
         (await clientA.GetAsync("/api/ynab/imports")).StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    private async Task<(HttpClient Client, Guid HouseholdId)> ClientInNewHouseholdAsync(string name)
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var household = new Household { Name = name };
-        db.Households.Add(household);
-        await db.SaveChangesAsync();
-
-        var user = new ApplicationUser
-        {
-            UserName = $"{name}@example.com",
-            Email = $"{name}@example.com",
-            EmailConfirmed = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-            HouseholdId = household.Id,
-            HouseholdRole = HouseholdRole.Owner,
-        };
-        (await userManager.CreateAsync(user, TestWebAppFactory.TestUserPassword)).Succeeded.Should().BeTrue();
-
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _factory.GenerateTestToken(user));
-        return (client, household.Id);
     }
 
     private async Task<Guid> AddVehicleAsync(Guid householdId)

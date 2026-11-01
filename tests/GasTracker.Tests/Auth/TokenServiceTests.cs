@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using FluentAssertions;
 using GasTracker.Core.Entities;
+using GasTracker.Core.Interfaces;
 using GasTracker.Infrastructure.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -89,6 +90,28 @@ public class TokenServiceTests
         jwt.Claims.First(c => c.Type == JwtRegisteredClaimNames.Email).Value.Should().Be("test@example.com");
         jwt.Claims.First(c => c.Type == "must_reset_password").Value.Should().Be("true");
         jwt.Claims.First(c => c.Type == JwtRegisteredClaimNames.Jti).Value.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task GenerateTokensAsync_JwtCarriesTheUsersHousehold()
+    {
+        var userManager = CreateMockUserManager();
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = "test@example.com",
+            Email = "test@example.com",
+            NormalizedEmail = "TEST@EXAMPLE.COM",
+            NormalizedUserName = "TEST@EXAMPLE.COM",
+            HouseholdId = Guid.NewGuid(),
+        };
+        await userManager.CreateAsync(user, "TestPassword123!!");
+        var service = CreateService(userManager);
+
+        var (accessToken, _, _) = await service.GenerateTokensAsync(user);
+
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        jwt.Claims.Single(c => c.Type == HouseholdClaimTypes.HouseholdId).Value.Should().Be(user.HouseholdId.ToString());
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
     }
 
     public async Task<Vehicle?> GetByIdAsync(Guid id)
-        => await db.Vehicles.FindAsync(id);
+        => await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
 
     public async Task<Vehicle> CreateAsync(Vehicle vehicle)
     {

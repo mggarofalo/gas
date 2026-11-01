@@ -39,6 +39,8 @@ public static class YnabBackfillEndpoints
                 if (vehicle is null)
                     return Results.BadRequest(new { error = $"Vehicle UUID '{id}' for '{name}' not found" });
             }
+            if (req.DefaultVehicleId is { } defaultVehicleId && await vehicleRepo.GetByIdAsync(defaultVehicleId) is null)
+                return Results.BadRequest(new { error = $"Default vehicle UUID '{defaultVehicleId}' not found" });
 
             // Fetch transactions from YNAB
             List<YnabTransactionRead> transactions;

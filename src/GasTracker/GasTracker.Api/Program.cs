@@ -1,5 +1,6 @@
 using System.Text;
 using FluentValidation;
+using GasTracker.Api;
 using GasTracker.Api.Endpoints;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
@@ -29,7 +30,9 @@ var dpKeysDir = new DirectoryInfo(dpKeysPath);
 dpKeysDir.Create();
 dpBuilder.PersistKeysToFileSystem(dpKeysDir);
 
-// Database
+// Database (reads are scoped to the caller's household through ICurrentHousehold)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentHousehold, HttpCurrentHousehold>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
            .UseSnakeCaseNamingConvention());
@@ -64,6 +67,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "gas-api",
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "gas-app",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        };
+        // Tokens issued before household scoping carry no household; a 401 makes the client
+        // refresh, and the refreshed token has the claim.
+        opts.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = ctx =>
+            {
+                if (!Guid.TryParse(ctx.Principal?.FindFirst(HouseholdClaimTypes.HouseholdId)?.Value, out _))
+                    ctx.Fail("Token has no household");
+                return Task.CompletedTask;
+            },
         };
     });
 builder.Services.AddAuthorization();
