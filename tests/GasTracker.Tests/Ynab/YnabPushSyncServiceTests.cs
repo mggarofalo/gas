@@ -251,12 +251,33 @@ public class YnabPushSyncServiceTests : IDisposable
         settings.HouseholdId = Guid.NewGuid();
         await _db.SaveChangesAsync();
         _transactions.Add(new YnabTransactionRead("bank-id", "2026-10-11", -40000, "Shell",
-            "Sienna 87 3.299 12400", "category", "account", null));
+            "Sienna, 87, $3.299, 12400", "category", "account", null));
 
         var result = await new YnabPullSyncService(_db, _ynab.Object).PullAsync("token", "plan", categoryId: "category");
 
         result.NewImports.Should().Be(1);
         (await _db.YnabImports.SingleAsync()).HouseholdId.Should().Be(settings.HouseholdId);
+    }
+
+    [Fact]
+    public async Task Pull_ResolvesMemoNamesWithinTheConnectionsHouseholdOnly()
+    {
+        await SeedAsync();
+        var settings = await _db.YnabSettings.SingleAsync();
+        settings.HouseholdId = Guid.NewGuid();
+        var ownVehicle = new Vehicle { HouseholdId = settings.HouseholdId, Year = 2022, Make = "Toyota", Model = "Sienna" };
+        var otherVehicle = new Vehicle { HouseholdId = Guid.NewGuid(), Year = 2010, Make = "Toyota", Model = "Sienna" };
+        _db.VehicleMemoMappings.AddRange(
+            new VehicleMemoMapping { HouseholdId = settings.HouseholdId, MemoName = "Sienna", Vehicle = ownVehicle },
+            new VehicleMemoMapping { HouseholdId = otherVehicle.HouseholdId, MemoName = "Sienna", Vehicle = otherVehicle });
+        await _db.SaveChangesAsync();
+        _transactions.Add(new YnabTransactionRead("bank-id", "2026-10-11", -40000, "Shell",
+            "Sienna, 87, $3.299, 12400", "category", "account", null));
+
+        var result = await new YnabPullSyncService(_db, _ynab.Object).PullAsync("token", "plan", categoryId: "category");
+
+        result.NewImports.Should().Be(1);
+        (await _db.YnabImports.SingleAsync()).VehicleId.Should().Be(ownVehicle.Id);
     }
 
     public void Dispose() => _db.Dispose();

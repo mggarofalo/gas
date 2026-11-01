@@ -29,6 +29,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
 
         // Bulk-load existing IDs for dedup
         var existingYnabTxIds = await db.YnabImports
+            .Where(i => i.HouseholdId == settings.HouseholdId)
             .Select(i => i.YnabTransactionId)
             .ToHashSetAsync();
         var existingFillUpYnabIds = await db.FillUps
@@ -38,6 +39,7 @@ public class YnabPullSyncService(AppDbContext db, IYnabClient ynab)
 
         // Load memo-to-vehicle mappings for auto-resolution
         var memoMappings = await db.VehicleMemoMappings
+            .Where(m => m.HouseholdId == settings.HouseholdId)
             .ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
         var knownVehicleNames = memoMappings.Keys.ToHashSet();
 
