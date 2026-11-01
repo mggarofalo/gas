@@ -7,6 +7,7 @@ namespace GasTracker.Infrastructure.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
+    public DbSet<Household> Households => Set<Household>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<FillUp> FillUps => Set<FillUp>();
     public DbSet<YnabSettings> YnabSettings => Set<YnabSettings>();

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using GasTracker.Core.Entities;
 using GasTracker.Infrastructure.Auth;
+using GasTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,11 +10,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GasTracker.Tests.Auth;
 
-public class AdminSeederTests
+public class HouseholdBootstrapperTests
 {
     private static (IServiceProvider, UserManager<ApplicationUser>) CreateServices(Dictionary<string, string?> config)
+        => CreateServices(config, TestDbContextFactory.Create());
+
+    private static (IServiceProvider, UserManager<ApplicationUser>) CreateServices(Dictionary<string, string?> config, AppDbContext db)
     {
-        var db = TestDbContextFactory.Create();
         var store = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.UserStore<ApplicationUser>(db);
         var userManager = new UserManager<ApplicationUser>(
             store, null!, new PasswordHasher<ApplicationUser>(),
@@ -29,6 +32,7 @@ public class AdminSeederTests
 
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
+        services.AddSingleton(db);
         services.AddSingleton(userManager);
         services.AddSingleton<UserManager<ApplicationUser>>(userManager);
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
@@ -39,7 +43,7 @@ public class AdminSeederTests
     }
 
     [Fact]
-    public async Task SeedAsync_CreatesAdminUser_WhenNoneExists()
+    public async Task BootstrapAsync_CreatesAdminUser_WhenNoneExists()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>
         {
@@ -47,7 +51,7 @@ public class AdminSeederTests
             ["AdminSeed:Password"] = "StrongPassword123!!",
         });
 
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
 
         var user = await userManager.FindByEmailAsync("admin@test.com");
         user.Should().NotBeNull();
@@ -56,7 +60,77 @@ public class AdminSeederTests
     }
 
     [Fact]
-    public async Task SeedAsync_SkipsIfUserAlreadyExists()
+    public async Task BootstrapAsync_CreatesOneHouseholdOwnedByTheBootstrapUser()
+    {
+        var db = TestDbContextFactory.Create();
+        var (provider, userManager) = CreateServices(ValidConfig(), db);
+
+        await HouseholdBootstrapper.BootstrapAsync(provider);
+
+        var household = db.Households.Should().ContainSingle().Subject;
+        household.Name.Should().Be(HouseholdBootstrapper.DefaultHouseholdName);
+        var user = await userManager.FindByEmailAsync("admin@test.com");
+        user!.HouseholdId.Should().Be(household.Id);
+        user.HouseholdRole.Should().Be(HouseholdRole.Owner);
+    }
+
+    [Fact]
+    public async Task BootstrapAsync_UsesConfiguredHouseholdName()
+    {
+        var db = TestDbContextFactory.Create();
+        var config = ValidConfig();
+        config["AdminSeed:HouseholdName"] = "Garofalo Garage";
+        var (provider, _) = CreateServices(config, db);
+
+        await HouseholdBootstrapper.BootstrapAsync(provider);
+
+        db.Households.Should().ContainSingle().Which.Name.Should().Be("Garofalo Garage");
+    }
+
+    [Fact]
+    public async Task BootstrapAsync_JoinsBackfilledHouseholdInsteadOfCreatingAnother()
+    {
+        var db = TestDbContextFactory.Create();
+        var backfilled = new Household { Name = "Default" };
+        db.Households.Add(backfilled);
+        db.Vehicles.Add(new Vehicle { Household = backfilled, Year = 2020, Make = "Honda", Model = "Odyssey" });
+        await db.SaveChangesAsync();
+        var (provider, userManager) = CreateServices(ValidConfig(), db);
+
+        await HouseholdBootstrapper.BootstrapAsync(provider);
+
+        db.Households.Should().ContainSingle();
+        var user = await userManager.FindByEmailAsync("admin@test.com");
+        user!.HouseholdId.Should().Be(backfilled.Id);
+        user.HouseholdRole.Should().Be(HouseholdRole.Owner);
+    }
+
+    [Fact]
+    public async Task BootstrapAsync_SkipsWhenAnyUserExists_EvenWithADifferentEmail()
+    {
+        var db = TestDbContextFactory.Create();
+        var (provider, userManager) = CreateServices(ValidConfig(), db);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
+
+        var (otherProvider, _) = CreateServices(new Dictionary<string, string?>
+        {
+            ["AdminSeed:Email"] = "someone-else@test.com",
+            ["AdminSeed:Password"] = "StrongPassword123!!",
+        }, db);
+        await HouseholdBootstrapper.BootstrapAsync(otherProvider);
+
+        userManager.Users.Should().ContainSingle().Which.Email.Should().Be("admin@test.com");
+        db.Households.Should().ContainSingle();
+    }
+
+    private static Dictionary<string, string?> ValidConfig() => new()
+    {
+        ["AdminSeed:Email"] = "admin@test.com",
+        ["AdminSeed:Password"] = "StrongPassword123!!",
+    };
+
+    [Fact]
+    public async Task BootstrapAsync_SkipsIfUserAlreadyExists()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>
         {
@@ -65,43 +139,44 @@ public class AdminSeederTests
         });
 
         // Seed once
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
         var user = await userManager.FindByEmailAsync("admin@test.com");
         var createdAt = user!.CreatedAt;
 
         // Seed again — should skip
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
         var same = await userManager.FindByEmailAsync("admin@test.com");
         same!.CreatedAt.Should().Be(createdAt);
     }
 
     [Fact]
-    public async Task SeedAsync_SkipsIfEmailNotConfigured()
+    public async Task BootstrapAsync_SkipsIfEmailNotConfigured()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>());
 
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
 
         var users = userManager.Users.ToList();
         users.Should().BeEmpty();
+        provider.GetRequiredService<AppDbContext>().Households.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task SeedAsync_SkipsIfPasswordNotConfigured()
+    public async Task BootstrapAsync_SkipsIfPasswordNotConfigured()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>
         {
             ["AdminSeed:Email"] = "admin@test.com",
         });
 
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
 
         var user = await userManager.FindByEmailAsync("admin@test.com");
         user.Should().BeNull();
     }
 
     [Fact]
-    public async Task SeedAsync_DoesNotModifyExistingUser()
+    public async Task BootstrapAsync_DoesNotModifyExistingUser()
     {
         var (provider, userManager) = CreateServices(new Dictionary<string, string?>
         {
@@ -109,7 +184,7 @@ public class AdminSeederTests
             ["AdminSeed:Password"] = "StrongPassword123!!",
         });
 
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
         var user = await userManager.FindByEmailAsync("admin@test.com");
 
         // Simulate user changing their password
@@ -120,7 +195,7 @@ public class AdminSeederTests
         await userManager.UpdateAsync(user);
 
         // Seed again — should not touch the user at all
-        await AdminSeeder.SeedAsync(provider);
+        await HouseholdBootstrapper.BootstrapAsync(provider);
         var same = await userManager.FindByEmailAsync("admin@test.com");
         same!.MustResetPassword.Should().BeFalse();
         (await userManager.CheckPasswordAsync(same, "UserChosenPassword99!!")).Should().BeTrue();

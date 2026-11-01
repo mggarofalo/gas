@@ -12,11 +12,17 @@ public class VehicleMemoMappingConfiguration : IEntityTypeConfiguration<VehicleM
         builder.Property(m => m.Id).HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(m => m.MemoName).HasMaxLength(200).IsRequired();
-        builder.HasIndex(m => m.MemoName).IsUnique();
+        // Memo names are unique per household; the composite index also serves household lookups.
+        builder.HasIndex(m => new { m.HouseholdId, m.MemoName }).IsUnique();
 
         builder.HasOne(m => m.Vehicle)
             .WithMany()
             .HasForeignKey(m => m.VehicleId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(m => m.Household)
+            .WithMany()
+            .HasForeignKey(m => m.HouseholdId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

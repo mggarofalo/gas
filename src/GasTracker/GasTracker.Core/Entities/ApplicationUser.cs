@@ -11,4 +11,8 @@ public class ApplicationUser : IdentityUser
     public bool MustResetPassword { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
+
+    public Guid HouseholdId { get; set; }
+    public HouseholdRole HouseholdRole { get; set; } = HouseholdRole.Member;
+    public Household Household { get; set; } = null!;
 }

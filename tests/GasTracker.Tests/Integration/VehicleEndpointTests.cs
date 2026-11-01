@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using GasTracker.Infrastructure.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GasTracker.Tests.Integration;
 
@@ -38,6 +40,20 @@ public class VehicleEndpointTests : IClassFixture<TestWebAppFactory>
         body.GetProperty("make").GetString().Should().Be("Toyota");
         body.GetProperty("model").GetString().Should().Be("Camry");
         body.GetProperty("isActive").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateVehicle_StampsTheCallersHousehold()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync();
+        var user = await _factory.SeedTestUserAsync();
+
+        var response = await client.PostAsJsonAsync("/api/vehicles", new { year = (short)2019, make = "Subaru", model = "Outback" });
+        var id = Guid.Parse((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Vehicles.FindAsync(id))!.HouseholdId.Should().Be(user.HouseholdId).And.NotBe(Guid.Empty);
     }
 
     [Fact]

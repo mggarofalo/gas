@@ -5,6 +5,7 @@ namespace GasTracker.Core.Entities;
 public class YnabImport : ITimestamped
 {
     public Guid Id { get; set; }
+    public Guid HouseholdId { get; set; }
     public required string YnabTransactionId { get; set; }
     public DateOnly Date { get; set; }
     public required string PayeeName { get; set; }
@@ -23,4 +24,6 @@ public class YnabImport : ITimestamped
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    public Household Household { get; set; } = null!;
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GasTracker.Core.Entities;
 using GasTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.DataProtection;
@@ -8,16 +9,19 @@ namespace GasTracker.Api.Endpoints;
 public static class YnabSettingsEndpoints
 {
     private const string Purpose = "YnabApiToken";
-    // Fixed singleton ID prevents duplicate inserts from concurrent requests
-    private static readonly Guid SingletonId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     public static void MapYnabSettingsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/settings/ynab").WithTags("YnabSettings").RequireAuthorization();
 
-        group.MapGet("/", async (AppDbContext db, IDataProtectionProvider dp) =>
+        // Each household has its own connection; the unique household_id index rejects
+        // a duplicate insert from concurrent first-time token saves.
+        group.MapGet("/", async (AppDbContext db, IDataProtectionProvider dp, ClaimsPrincipal caller) =>
         {
-            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
+            var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is null)
                 return Results.Ok(new { configured = false });
 
@@ -48,17 +52,20 @@ public static class YnabSettingsEndpoints
         });
 
         // Set/replace the YNAB API token (separate from settings to avoid accidental overwrite)
-        group.MapPut("/token", async (TokenRequest req, AppDbContext db, IDataProtectionProvider dp) =>
+        group.MapPut("/token", async (TokenRequest req, AppDbContext db, IDataProtectionProvider dp, ClaimsPrincipal caller) =>
         {
             if (string.IsNullOrWhiteSpace(req.ApiToken))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                     { ["apiToken"] = ["API token is required"] });
 
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
             var protector = dp.CreateProtector(Purpose);
-            var settings = await db.YnabSettings.FindAsync(SingletonId);
+            var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is null)
             {
-                settings = new YnabSettings { Id = SingletonId, ApiToken = protector.Protect(req.ApiToken) };
+                settings = new YnabSettings { HouseholdId = householdId.Value, ApiToken = protector.Protect(req.ApiToken) };
                 db.YnabSettings.Add(settings);
             }
             else
@@ -71,9 +78,12 @@ public static class YnabSettingsEndpoints
         });
 
         // Update settings (plan, account, category, enabled) — never touches the token
-        group.MapPut("/", async (YnabSettingsRequest req, AppDbContext db) =>
+        group.MapPut("/", async (YnabSettingsRequest req, AppDbContext db, ClaimsPrincipal caller) =>
         {
-            var settings = await db.YnabSettings.FindAsync(SingletonId);
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
+            var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is null)
                 return Results.BadRequest(new { error = "Set a token first via PUT /api/settings/ynab/token" });
 
@@ -89,9 +99,12 @@ public static class YnabSettingsEndpoints
             return Results.Ok(new { configured = true, settings.Enabled });
         });
 
-        group.MapDelete("/", async (AppDbContext db) =>
+        group.MapDelete("/", async (AppDbContext db, ClaimsPrincipal caller) =>
         {
-            var settings = await db.YnabSettings.FirstOrDefaultAsync();
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
+            var settings = await db.YnabSettings.FirstOrDefaultAsync(s => s.HouseholdId == householdId);
             if (settings is not null)
             {
                 db.YnabSettings.Remove(settings);

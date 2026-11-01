@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GasTracker.Core;
 using GasTracker.Core.Entities;
 using GasTracker.Core.Interfaces;
@@ -42,14 +43,20 @@ public static class YnabImportEndpoints
         });
 
         // List pending imports — auto-applies memo mappings on read
-        group.MapGet("/", async (string? status, int? page, int? pageSize, AppDbContext db) =>
+        group.MapGet("/", async (string? status, int? page, int? pageSize, AppDbContext db, ClaimsPrincipal caller) =>
         {
+            var householdId = await db.GetCallerHouseholdIdAsync(caller);
+            if (householdId is null) return Results.Unauthorized();
+
             var filterStatus = status ?? "pending";
             var p = page ?? 1;
             var ps = Math.Clamp(pageSize ?? 50, 1, 200);
 
             // Re-parse memos, apply vehicle mappings, and calculate gallons
-            var memoMappings = await db.VehicleMemoMappings.ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
+            // Memo names are unique only within a household.
+            var memoMappings = await db.VehicleMemoMappings
+                .Where(m => m.HouseholdId == householdId)
+                .ToDictionaryAsync(m => m.MemoName, m => m.VehicleId);
             var knownVehicleNames = memoMappings.Keys.ToHashSet();
 
             var needsFixup = await db.YnabImports
@@ -223,19 +230,24 @@ public static class YnabImportEndpoints
             if (string.IsNullOrWhiteSpace(req.MemoName))
                 return Results.BadRequest(new { error = "memoName is required" });
 
-            var existing = await db.VehicleMemoMappings.FirstOrDefaultAsync(m => m.MemoName == req.MemoName);
+            var vehicle = await db.Vehicles.FindAsync(req.VehicleId);
+            if (vehicle is null)
+                return Results.BadRequest(new { error = "Vehicle not found" });
+
+            var existing = await db.VehicleMemoMappings
+                .FirstOrDefaultAsync(m => m.HouseholdId == vehicle.HouseholdId && m.MemoName == req.MemoName);
             if (existing is not null)
             {
                 existing.VehicleId = req.VehicleId;
             }
             else
             {
-                db.VehicleMemoMappings.Add(new VehicleMemoMapping { MemoName = req.MemoName, VehicleId = req.VehicleId });
+                db.VehicleMemoMappings.Add(new VehicleMemoMapping { HouseholdId = vehicle.HouseholdId, MemoName = req.MemoName, VehicleId = req.VehicleId });
             }
 
             // Retroactively update pending imports with matching vehicle name
             var updatedCount = await db.YnabImports
-                .Where(i => i.Status == "pending" && i.VehicleName == req.MemoName && i.VehicleId == null)
+                .Where(i => i.HouseholdId == vehicle.HouseholdId && i.Status == "pending" && i.VehicleName == req.MemoName && i.VehicleId == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.VehicleId, req.VehicleId));
 
             await db.SaveChangesAsync();
