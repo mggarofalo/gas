@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.31.0](https://github.com/mggarofalo/gas/compare/v1.30.1...v1.31.0) (2026-11-01)
+
+
+### Features
+
+* add Household tenancy data model and backfill migration (GAS-97) ([#146](https://github.com/mggarofalo/gas/issues/146)) ([ff8f865](https://github.com/mggarofalo/gas/commit/ff8f86513017b7dc66369069474a70489771bc42))
+* **api:** enforce household isolation on every endpoint ([#148](https://github.com/mggarofalo/gas/issues/148)) ([e79987c](https://github.com/mggarofalo/gas/commit/e79987c943e0dc242f526bb65737c4cfadae6307))
+
+
+### Bug Fixes
+
+* restore EF migrations deleted in the TDD rebuild so fresh databases get a schema ([ff8f865](https://github.com/mggarofalo/gas/commit/ff8f86513017b7dc66369069474a70489771bc42))
+
 ## [1.30.1](https://github.com/mggarofalo/gas/compare/v1.30.0...v1.30.1) (2026-10-10)
 
 
